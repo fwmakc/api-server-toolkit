@@ -1,0 +1,32 @@
+import { BaseEntity, DeepPartial, Repository } from 'typeorm';
+import { RelationsDto } from './dto/relations.dto';
+import { CommonDto } from './common.dto';
+import { FindDto } from './dto/find.dto';
+import { FindManyDto } from './dto/find_many.dto';
+import { FindOneDto } from './dto/find_one.dto';
+import { BindDto } from './dto/bind.dto';
+export declare class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
+    protected readonly repository: Repository<Entity>;
+    find(find?: FindDto, bind?: BindDto): Promise<Entity[]>;
+    findFirst(find: FindDto, bind?: BindDto): Promise<Entity>;
+    findMany(findMany: FindManyDto, bind?: BindDto): Promise<Entity[]>;
+    findOne(findOne: FindOneDto, bind?: BindDto): Promise<Entity>;
+    count(find: FindDto, bind?: BindDto): Promise<number>;
+    countDistinct(field: string, find: FindDto): Promise<number>;
+    csv(find: FindDto, filename: string, bind?: BindDto): Promise<any>;
+    create(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
+    createEntity(entity: DeepPartial<any>): Promise<any>;
+    getUniqueColumns(): Array<string>;
+    findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
+    upsert(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
+    update(id: number, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
+    updateEntity(entity: DeepPartial<any>): Promise<any>;
+    getIdType(): string;
+    private resolveBindRelationId;
+    remove(id: number, bind?: BindDto): Promise<boolean>;
+    sortPosition(field: string, find: FindDto, bind?: BindDto): Promise<boolean>;
+    movePosition(id: number, field: string, position: number, bind?: BindDto): Promise<boolean>;
+    bind(entrie: any, data: any): BindDto;
+    private validatePositionField;
+    error(e: any): void;
+}
