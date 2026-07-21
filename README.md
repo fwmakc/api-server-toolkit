@@ -219,6 +219,51 @@ SELECT * FROM posts
   WHERE organizations.account_id = <caller_account_id>
 ```
 
+#### Enrollment-Based Access (accountTable)
+
+When the connection from a resource to the caller's account spans multiple hops
+through a junction table (e.g., enrollments), use the `accountTable` option at
+the controller level instead of per-operation `bindPath`:
+
+```typescript
+@EntityController({
+  entity: CourseEntity,
+  dto: CourseDto,
+  accountTable: 'enrolls.student.account',
+  operations: { read: 'owner', create: 'admin', update: 'admin', delete: 'admin' },
+})
+```
+
+This sets the bind path for **all** `owner`-level operations AND the `self`
+endpoint. The entity chain:
+
+```
+courses → enrolls → students → accounts
+```
+
+Generated SQL (PostgreSQL):
+
+```sql
+SELECT * FROM courses
+  JOIN enrolls ON enrolls.course_id = courses.id
+  JOIN students ON enrolls.student_id = students.id
+  JOIN accounts ON students.email = accounts.username
+  WHERE accounts.id = $1            -- caller's account id
+```
+
+**Entity setup requirements:**
+
+1. The target entity (`CourseEntity`) must have a relation path resolvable
+   through dot-notation (`enrolls.student.account`).
+2. The junction entity (`StudentEntity`) must link to `AccountEntity` via a
+   non-PK column (e.g., `@JoinColumn({ name: 'email', referencedColumnName: 'username' })`).
+3. The referenced account column (`username`) must have a **UNIQUE** constraint
+   for the foreign key to be created by PostgreSQL.
+
+**Effect:** a caller only sees records they're linked to through the enrollment
+chain, regardless of how many intermediate tables exist. Superusers bypass the
+chain entirely (`allow: true`).
+
 ---
 
 ## Guards & Decorators
