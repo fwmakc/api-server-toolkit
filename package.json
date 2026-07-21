@@ -1,7 +1,7 @@
 {
-  "name": "@lms/common",
+  "name": "@core/common",
   "version": "1.0.0",
-  "description": "Shared CRUD engine and event bus for LMS microservices",
+  "description": "Shared CRUD engine, decorators, guards, and event bus for microservices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
