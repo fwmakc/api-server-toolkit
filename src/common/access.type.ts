@@ -20,6 +20,10 @@ export interface OperationConfig {
   delete: OperationAccess;
 }
 
+export interface EntityPermissionConfig extends OperationConfig {
+  accountTable?: string;
+}
+
 export interface EntityControllerOptions {
   name: string;
   dto: any;
@@ -27,11 +31,12 @@ export interface EntityControllerOptions {
   accountTable?: string;
   accountField?: string;
   operations?: Partial<OperationConfig>;
+  relations?: string[];
 }
 
 export function normalizeAccess(
   access: OperationAccess | undefined,
-  fallback: AccessLevel = 'public',
+  fallback: AccessLevel = 'closed',
 ): AccessLevel {
   if (access === undefined) return fallback;
   if (typeof access === 'string') return access;

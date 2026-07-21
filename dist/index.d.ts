@@ -64,6 +64,7 @@ export * from './common/service/dynamic.service';
 export * from './common/service/dynamic.where.service';
 export * from './common/service/json.service';
 export * from './common/service/like.service';
+export * from './common/service/nested_filter.service';
 export * from './common/service/param_symbol.service';
 export * from './common/service/private_fields.service';
 export * from './common/service/quotes.service';

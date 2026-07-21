@@ -18,18 +18,21 @@ function canRead(level, bind, dto) {
             {
                 const { id, key = 'id', name = 'account' } = bind;
                 let ownerEntity;
-                if (name.includes('.')) {
+                if (name === '') {
+                    ownerEntity = dto;
+                }
+                else if (name.includes('.')) {
                     ownerEntity = name
                         .split('.')
                         .reduce((acc, segment) => acc === null || acc === void 0 ? void 0 : acc[segment], dto);
                     if (!ownerEntity)
-                        return true;
+                        return false;
                 }
                 else {
                     ownerEntity = dto === null || dto === void 0 ? void 0 : dto[name];
                 }
                 const ownerId = ownerEntity === null || ownerEntity === void 0 ? void 0 : ownerEntity[key];
-                const ownerIdFallback = dto === null || dto === void 0 ? void 0 : dto[name + 'Id'];
+                const ownerIdFallback = name === '' ? undefined : dto === null || dto === void 0 ? void 0 : dto[name + 'Id'];
                 return (String(ownerId) === String(id) ||
                     String(ownerIdFallback) === String(id));
             }
@@ -70,6 +73,15 @@ const removePrivateFields = (result, bind) => {
     return result;
 };
 exports.removePrivateFields = removePrivateFields;
+function computeNestedBind(bind, key) {
+    if (!bind)
+        return bind;
+    const name = bind.name || '';
+    if (name.startsWith(key + '.')) {
+        return { ...bind, name: name.slice(key.length + 1) };
+    }
+    return { ...bind, name: '' };
+}
 const processDto = (dto, bind, seen) => {
     var _a;
     if (!dto || typeof dto !== 'object' || seen.has(dto))
@@ -88,13 +100,14 @@ const processDto = (dto, bind, seen) => {
         }
         const value = dto[key];
         if (value && typeof value === 'object') {
+            const nestedBind = computeNestedBind(bind, key);
             if (Array.isArray(value)) {
-                value.forEach((item) => item && processDto(item, bind, seen));
+                value.forEach((item) => item && processDto(item, nestedBind, seen));
             }
             else if (value.constructor &&
                 value.constructor !== Object &&
                 value.constructor !== Date) {
-                processDto(value, bind, seen);
+                processDto(value, nestedBind, seen);
             }
         }
     }

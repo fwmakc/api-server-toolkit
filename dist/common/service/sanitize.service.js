@@ -65,7 +65,7 @@ function sanitizeRelationItem(item, metadata, config, bind, seen) {
         return { id: item.id };
     }
     if (config) {
-        const createLevel = (0, access_type_1.normalizeAccess)(config.create, 'public');
+        const createLevel = (0, access_type_1.normalizeAccess)(config.create, 'closed');
         if (canCreate(createLevel, bind)) {
             sanitizeEntity(item, metadata, bind, seen);
             return item;

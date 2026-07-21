@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   And,
   BaseEntity,
@@ -25,6 +25,7 @@ import {
   stripWriteFields,
 } from './service/private_fields.service';
 import { sanitizeForSave } from './service/sanitize.service';
+import { filterNestedRelations } from './service/nested_filter.service';
 import { searchService } from './service/search.service';
 import { bind } from './service/bind.service';
 import { CsvService } from './service/csv.service';
@@ -85,7 +86,39 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     try {
       let result;
 
-      result = await this.repository.find(params);
+      const isMultiHop = id !== undefined && !allow && name.includes('.');
+      const hasPagination = !!(take || skip);
+
+      if (isMultiHop && hasPagination) {
+        const idResults = await this.repository.find({
+          ...otherParams,
+          where,
+          select: { id: true } as any,
+        });
+        const uniqueIds: any[] = [];
+        const seenIds = new Set();
+        for (const r of idResults as any[]) {
+          const rid = String(r.id);
+          if (!seenIds.has(rid)) {
+            seenIds.add(rid);
+            uniqueIds.push(r.id);
+          }
+        }
+        const offsetNum = skip || 0;
+        const limitNum = take || uniqueIds.length;
+        const paginatedIds = uniqueIds.slice(offsetNum, offsetNum + limitNum);
+        if (paginatedIds.length === 0) {
+          result = [];
+        } else {
+          result = await this.repository.find({
+            ...otherParams,
+            relations: relationNames.length > 0 ? relationNames : undefined,
+            where: { id: In(paginatedIds) } as any,
+          });
+        }
+      } else {
+        result = await this.repository.find(params);
+      }
       result = relationsOrder(result, relations);
 
       if (search) {
@@ -106,6 +139,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
         });
       }
 
+      filterNestedRelations(result, bind);
       result = removePrivateFields(result, bind);
       return result;
     } catch (e) {
@@ -211,12 +245,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     // delete dto.updatedAt;
 
     if (bind.id !== undefined) {
-      const relationName = bind.name || 'account';
-      if (!relationName.includes('.')) {
-        const resolvedId = await this.resolveBindRelationId(bind);
-        if (resolvedId !== null) {
-          dto[relationName] = { id: resolvedId };
-        }
+      const autoAssign = await this.resolveAutoAssign(bind);
+      if (autoAssign) {
+        dto[autoAssign.name] = { id: autoAssign.id };
       }
     }
 
@@ -286,12 +317,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const entity: DeepPartial<any> = { ...dto };
 
     if (bind.id !== undefined) {
-      const relationName = bind.name || 'account';
-      if (!relationName.includes('.')) {
-        const resolvedId = await this.resolveBindRelationId(bind);
-        if (resolvedId !== null) {
-          entity[relationName] = { id: resolvedId };
-        }
+      const autoAssign = await this.resolveAutoAssign(bind);
+      if (autoAssign) {
+        entity[autoAssign.name] = { id: autoAssign.id };
       }
     }
 
@@ -382,6 +410,58 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       where: { [key]: bind.id } as any,
     });
     return related ? related.id : null;
+  }
+
+  private async resolveAutoAssign(
+    bind: BindDto,
+  ): Promise<{ name: string; id: number | string } | null> {
+    if (bind.id === undefined) return null;
+
+    const name = bind.name || 'account';
+    const segments = name.split('.');
+
+    if (segments.length === 1) {
+      const resolvedId = await this.resolveBindRelationId(bind);
+      return resolvedId !== null
+        ? { name: segments[0], id: resolvedId }
+        : null;
+    }
+
+    const firstSegment = segments[0];
+    const relation = this.repository.metadata.relations.find(
+      (r) => r.propertyName === firstSegment,
+    );
+    if (!relation) return null;
+
+    if (
+      relation.relationType !== 'many-to-one' &&
+      relation.relationType !== 'one-to-one'
+    ) {
+      return null;
+    }
+
+    const key = bind.key || 'id';
+    let nestedWhere: any = { [key]: bind.id };
+    for (let i = segments.length - 1; i > 0; i--) {
+      nestedWhere = { [segments[i]]: nestedWhere };
+    }
+
+    const firstRepo = this.repository.manager.getRepository(
+      relation.inverseEntityMetadata.target,
+    );
+
+    const result = await firstRepo.findOne({
+      where: nestedWhere,
+      select: { id: true } as any,
+    });
+
+    if (!result) {
+      throw new NotFoundException(
+        `Entity not found for auto-assign path: ${firstSegment}`,
+      );
+    }
+
+    return { name: firstSegment, id: result.id };
   }
 
   async remove(id: number, bind: BindDto = { allow: true }): Promise<boolean> {

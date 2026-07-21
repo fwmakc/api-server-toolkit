@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeAccess = normalizeAccess;
 exports.getBindPath = getBindPath;
-function normalizeAccess(access, fallback = 'public') {
+function normalizeAccess(access, fallback = 'closed') {
     if (access === undefined)
         return fallback;
     if (typeof access === 'string')

@@ -80,6 +80,7 @@ __exportStar(require("./common/service/dynamic.service"), exports);
 __exportStar(require("./common/service/dynamic.where.service"), exports);
 __exportStar(require("./common/service/json.service"), exports);
 __exportStar(require("./common/service/like.service"), exports);
+__exportStar(require("./common/service/nested_filter.service"), exports);
 __exportStar(require("./common/service/param_symbol.service"), exports);
 __exportStar(require("./common/service/private_fields.service"), exports);
 __exportStar(require("./common/service/quotes.service"), exports);

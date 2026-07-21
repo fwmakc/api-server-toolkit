@@ -17,16 +17,19 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
       {
         const { id, key = 'id', name = 'account' } = bind;
         let ownerEntity;
-        if (name.includes('.')) {
+        if (name === '') {
+          ownerEntity = dto;
+        } else if (name.includes('.')) {
           ownerEntity = name
             .split('.')
             .reduce((acc: any, segment: string) => acc?.[segment], dto);
-          if (!ownerEntity) return true;
+          if (!ownerEntity) return false;
         } else {
           ownerEntity = dto?.[name];
         }
         const ownerId = ownerEntity?.[key];
-        const ownerIdFallback = dto?.[name + 'Id'];
+        const ownerIdFallback =
+          name === '' ? undefined : dto?.[name + 'Id'];
         return (
           String(ownerId) === String(id) ||
           String(ownerIdFallback) === String(id)
@@ -72,6 +75,15 @@ export const removePrivateFields = (
   return result;
 };
 
+function computeNestedBind(bind: any, key: string): any {
+  if (!bind) return bind;
+  const name = bind.name || '';
+  if (name.startsWith(key + '.')) {
+    return { ...bind, name: name.slice(key.length + 1) };
+  }
+  return { ...bind, name: '' };
+}
+
 const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
   if (!dto || typeof dto !== 'object' || seen.has(dto)) return;
   seen.add(dto);
@@ -92,14 +104,15 @@ const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
 
     const value = dto[key];
     if (value && typeof value === 'object') {
+      const nestedBind = computeNestedBind(bind, key);
       if (Array.isArray(value)) {
-        value.forEach((item) => item && processDto(item, bind, seen));
+        value.forEach((item) => item && processDto(item, nestedBind, seen));
       } else if (
         value.constructor &&
         value.constructor !== Object &&
         value.constructor !== Date
       ) {
-        processDto(value, bind, seen);
+        processDto(value, nestedBind, seen);
       }
     }
   }

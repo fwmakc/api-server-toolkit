@@ -50,20 +50,29 @@ function route(access, method, docName, dto) {
         decs.push((0, common_decorator_1.Doc)(docName, dto));
     return (0, common_1.applyDecorators)(...decs);
 }
+function filterRelations(relations, whitelist) {
+    if (!relations || !Array.isArray(relations))
+        return relations;
+    if (!whitelist || whitelist.length === 0)
+        return undefined;
+    return relations.filter((r) => r.name && whitelist.includes(r.name));
+}
 const EntityController = (options) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     const { name, dto, entity } = options;
     const accountTable = (_a = options.accountTable) !== null && _a !== void 0 ? _a : '';
     const accountField = (_b = options.accountField) !== null && _b !== void 0 ? _b : 'id';
-    const readAccess = (_d = (_c = options.operations) === null || _c === void 0 ? void 0 : _c.read) !== null && _d !== void 0 ? _d : 'public';
-    const createAccess = (_f = (_e = options.operations) === null || _e === void 0 ? void 0 : _e.create) !== null && _f !== void 0 ? _f : 'public';
-    const updateAccess = (_h = (_g = options.operations) === null || _g === void 0 ? void 0 : _g.update) !== null && _h !== void 0 ? _h : 'public';
-    const deleteAccess = (_k = (_j = options.operations) === null || _j === void 0 ? void 0 : _j.delete) !== null && _k !== void 0 ? _k : 'public';
+    const readAccess = (_d = (_c = options.operations) === null || _c === void 0 ? void 0 : _c.read) !== null && _d !== void 0 ? _d : 'closed';
+    const createAccess = (_f = (_e = options.operations) === null || _e === void 0 ? void 0 : _e.create) !== null && _f !== void 0 ? _f : 'closed';
+    const updateAccess = (_h = (_g = options.operations) === null || _g === void 0 ? void 0 : _g.update) !== null && _h !== void 0 ? _h : 'closed';
+    const deleteAccess = (_k = (_j = options.operations) === null || _j === void 0 ? void 0 : _j.delete) !== null && _k !== void 0 ? _k : 'closed';
+    const allowedRelations = options.relations;
     permission_registry_1.PermissionRegistry.set(entity, {
         create: createAccess,
         read: readAccess,
         update: updateAccess,
         delete: deleteAccess,
+        accountTable: accountTable || undefined,
     });
     const readRoute = route(readAccess, (0, common_1.Get)('find'), 'find', dto);
     const readFirstRoute = route(readAccess, (0, common_1.Get)('find/first'), 'findFirst', dto);
@@ -85,19 +94,19 @@ const EntityController = (options) => {
                 key: accountField,
                 allow: false,
             });
-            return await this.service.find({ where, select, order, relations }, b);
+            return await this.service.find({ where, select, order, relations: filterRelations(relations, allowedRelations) }, b);
         }
         async find(search, select, where, order, limit = undefined, offset = undefined, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            return await this.service.find({ search, select, where, order, limit, offset, relations }, b);
+            return await this.service.find({ search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
         }
         async findFirst(search, select, where, order, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            return await this.service.findFirst({ search, select, where, order, relations }, b);
+            return await this.service.findFirst({ search, select, where, order, relations: filterRelations(relations, allowedRelations) }, b);
         }
         async findMany(ids, select, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            const result = await this.service.findMany({ ids, select, relations }, b);
+            const result = await this.service.findMany({ ids, select, relations: filterRelations(relations, allowedRelations) }, b);
             if (!result) {
                 throw new common_1.NotFoundException('Entrie not found');
             }
@@ -105,7 +114,7 @@ const EntityController = (options) => {
         }
         async findOne(id, select, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            const result = await this.service.findOne({ id: Number(id), select, relations }, b);
+            const result = await this.service.findOne({ id: Number(id), select, relations: filterRelations(relations, allowedRelations) }, b);
             if (!result) {
                 throw new common_1.NotFoundException('Entrie not found');
             }
@@ -113,15 +122,15 @@ const EntityController = (options) => {
         }
         async count(where, limit = undefined, offset = undefined, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            return await this.service.count({ where, limit, offset, relations }, b);
+            return await this.service.count({ where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
         }
         async create(dto, relations, account) {
             const b = resolveBind(createAccess, account, accountTable, accountField);
-            return await this.service.create(dto, relations, b);
+            return await this.service.create(dto, filterRelations(relations, allowedRelations), b);
         }
         async update(id, dto, relations, account) {
             const b = resolveBind(updateAccess, account, accountTable, accountField);
-            const result = await this.service.update(Number(id), dto, relations, b);
+            const result = await this.service.update(Number(id), dto, filterRelations(relations, allowedRelations), b);
             if (!result) {
                 throw new common_1.NotFoundException('Entrie not found');
             }
@@ -133,7 +142,7 @@ const EntityController = (options) => {
         }
         async sortPosition(field, select, where, order, limit = undefined, offset = undefined, relations, account) {
             const b = resolveBind(updateAccess, account, accountTable, accountField);
-            const result = await this.service.sortPosition(field, { select, where, order, limit, offset, relations }, b);
+            const result = await this.service.sortPosition(field, { select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
             if (!result) {
                 throw new common_1.NotFoundException('Entries not found');
             }

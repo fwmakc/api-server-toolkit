@@ -16,6 +16,9 @@ export interface OperationConfig {
     update: OperationAccess;
     delete: OperationAccess;
 }
+export interface EntityPermissionConfig extends OperationConfig {
+    accountTable?: string;
+}
 export interface EntityControllerOptions {
     name: string;
     dto: any;
@@ -23,6 +26,7 @@ export interface EntityControllerOptions {
     accountTable?: string;
     accountField?: string;
     operations?: Partial<OperationConfig>;
+    relations?: string[];
 }
 export declare function normalizeAccess(access: OperationAccess | undefined, fallback?: AccessLevel): AccessLevel;
 export declare function getBindPath(access: OperationAccess | undefined, fallback: string): string | undefined;

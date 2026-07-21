@@ -70,21 +70,33 @@ function route(
   return applyDecorators(...decs);
 }
 
+function filterRelations(
+  relations: Array<RelationsDto> | undefined,
+  whitelist: string[] | undefined,
+): Array<RelationsDto> | undefined {
+  if (!relations || !Array.isArray(relations)) return relations;
+  if (!whitelist || whitelist.length === 0) return undefined;
+  return relations.filter((r) => r.name && whitelist.includes(r.name));
+}
+
 export const EntityController = (options: EntityControllerOptions) => {
   const { name, dto, entity } = options;
   const accountTable = options.accountTable ?? '';
   const accountField = options.accountField ?? 'id';
 
-  const readAccess = options.operations?.read ?? 'public';
-  const createAccess = options.operations?.create ?? 'public';
-  const updateAccess = options.operations?.update ?? 'public';
-  const deleteAccess = options.operations?.delete ?? 'public';
+  const readAccess = options.operations?.read ?? 'closed';
+  const createAccess = options.operations?.create ?? 'closed';
+  const updateAccess = options.operations?.update ?? 'closed';
+  const deleteAccess = options.operations?.delete ?? 'closed';
+
+  const allowedRelations = options.relations;
 
   PermissionRegistry.set(entity, {
     create: createAccess,
     read: readAccess,
     update: updateAccess,
     delete: deleteAccess,
+    accountTable: accountTable || undefined,
   });
 
   const readRoute = route(readAccess, Get('find'), 'find', dto);
@@ -138,7 +150,7 @@ export const EntityController = (options: EntityControllerOptions) => {
         key: accountField,
         allow: false,
       });
-      return await this.service.find({ where, select, order, relations }, b);
+      return await this.service.find({ where, select, order, relations: filterRelations(relations, allowedRelations) }, b);
     }
 
     @readRoute
@@ -154,7 +166,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     ): Promise<Entity[]> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.find(
-        { search, select, where, order, limit, offset, relations },
+        { search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) },
         b,
       );
     }
@@ -170,7 +182,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     ): Promise<Entity> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.findFirst(
-        { search, select, where, order, relations },
+        { search, select, where, order, relations: filterRelations(relations, allowedRelations) },
         b,
       );
     }
@@ -184,7 +196,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self('noBlock') account: AccountLike,
     ): Promise<Entity[]> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
-      const result = await this.service.findMany({ ids, select, relations }, b);
+      const result = await this.service.findMany({ ids, select, relations: filterRelations(relations, allowedRelations) }, b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
       }
@@ -200,7 +212,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     ): Promise<Entity> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       const result = await this.service.findOne(
-        { id: Number(id), select, relations },
+        { id: Number(id), select, relations: filterRelations(relations, allowedRelations) },
         b,
       );
       if (!result) {
@@ -218,7 +230,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self('noBlock') account: AccountLike,
     ): Promise<number> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
-      return await this.service.count({ where, limit, offset, relations }, b);
+      return await this.service.count({ where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
     }
 
     @createRoute
@@ -228,7 +240,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self('noBlock') account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(createAccess, account, accountTable, accountField);
-      return await this.service.create(dto, relations, b);
+      return await this.service.create(dto, filterRelations(relations, allowedRelations), b);
     }
 
     @updateRoute
@@ -239,7 +251,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self('noBlock') account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
-      const result = await this.service.update(Number(id), dto, relations, b);
+      const result = await this.service.update(Number(id), dto, filterRelations(relations, allowedRelations), b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
       }
@@ -269,7 +281,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
       const result = await this.service.sortPosition(
         field,
-        { select, where, order, limit, offset, relations },
+        { select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) },
         b,
       );
       if (!result) {

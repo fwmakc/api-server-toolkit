@@ -7,6 +7,7 @@ const relations_service_1 = require("./service/relations.service");
 const where_service_1 = require("./service/where.service");
 const private_fields_service_1 = require("./service/private_fields.service");
 const sanitize_service_1 = require("./service/sanitize.service");
+const nested_filter_service_1 = require("./service/nested_filter.service");
 const search_service_1 = require("./service/search.service");
 const bind_service_1 = require("./service/bind.service");
 const csv_service_1 = require("./service/csv.service");
@@ -44,7 +45,40 @@ class CommonService {
         };
         try {
             let result;
-            result = await this.repository.find(params);
+            const isMultiHop = id !== undefined && !allow && name.includes('.');
+            const hasPagination = !!(take || skip);
+            if (isMultiHop && hasPagination) {
+                const idResults = await this.repository.find({
+                    ...otherParams,
+                    where,
+                    select: { id: true },
+                });
+                const uniqueIds = [];
+                const seenIds = new Set();
+                for (const r of idResults) {
+                    const rid = String(r.id);
+                    if (!seenIds.has(rid)) {
+                        seenIds.add(rid);
+                        uniqueIds.push(r.id);
+                    }
+                }
+                const offsetNum = skip || 0;
+                const limitNum = take || uniqueIds.length;
+                const paginatedIds = uniqueIds.slice(offsetNum, offsetNum + limitNum);
+                if (paginatedIds.length === 0) {
+                    result = [];
+                }
+                else {
+                    result = await this.repository.find({
+                        ...otherParams,
+                        relations: relationNames.length > 0 ? relationNames : undefined,
+                        where: { id: (0, typeorm_1.In)(paginatedIds) },
+                    });
+                }
+            }
+            else {
+                result = await this.repository.find(params);
+            }
             result = (0, relations_service_1.relationsOrder)(result, relations);
             if (search) {
                 result = result
@@ -63,6 +97,7 @@ class CommonService {
                     return true;
                 });
             }
+            (0, nested_filter_service_1.filterNestedRelations)(result, bind);
             result = (0, private_fields_service_1.removePrivateFields)(result, bind);
             return result;
         }
@@ -129,12 +164,9 @@ class CommonService {
     async create(dto, relations = undefined, bind = { allow: true }) {
         delete dto.id;
         if (bind.id !== undefined) {
-            const relationName = bind.name || 'account';
-            if (!relationName.includes('.')) {
-                const resolvedId = await this.resolveBindRelationId(bind);
-                if (resolvedId !== null) {
-                    dto[relationName] = { id: resolvedId };
-                }
+            const autoAssign = await this.resolveAutoAssign(bind);
+            if (autoAssign) {
+                dto[autoAssign.name] = { id: autoAssign.id };
             }
         }
         const entity = { ...dto };
@@ -187,12 +219,9 @@ class CommonService {
         delete dto.id;
         const entity = { ...dto };
         if (bind.id !== undefined) {
-            const relationName = bind.name || 'account';
-            if (!relationName.includes('.')) {
-                const resolvedId = await this.resolveBindRelationId(bind);
-                if (resolvedId !== null) {
-                    entity[relationName] = { id: resolvedId };
-                }
+            const autoAssign = await this.resolveAutoAssign(bind);
+            if (autoAssign) {
+                entity[autoAssign.name] = { id: autoAssign.id };
             }
         }
         const existsEntrie = await this.findUniqueEntrie(entity);
@@ -253,6 +282,40 @@ class CommonService {
             where: { [key]: bind.id },
         });
         return related ? related.id : null;
+    }
+    async resolveAutoAssign(bind) {
+        if (bind.id === undefined)
+            return null;
+        const name = bind.name || 'account';
+        const segments = name.split('.');
+        if (segments.length === 1) {
+            const resolvedId = await this.resolveBindRelationId(bind);
+            return resolvedId !== null
+                ? { name: segments[0], id: resolvedId }
+                : null;
+        }
+        const firstSegment = segments[0];
+        const relation = this.repository.metadata.relations.find((r) => r.propertyName === firstSegment);
+        if (!relation)
+            return null;
+        if (relation.relationType !== 'many-to-one' &&
+            relation.relationType !== 'one-to-one') {
+            return null;
+        }
+        const key = bind.key || 'id';
+        let nestedWhere = { [key]: bind.id };
+        for (let i = segments.length - 1; i > 0; i--) {
+            nestedWhere = { [segments[i]]: nestedWhere };
+        }
+        const firstRepo = this.repository.manager.getRepository(relation.inverseEntityMetadata.target);
+        const result = await firstRepo.findOne({
+            where: nestedWhere,
+            select: { id: true },
+        });
+        if (!result) {
+            throw new common_1.NotFoundException(`Entity not found for auto-assign path: ${firstSegment}`);
+        }
+        return { name: firstSegment, id: result.id };
     }
     async remove(id, bind = { allow: true }) {
         if (bind.id !== undefined && !bind.allow) {

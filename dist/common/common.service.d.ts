@@ -23,6 +23,7 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     updateEntity(entity: DeepPartial<any>): Promise<any>;
     getIdType(): string;
     private resolveBindRelationId;
+    private resolveAutoAssign;
     remove(id: number, bind?: BindDto): Promise<boolean>;
     sortPosition(field: string, find: FindDto, bind?: BindDto): Promise<boolean>;
     movePosition(id: number, field: string, position: number, bind?: BindDto): Promise<boolean>;
