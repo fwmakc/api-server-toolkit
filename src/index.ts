@@ -92,8 +92,3 @@ export * from './common/service/where.service';
 // --- Types ---
 export * from './common/type/api.type';
 export * from './common/type/search.type';
-
-// --- Event Bus ---
-export * from './event-bus/event-bus.constants';
-export * from './event-bus/event-bus.module';
-export * from './event-bus/event-bus.service';

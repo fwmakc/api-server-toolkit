@@ -1,11 +1,10 @@
 # @core/common
 
-Shared CRUD engine, decorators, guards, and event bus for NestJS microservices.
+Shared CRUD engine, decorators, and guards for NestJS microservices.
 
 ## Contents
 
 - **common/** -- CRUD engine: EntityController, CommonService, columns, decorators, guards, helpers, interceptors, services (bind, crypt, csv, dynamic SQL, search, where, etc.)
-- **event-bus/** -- Redis Streams event bus via `@nestjs/microservices` (EventBusModule, EventBusService, EventBusPattern constants)
 
 ## Installation
 
@@ -27,9 +26,6 @@ import {
   Account,
   Self,
   AccountLike,
-  EventBusModule,
-  EventBusService,
-  EventBusPattern,
 } from '@core/common';
 ```
 

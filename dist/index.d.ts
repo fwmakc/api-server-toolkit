@@ -73,6 +73,3 @@ export * from './common/service/search.service';
 export * from './common/service/where.service';
 export * from './common/type/api.type';
 export * from './common/type/search.type';
-export * from './event-bus/event-bus.constants';
-export * from './event-bus/event-bus.module';
-export * from './event-bus/event-bus.service';
