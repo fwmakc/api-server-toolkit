@@ -505,23 +505,24 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
         async (transactionalManager) => {
           const entityTarget: EntityTarget<Entity> = this.repository.target;
 
+          let resetWhere: any = {};
           if (find.where) {
-            let resetWhere = parseWhereObject(find.where);
-            if (bind.id !== undefined) {
-              const resolvedId = await this.resolveBindRelationId(bind);
-              resetWhere = {
-                ...resetWhere,
-                [bind.name || 'account']:
-                  resolvedId !== null
-                    ? { id: resolvedId }
-                    : { [bind.key || 'id']: bind.id },
-              };
-            }
-            if (Object.keys(resetWhere).length > 0) {
-              await transactionalManager.update(entityTarget, resetWhere, {
-                [field]: 0,
-              } as DeepPartial<any>);
-            }
+            resetWhere = parseWhereObject(find.where);
+          }
+          if (bind.id !== undefined) {
+            const resolvedId = await this.resolveBindRelationId(bind);
+            resetWhere = {
+              ...resetWhere,
+              [bind.name || 'account']:
+                resolvedId !== null
+                  ? { id: resolvedId }
+                  : { [bind.key || 'id']: bind.id },
+            };
+          }
+          if (Object.keys(resetWhere).length > 0) {
+            await transactionalManager.update(entityTarget, resetWhere, {
+              [field]: 0,
+            } as DeepPartial<any>);
           }
 
           entries.forEach((entrie, index) => {
