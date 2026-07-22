@@ -523,6 +523,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
             await transactionalManager.update(entityTarget, resetWhere, {
               [field]: 0,
             } as DeepPartial<any>);
+          } else if (find.limit || find.offset) {
+            throw new BadRequestException(
+              'sortPosition with limit/offset requires a where filter or bind to scope the reset',
+            );
           }
 
           entries.forEach((entrie, index) => {
