@@ -614,6 +614,25 @@ saving, based on the caller's permissions.
 
 ---
 
+## SafeIdPipe
+
+Validates that an ID is a non-empty string of digits, returning it as a `string`
+(preserving bigint precision for IDs exceeding `Number.MAX_SAFE_INTEGER`).
+
+Replaces `ParseIntPipe` in all four `EntityController` route params (`findOne`,
+`findMany`, `update`, `remove`). Service signatures accept `number | string`.
+
+```typescript
+// route: GET /posts/:id
+findOne(@Param('id', SafeIdPipe) id: string) { … }  // "9223372036854775807"
+```
+
+- Rejects non-numeric strings with `400 Bad Request`.
+- Returns the raw string — no precision loss through `parseInt`.
+- Exported from `@core/common/pipe`.
+
+---
+
 ## CommonService
 
 Generic CRUD service backing the generated controller.
