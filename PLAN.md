@@ -13,7 +13,7 @@ Enrollment-based access control via `accountTable: 'enrolls.student.account'` wo
 basic read filtering (24 tests pass). But the interaction between multi-hop bindPath
 (access control) and relations (data shaping) has gaps in security and correctness.
 
-All changes in `shared/src/common/`. Tests in `api-server/src/tests/cases/`.
+All changes in `src/common/`. Tests in `api-server/src/tests/cases/`.
 
 ---
 

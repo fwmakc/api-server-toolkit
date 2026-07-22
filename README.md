@@ -5,21 +5,10 @@ Shared CRUD engine for NestJS microservices. Auto-generates REST controllers wit
 ## Installation
 
 ```bash
-# From tarball (local dev)
-npm install api-server-toolkit@file:../shared/core-common-1.0.0.tgz
-
-# Rebuild after changes
-cd shared/ && npm run build && npm pack
+npm install github:fwmakc/api-server-toolkit#master
 ```
 
-## Building
-
-```bash
-cd shared/
-npm install
-npm run build   # src/ -> dist/
-npm pack        # -> core-common-1.0.0.tgz
-```
+npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed.
 
 ---
 
