@@ -19,14 +19,14 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     getUniqueColumns(): Array<string>;
     findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
     upsert(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
-    update(id: number, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
+    update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
     updateEntity(entity: DeepPartial<any>): Promise<any>;
     getIdType(): string;
     private resolveBindRelationId;
     private resolveAutoAssign;
-    remove(id: number, bind?: BindDto): Promise<boolean>;
+    remove(id: number | string, bind?: BindDto): Promise<boolean>;
     sortPosition(field: string, find: FindDto, bind?: BindDto): Promise<boolean>;
-    movePosition(id: number, field: string, position: number, bind?: BindDto): Promise<boolean>;
+    movePosition(id: number | string, field: string, position: number, bind?: BindDto): Promise<boolean>;
     bind(entrie: any, data: any): BindDto;
     private validatePositionField;
     error(e: any): void;

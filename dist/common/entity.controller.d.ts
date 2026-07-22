@@ -11,12 +11,12 @@ export declare const EntityController: (options: EntityControllerOptions) => {
         find(search: object, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
         findFirst(search: object, select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         findMany(ids: Array<number>, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
-        findOne(id: number, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
+        findOne(id: string, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         count(where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<number>;
         create(dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        update(id: number, dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        remove(id: number, account: AccountLike): Promise<boolean>;
+        update(id: string, dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
+        remove(id: string, account: AccountLike): Promise<boolean>;
         sortPosition(field: string, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<boolean>;
-        movePosition(id: number, field: string, position: number, account: AccountLike): Promise<boolean>;
+        movePosition(id: string, field: string, position: number, account: AccountLike): Promise<boolean>;
     };
 };

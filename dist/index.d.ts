@@ -55,6 +55,7 @@ export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
 export * from './common/interceptor/add-client-ip.interceptor';
 export * from './common/interceptor/remove-private.interceptor';
+export * from './common/pipe/safe_id.pipe';
 export * from './common/service/bind.service';
 export * from './common/service/cookie.service';
 export * from './common/service/crypt.service';

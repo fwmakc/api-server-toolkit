@@ -24,6 +24,6 @@ __decorate([
         required: true,
         description: 'Идентификатор записи',
     }),
-    __metadata("design:type", Number)
+    __metadata("design:type", Object)
 ], FindOneDto.prototype, "id", void 0);
 //# sourceMappingURL=find_one.dto.js.map

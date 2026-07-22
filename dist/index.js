@@ -71,6 +71,7 @@ __exportStar(require("./common/helper/scalar.helper"), exports);
 __exportStar(require("./common/helper/string.helper"), exports);
 __exportStar(require("./common/interceptor/add-client-ip.interceptor"), exports);
 __exportStar(require("./common/interceptor/remove-private.interceptor"), exports);
+__exportStar(require("./common/pipe/safe_id.pipe"), exports);
 __exportStar(require("./common/service/bind.service"), exports);
 __exportStar(require("./common/service/cookie.service"), exports);
 __exportStar(require("./common/service/crypt.service"), exports);

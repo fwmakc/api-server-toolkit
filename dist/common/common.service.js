@@ -348,22 +348,26 @@ class CommonService {
         try {
             await this.repository.manager.transaction(async (transactionalManager) => {
                 const entityTarget = this.repository.target;
+                let resetWhere = {};
                 if (find.where) {
-                    let resetWhere = (0, where_service_1.parseWhereObject)(find.where);
-                    if (bind.id !== undefined) {
-                        const resolvedId = await this.resolveBindRelationId(bind);
-                        resetWhere = {
-                            ...resetWhere,
-                            [bind.name || 'account']: resolvedId !== null
-                                ? { id: resolvedId }
-                                : { [bind.key || 'id']: bind.id },
-                        };
-                    }
-                    if (Object.keys(resetWhere).length > 0) {
-                        await transactionalManager.update(entityTarget, resetWhere, {
-                            [field]: 0,
-                        });
-                    }
+                    resetWhere = (0, where_service_1.parseWhereObject)(find.where);
+                }
+                if (bind.id !== undefined) {
+                    const resolvedId = await this.resolveBindRelationId(bind);
+                    resetWhere = {
+                        ...resetWhere,
+                        [bind.name || 'account']: resolvedId !== null
+                            ? { id: resolvedId }
+                            : { [bind.key || 'id']: bind.id },
+                    };
+                }
+                if (Object.keys(resetWhere).length > 0) {
+                    await transactionalManager.update(entityTarget, resetWhere, {
+                        [field]: 0,
+                    });
+                }
+                else if (find.limit || find.offset) {
+                    throw new common_1.BadRequestException('sortPosition with limit/offset requires a where filter or bind to scope the reset');
                 }
                 entries.forEach((entrie, index) => {
                     entrie[field] = index + 1;
@@ -404,7 +408,7 @@ class CommonService {
         }, bind);
         const lastPosition = +(lastEntrie === null || lastEntrie === void 0 ? void 0 : lastEntrie[field]) || 0;
         if (position < 0 || position > lastPosition + 1) {
-            if (+id === +(lastEntrie === null || lastEntrie === void 0 ? void 0 : lastEntrie.id)) {
+            if (String(id) === String(lastEntrie === null || lastEntrie === void 0 ? void 0 : lastEntrie.id)) {
                 return false;
             }
             position = lastPosition + 1;

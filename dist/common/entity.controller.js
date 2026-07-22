@@ -20,6 +20,7 @@ const auth_decorator_1 = require("./auth.decorator");
 const bind_service_1 = require("./service/bind.service");
 const permission_registry_1 = require("./permission.registry");
 const access_type_1 = require("./access.type");
+const safe_id_pipe_1 = require("./pipe/safe_id.pipe");
 function resolveBind(access, account, accountTable, accountField) {
     const level = (0, access_type_1.normalizeAccess)(access);
     if (level === 'owner') {
@@ -114,7 +115,7 @@ const EntityController = (options) => {
         }
         async findOne(id, select, relations, account) {
             const b = resolveBind(readAccess, account, accountTable, accountField);
-            const result = await this.service.findOne({ id: Number(id), select, relations: filterRelations(relations, allowedRelations) }, b);
+            const result = await this.service.findOne({ id, select, relations: filterRelations(relations, allowedRelations) }, b);
             if (!result) {
                 throw new common_1.NotFoundException('Entrie not found');
             }
@@ -130,7 +131,7 @@ const EntityController = (options) => {
         }
         async update(id, dto, relations, account) {
             const b = resolveBind(updateAccess, account, accountTable, accountField);
-            const result = await this.service.update(Number(id), dto, filterRelations(relations, allowedRelations), b);
+            const result = await this.service.update(id, dto, filterRelations(relations, allowedRelations), b);
             if (!result) {
                 throw new common_1.NotFoundException('Entrie not found');
             }
@@ -206,12 +207,12 @@ const EntityController = (options) => {
     ], BaseEntityController.prototype, "findMany", null);
     __decorate([
         readOneRoute,
-        __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+        __param(0, (0, common_1.Param)('id', safe_id_pipe_1.SafeIdPipe)),
         __param(1, (0, common_decorator_1.Data)('select')),
         __param(2, (0, common_decorator_1.Data)('relations')),
         __param(3, (0, auth_decorator_1.Self)('noBlock')),
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [Number, Object, Array, Object]),
+        __metadata("design:paramtypes", [String, Object, Array, Object]),
         __metadata("design:returntype", Promise)
     ], BaseEntityController.prototype, "findOne", null);
     __decorate([
@@ -236,20 +237,20 @@ const EntityController = (options) => {
     ], BaseEntityController.prototype, "create", null);
     __decorate([
         updateRoute,
-        __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+        __param(0, (0, common_1.Param)('id', safe_id_pipe_1.SafeIdPipe)),
         __param(1, (0, common_1.Body)('update')),
         __param(2, (0, common_1.Body)('relations')),
         __param(3, (0, auth_decorator_1.Self)('noBlock')),
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [Number, Object, Array, Object]),
+        __metadata("design:paramtypes", [String, Object, Array, Object]),
         __metadata("design:returntype", Promise)
     ], BaseEntityController.prototype, "update", null);
     __decorate([
         removeRoute,
-        __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+        __param(0, (0, common_1.Param)('id', safe_id_pipe_1.SafeIdPipe)),
         __param(1, (0, auth_decorator_1.Self)('noBlock')),
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [Number, Object]),
+        __metadata("design:paramtypes", [String, Object]),
         __metadata("design:returntype", Promise)
     ], BaseEntityController.prototype, "remove", null);
     __decorate([
@@ -268,12 +269,12 @@ const EntityController = (options) => {
     ], BaseEntityController.prototype, "sortPosition", null);
     __decorate([
         moveRoute,
-        __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+        __param(0, (0, common_1.Param)('id', safe_id_pipe_1.SafeIdPipe)),
         __param(1, (0, common_decorator_1.Data)('field')),
         __param(2, (0, common_decorator_1.Data)('position')),
         __param(3, (0, auth_decorator_1.Self)('noBlock')),
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [Number, String, Number, Object]),
+        __metadata("design:paramtypes", [String, String, Number, Object]),
         __metadata("design:returntype", Promise)
     ], BaseEntityController.prototype, "movePosition", null);
     BaseEntityController = __decorate([
