@@ -333,7 +333,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async update(
-    id: number,
+    id: number | string,
     dto: Dto,
     relations: Array<RelationsDto> = undefined,
     bind: BindDto = { allow: true },
@@ -464,7 +464,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return { name: firstSegment, id: result.id };
   }
 
-  async remove(id: number, bind: BindDto = { allow: true }): Promise<boolean> {
+  async remove(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
     if (bind.id !== undefined && !bind.allow) {
       const find = await this.findOne({ id, select: { id: true } }, bind);
       if (!find) {
@@ -544,7 +544,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async movePosition(
-    id: number,
+    id: number | string,
     field: string,
     position: number,
     bind: BindDto = { allow: true },
@@ -589,7 +589,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const lastPosition = +lastEntrie?.[field] || 0;
 
     if (position < 0 || position > lastPosition + 1) {
-      if (+id === +lastEntrie?.id) {
+      if (String(id) === String(lastEntrie?.id)) {
         return false;
       }
       position = lastPosition + 1;

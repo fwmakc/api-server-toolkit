@@ -71,6 +71,9 @@ export * from './common/helper/string.helper';
 export * from './common/interceptor/add-client-ip.interceptor';
 export * from './common/interceptor/remove-private.interceptor';
 
+// --- Pipes ---
+export * from './common/pipe/safe_id.pipe';
+
 // --- Services ---
 export * from './common/service/bind.service';
 export * from './common/service/cookie.service';

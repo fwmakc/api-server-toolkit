@@ -6,5 +6,5 @@ export class FindOneDto extends FindDto {
     required: true,
     description: 'Идентификатор записи',
   })
-  id: number = undefined;
+  id: number | string = undefined;
 }

@@ -6,7 +6,6 @@ import {
   NotFoundException,
   Param,
   ParseArrayPipe,
-  ParseIntPipe,
   Post,
   Patch,
   applyDecorators,
@@ -28,6 +27,7 @@ import {
   getBindPath,
 } from './access.type';
 import { BindDto } from './dto/bind.dto';
+import { SafeIdPipe } from './pipe/safe_id.pipe';
 
 function resolveBind(
   access: OperationAccess,
@@ -205,14 +205,14 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @readOneRoute
     async findOne(
-      @Param('id', ParseIntPipe) id: number,
+      @Param('id', SafeIdPipe) id: string,
       @Data('select') select: object,
       @Data('relations') relations: Array<RelationsDto>,
       @Self('noBlock') account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       const result = await this.service.findOne(
-        { id: Number(id), select, relations: filterRelations(relations, allowedRelations) },
+        { id, select, relations: filterRelations(relations, allowedRelations) },
         b,
       );
       if (!result) {
@@ -245,13 +245,13 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @updateRoute
     async update(
-      @Param('id', ParseIntPipe) id: number,
+      @Param('id', SafeIdPipe) id: string,
       @Body('update') dto: Dto,
       @Body('relations') relations: Array<RelationsDto>,
       @Self('noBlock') account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
-      const result = await this.service.update(Number(id), dto, filterRelations(relations, allowedRelations), b);
+      const result = await this.service.update(id, dto, filterRelations(relations, allowedRelations), b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
       }
@@ -260,7 +260,7 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @removeRoute
     async remove(
-      @Param('id', ParseIntPipe) id: number,
+      @Param('id', SafeIdPipe) id: string,
       @Self('noBlock') account: AccountLike,
     ): Promise<boolean> {
       const b = resolveBind(deleteAccess, account, accountTable, accountField);
@@ -292,7 +292,7 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @moveRoute
     async movePosition(
-      @Param('id', ParseIntPipe) id: number,
+      @Param('id', SafeIdPipe) id: string,
       @Data('field') field: string,
       @Data('position') position: number = undefined,
       @Self('noBlock') account: AccountLike,
