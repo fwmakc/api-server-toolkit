@@ -1,1 +1,0 @@
-{"version":3,"file":"field_access.decorator.js","sourceRoot":"","sources":["../../../src/common/decorator/field_access.decorator.ts"],"names":[],"mappings":";;;AASA,kCAIC;AANY,QAAA,qBAAqB,GAAG,aAAa,CAAC;AAEnD,SAAgB,WAAW,CAAC,OAA2B;IACrD,OAAO,UAAU,MAAW,EAAE,WAAmB;QAC/C,OAAO,CAAC,cAAc,CAAC,6BAAqB,EAAE,OAAO,EAAE,MAAM,EAAE,WAAW,CAAC,CAAC;IAC9E,CAAC,CAAC;AACJ,CAAC"}

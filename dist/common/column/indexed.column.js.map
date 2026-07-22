@@ -1,1 +1,0 @@
-{"version":3,"file":"indexed.column.js","sourceRoot":"","sources":["../../../src/common/column/indexed.column.ts"],"names":[],"mappings":";;AAEA,sCAUC;AAZD,qCAAgC;AAEhC,SAAgB,aAAa,CAC3B,KAAK,GAAG,SAAS;IAEjB,IAAI,KAAK,KAAK,QAAQ,EAAE,CAAC;QACvB,OAAO,IAAA,eAAK,EAAC;YACX,MAAM,EAAE,IAAI;SACb,CAAC,CAAC;IACL,CAAC;IAED,OAAO,IAAA,eAAK,GAAE,CAAC;AACjB,CAAC"}

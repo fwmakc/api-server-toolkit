@@ -1,4 +1,4 @@
-# @core/common
+# api-server-toolkit
 
 Shared CRUD engine for NestJS microservices. Auto-generates REST controllers with multi-layer access control, Swagger docs, and TypeORM row-level security.
 
@@ -6,7 +6,7 @@ Shared CRUD engine for NestJS microservices. Auto-generates REST controllers wit
 
 ```bash
 # From tarball (local dev)
-npm install @core/common@file:../shared/core-common-1.0.0.tgz
+npm install api-server-toolkit@file:../shared/core-common-1.0.0.tgz
 
 # Rebuild after changes
 cd shared/ && npm run build && npm pack
@@ -148,7 +148,7 @@ and access control registration.
 ### Basic usage
 
 ```typescript
-import { EntityController, CommonService } from '@core/common';
+import { EntityController, CommonService } from 'api-server-toolkit';
 
 @EntityController({
   name: 'posts',
@@ -629,7 +629,7 @@ findOne(@Param('id', SafeIdPipe) id: string) { … }  // "9223372036854775807"
 
 - Rejects non-numeric strings with `400 Bad Request`.
 - Returns the raw string — no precision loss through `parseInt`.
-- Exported from `@core/common/pipe`.
+- Exported from `api-server-toolkit/pipe`.
 
 ---
 
@@ -780,7 +780,7 @@ PermissionRegistry.set(EnrollEntity, {
 3. **Runtime queries** — developers can inspect access config:
 
 ```typescript
-import { PermissionRegistry } from '@core/common';
+import { PermissionRegistry } from 'api-server-toolkit';
 
 const config = PermissionRegistry.get(CourseEntity);
 // { create: 'admin', read: 'owner', update: 'admin', delete: 'admin',
