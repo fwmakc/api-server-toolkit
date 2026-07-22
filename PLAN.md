@@ -1,5 +1,12 @@
 # Plan: Multi-hop bindPath + relations — full implementation
 
+## Status: ALL TASKS COMPLETE ✓
+
+All 8 original tasks implemented, tested (463 tests), committed, and pushed.
+Additional hardening tasks also complete. See bottom for details.
+
+---
+
 ## Context
 
 Enrollment-based access control via `accountTable: 'enrolls.student.account'` works for
@@ -302,15 +309,15 @@ Verify enrolls array is sorted by createdAt descending.
 
 ## Implementation order
 
-| Priority | Task | Complexity | Security impact |
-|----------|------|------------|-----------------|
-| 1 | Task 2: Operations deny-by-default | Trivial | High — closes default routes |
-| 2 | Task 1: Relations whitelist (deny by default) | Medium | High — blocks relation leak |
-| 3 | Task 7: Nested relation auto-filtering | High | High — blocks cross-entity leak |
-| 4 | Task 6: Field access on nested entities | Medium | High — blocks field leak |
-| 5 | Task 5: Pagination fix | High | Correctness |
-| 6 | Task 3: Multi-hop auto-assign | High | Feature |
-| 7 | Task 8: Sorting test | Trivial | Verification |
+| Priority | Task | Complexity | Security impact | Status |
+|----------|------|------------|-----------------|--------|
+| 1 | Task 2: Operations deny-by-default | Trivial | High — closes default routes | ✓ Done |
+| 2 | Task 1: Relations whitelist (deny by default) | Medium | High — blocks relation leak | ✓ Done |
+| 3 | Task 7: Nested relation auto-filtering | High | High — blocks cross-entity leak | ✓ Done |
+| 4 | Task 6: Field access on nested entities | Medium | High — blocks field leak | ✓ Done |
+| 5 | Task 5: Pagination fix | High | Correctness | ✓ Done |
+| 6 | Task 3: Multi-hop auto-assign | High | Feature | ✓ Done |
+| 7 | Task 8: Sorting test | Trivial | Verification | ✓ Done |
 
 Task 4 (dedup) — resolved, no changes needed.
 
@@ -341,3 +348,56 @@ Superuser sees everything via `allow: true`. Account-level fields remain visible
 
 Both operations and relations default to closed/deny. Developer must explicitly
 open access. Fields remain public by default. See Security philosophy section.
+
+---
+
+## Additional hardening (post-plan)
+
+These issues were discovered during testing and fixed after the original 8 tasks:
+
+### H1: sortPosition reset for bind-scoped records
+
+**Problem:** `sortPosition` only reset positions inside `if (find.where)` block.
+When called with bind but no `where`, the reset was skipped entirely.
+
+**Fix:** Moved bind-based reset outside `if (find.where)` — bind-scoped records
+are now always zeroed before renumbering. (`common.service.ts`)
+
+### H2: sortPosition rejects ambiguous limit/offset
+
+**Problem:** `sortPosition({ where: {}, limit: 1 })` loaded only 1 record and
+renumbered it, leaving others with stale positions — silent data inconsistency.
+
+**Fix:** Throws `BadRequestException` when `limit`/`offset` present but no
+`where` or `bind` scope is provided. (`common.service.ts`)
+
+### H3: SafeIdPipe — bigint precision
+
+**Problem:** `ParseIntPipe` converted URL params to JS `number`, losing precision
+for bigint IDs beyond `2^53`.
+
+**Fix:** New `SafeIdPipe` validates and returns ID as `string`, preserving full
+bigint precision. Replaced `ParseIntPipe` in all 4 controller methods
+(`findOne`, `update`, `remove`, `movePosition`). Removed redundant `Number()`
+calls. Service signatures updated to `number | string`. (`pipe/safe_id.pipe.ts`,
+`entity.controller.ts`, `common.service.ts`, `dto/find_one.dto.ts`)
+
+### H4: auth-server migration
+
+**Problem:** 3 controllers in `auth-server` used `EntityController` without
+`operations` or `relations` — would break under deny-by-default.
+
+**Fix:** Added explicit `operations` and `relations` to:
+- `account_sessions.controller.ts` (operations + `['account']`)
+- `users.controller.ts` (`['account']`)
+- `clients.controller.ts` (`['account', 'redirects']`)
+
+### Test coverage
+
+| Metric | Value |
+|--------|-------|
+| Test suites | 32 |
+| Total tests | 463 |
+| Service-level | ~180 |
+| HTTP-level (supertest) | ~196 |
+| Unit (pure functions) | ~87 |
