@@ -126,15 +126,24 @@ export const stripWriteFields = (
   const proto = entityTarget?.prototype;
   if (!proto) return;
 
+  const bindField = bind?.name ? bind.name.split('.')[0] : undefined;
+
   for (const key of Object.keys(dto)) {
     const fieldAccess: FieldAccessOptions | undefined = Reflect.getMetadata(
       FIELD_ACCESS_METADATA,
       proto,
       key,
     );
-    if (!fieldAccess?.write || fieldAccess.write === 'public') continue;
 
-    if (!canWrite(fieldAccess.write, bind)) {
+    let writeLevel: AccessLevel | undefined = fieldAccess?.write;
+
+    if (!writeLevel && bindField && key === bindField) {
+      writeLevel = 'closed';
+    }
+
+    if (!writeLevel || writeLevel === 'public') continue;
+
+    if (!canWrite(writeLevel, bind)) {
       delete dto[key];
     }
   }

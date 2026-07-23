@@ -19,6 +19,10 @@ export const PermissionRegistry = {
     return registry.get(entity)?.accountTable;
   },
 
+  getAccountField(entity: any): string | undefined {
+    return registry.get(entity)?.accountField;
+  },
+
   getCreate(entity: any): OperationAccess {
     return registry.get(entity)?.create ?? 'closed';
   },

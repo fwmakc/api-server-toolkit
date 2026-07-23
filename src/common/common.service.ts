@@ -244,17 +244,18 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     // delete dto.createdAt;
     // delete dto.updatedAt;
 
-    if (bind.id !== undefined) {
-      const autoAssign = await this.resolveAutoAssign(bind);
-      if (autoAssign) {
-        dto[autoAssign.name] = { id: autoAssign.id };
-      }
-    }
-
     const entity: DeepPartial<any> = { ...dto };
 
     stripWriteFields(entity, this.repository.metadata.target, bind);
-    sanitizeForSave(entity, this.repository.metadata, bind);
+
+    if (bind.id !== undefined && !bind.allow) {
+      const autoAssign = await this.resolveAutoAssign(bind);
+      if (autoAssign) {
+        entity[autoAssign.name] = { id: autoAssign.id };
+      }
+    }
+
+    await sanitizeForSave(entity, this.repository.metadata, bind, this.repository.manager);
 
     try {
       const { id } = await this.createEntity(entity);
@@ -316,7 +317,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     const entity: DeepPartial<any> = { ...dto };
 
-    if (bind.id !== undefined) {
+    if (bind.id !== undefined && !bind.allow) {
       const autoAssign = await this.resolveAutoAssign(bind);
       if (autoAssign) {
         entity[autoAssign.name] = { id: autoAssign.id };
@@ -348,14 +349,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       return;
     }
 
-    // next from bind
-    // delete dto.createdAt;
-    // delete dto.updatedAt;
-
     const entity: DeepPartial<any> = { ...dto, id };
 
     stripWriteFields(entity, this.repository.metadata.target, bind);
-    sanitizeForSave(entity, this.repository.metadata, bind);
+    await sanitizeForSave(entity, this.repository.metadata, bind, this.repository.manager);
 
     try {
       await this.updateEntity(entity);

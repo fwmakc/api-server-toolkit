@@ -89,6 +89,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     update: updateAccess,
     delete: deleteAccess,
     accountTable: accountTable || undefined,
+    accountField: accountField || undefined,
   });
 
   const readRoute = route(readAccess, Get('find'), 'find', dto);

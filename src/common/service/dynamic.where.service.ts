@@ -1,5 +1,6 @@
 import { prepareLike } from './like.service';
 import { prepareQuotes } from './quotes.service';
+import { escapeQuotes } from './escape.service';
 
 export const parseDynamicWhereObject = (where) => {
   const parsed = [];
@@ -111,7 +112,7 @@ const prepareDynamicWhereValue = (property, value, modifiers) => {
       result = `${property} ${sign} ${parseFloat(value)}`;
       break;
     case 'like':
-      result = `${property}${ifNot} ${like} '${value}'`;
+      result = `${property}${ifNot} ${like} '${escapeQuotes(value)}'`;
       break;
     case 'more':
       sign = '>';
@@ -144,7 +145,7 @@ const prepareDynamicWhereValue = (property, value, modifiers) => {
         .join(' AND ');
       break;
     case 'string':
-      value = `'${value}'`;
+      value = `'${escapeQuotes(value)}'`;
       result = `${property} ${sign} ${value}`;
       break;
     default:
@@ -163,7 +164,7 @@ const prepareDynamicValue = (value) => {
     return 'NULL';
   }
   if (typeof value === 'string') {
-    return `'${value}'`;
+    return `'${escapeQuotes(value)}'`;
   }
   return value;
 };

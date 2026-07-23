@@ -22,6 +22,7 @@ export interface OperationConfig {
 
 export interface EntityPermissionConfig extends OperationConfig {
   accountTable?: string;
+  accountField?: string;
 }
 
 export interface EntityControllerOptions {

@@ -1,4 +1,5 @@
 import * as moment from 'moment';
+import { escapeQuotes } from './escape.service';
 
 export const parseDynamicSaveObject = (entity) => {
   const save = {};
@@ -32,10 +33,6 @@ export const parseDynamicSaveObject = (entity) => {
   });
 
   return save;
-};
-
-const escapeQuotes = (string) => {
-  return `${string || ''}`.replace(/['\\]/giu, '\\$&');
 };
 
 const parseDate = (dateValue) => {
