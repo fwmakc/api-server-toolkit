@@ -621,6 +621,137 @@ account: AccountEntity;
 
 ---
 
+## Security scenarios
+
+The following examples demonstrate how the framework prevents common attack vectors.
+All examples use this entity:
+
+```typescript
+@Entity({ name: 'articles' })
+class ArticleEntity extends BaseEntity {
+  @IdColumn() id: number;
+  @VarcharColumn('title') title: string;
+
+  @ManyToOne(() => AccountEntity)
+  @JoinColumn({ name: 'account_id' })
+  account: AccountEntity;           // no @FieldAccess → defaults to 'closed' for writes
+
+  @OneToMany(() => CommentEntity, (c) => c.article)
+  comments: CommentEntity[];
+}
+
+// CommentEntity registered in PermissionRegistry with accountTable: 'account'
+```
+
+```typescript
+@EntityController({
+  name: 'articles',
+  entity: ArticleEntity,
+  accountTable: 'account',
+  operations: { read: 'public', create: 'owner', update: 'owner', delete: 'owner' },
+})
+```
+
+### 1. IDOR — Alice cannot associate with Bob's comment
+
+Alice (account id=1) creates an article and tries to link Bob's comment (id=2):
+
+```
+POST /articles/create
+{ "title": "Evil", "comments": [{ "id": 2 }] }
+
+Step 1: stripWriteFields
+  → 'account' matches bindField, no decorator → default 'closed' → stripped
+
+Step 2: auto-assign (bind.id = 1, !bind.allow = true)
+  → entity.account = { id: 1 }
+
+Step 3: sanitizeForSave
+  → checkOwnership([2]) → comment 2 belongs to Bob → stripped
+
+Result: article created with Alice's account, comments array empty
+```
+
+### 2. Ownership transfer blocked (no decorator)
+
+Alice updates her article, tries to transfer ownership to Bob:
+
+```
+PATCH /articles/update/1
+{ "account": { "id": 2 } }
+
+Step 1: stripWriteFields
+  → 'account' matches bindField, no decorator → default 'closed'
+  → canWrite('closed', bind) = false → STRIPPED
+
+Step 2: 'account' absent from entity → TypeORM leaves account_id unchanged
+
+Result: account_id stays 1 (Alice) ✓
+```
+
+### 3. Admin transfer blocked (no decorator)
+
+Even a superuser cannot transfer ownership without explicit decorator:
+
+```
+PATCH /articles/update/1  (admin, bind.allow = true)
+{ "account": { "id": 2 } }
+
+Step 1: stripWriteFields
+  → 'account' matches bindField, no decorator → default 'closed'
+  → canWrite('closed', { allow: true }) = false → STRIPPED
+
+Result: account_id stays 1 — 'closed' blocks everyone
+```
+
+### 4. Ownership transfer allowed with `@FieldAccess({ write: 'admin' })`
+
+```typescript
+@FieldAccess({ write: 'admin' })
+@ManyToOne(() => AccountEntity)
+account: AccountEntity;
+```
+
+```
+PATCH /articles/update/1  (admin, bind.allow = true)
+{ "account": { "id": 2 } }
+
+Step 1: stripWriteFields
+  → writeLevel = 'admin' → canWrite('admin', { allow: true }) = true → NOT stripped
+
+Step 2: sanitizeForSave
+  → isAutoAssignRelation = true → skips ownership check → keeps { id: 2 }
+
+Step 3: save → account_id = 2
+
+Result: ownership transferred to Bob ✓
+```
+
+### 5. Admin creates article for another user
+
+With `create: 'owner'` + `@FieldAccess({ write: 'admin' })`, admin can set the owner
+explicitly (auto-assign is skipped for admin):
+
+```
+POST /articles/create  (admin, create: 'owner', bind.allow = true)
+{ "title": "For Bob", "account": { "id": 2 } }
+
+Step 1: stripWriteFields
+  → writeLevel = 'admin' → canWrite('admin', { allow: true }) = true → NOT stripped
+
+Step 2: auto-assign → SKIPPED (bind.allow = true)
+  → account from DTO preserved: { id: 2 }
+
+Step 3: sanitizeForSave
+  → isAutoAssignRelation = true → skips ownership check → keeps { id: 2 }
+
+Step 4: save → article with account_id = 2
+
+Result: admin creates article owned by Bob ✓
+```
+
+---
+
 ## Guards & Decorators
 
 | Export | Description |
