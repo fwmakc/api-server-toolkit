@@ -1,7 +1,6 @@
 import {
   Body,
   Delete,
-  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -45,9 +44,6 @@ function resolveBind(
     });
   }
   if (level === 'admin') {
-    if (!account?.isSuperuser) {
-      throw new ForbiddenException('You have no rights!');
-    }
     return { allow: true };
   }
   return undefined;
