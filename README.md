@@ -340,6 +340,12 @@ bind = { id: 1, name: 'student.account' }
   (doesn't make sense for collections).
 - If no matching entity found → `throw NotFoundException`.
 - Affects `create()` and `upsert()`.
+- **Runs after `stripWriteFields`** — auto-assign overwrites any user-supplied value,
+  so the caller cannot forge the ownership field.
+- **Admin skip:** when `bind.allow === true` (superuser), auto-assign is skipped.
+  The admin can set the ownership field from the DTO — but only if the developer
+  explicitly allows it via `@FieldAccess({ write: 'admin' })` on the bind-field.
+  Without the decorator, the field defaults to `closed` and is stripped for everyone.
 
 ### Deduplication
 
@@ -512,6 +518,11 @@ class UserEntity extends BaseEntity {
 | `admin` | Superuser only |
 | `closed` | Never (always stripped from input) |
 
+> **Bind-field exception:** the field matching `bind.name.split('.')[0]` (the
+> ownership relation) defaults to `closed` when no `@FieldAccess` decorator is
+> present — even for superusers. This prevents unauthorized ownership transfer.
+> To allow it, decorate the field explicitly (e.g., `@FieldAccess({ write: 'admin' })`).
+
 ### Nested field access (bind propagation)
 
 When processing nested entities in a response, the bind path is **propagated and
@@ -561,14 +572,22 @@ modifying related entities you don't own.
 
 Strips unauthorized fields from nested entities before saving:
 
-- **Existing relation (has `id`):** only `{ id }` is kept — all other fields are
-  stripped. You can link to an existing record, but not modify it through a nested
-  write.
+- **Existing relation (has `id`):** ownership is verified via `checkOwnership()`.
+  The caller must own the referenced entity (checked in batch via TypeORM `In()`).
+  Only `{ id }` is kept — all other fields are stripped.
 
   ```json
   // Input: { "course": { "id": 1, "title": "Hacked" } }
-  // After sanitize: { "course": { "id": 1 } }
+  // After sanitize: { "course": { "id": 1 } }  — if caller owns course 1
+  // After sanitize: {}                          — if caller does NOT own course 1
   ```
+
+  **Exceptions:**
+  - **Admin** (`bind.allow === true`): bypasses ownership check — all IDs accepted.
+  - **Unregistered entities** (no `accountTable` in PermissionRegistry): treated as
+    global, always allowed.
+  - **Auto-assign relation** (field matching `bind.name.split('.')[0]`): skips
+    ownership check — this is the ownership field itself (e.g., `account`).
 
 - **New relation (no `id`):** checks `PermissionRegistry` for the related entity's
   `create` access level. If the caller doesn't have permission, the relation is
@@ -582,8 +601,23 @@ Strips unauthorized fields from nested entities before saving:
 
 ### `stripWriteFields`
 
-Removes fields with `write: 'admin'` or `write: 'closed'` from the input DTO before
-saving, based on the caller's permissions.
+Removes fields from the input DTO before saving, based on `@FieldAccess({ write })`
+levels and the caller's permissions.
+
+**Bind-field default `closed`:** the field matching `bind.name.split('.')[0]` (the
+ownership relation) defaults to `closed` when no `@FieldAccess` decorator is present.
+This prevents unauthorized ownership transfer via create/update — neither regular users
+nor admins can change the owner unless the developer explicitly allows it.
+
+To enable ownership transfer, decorate the field:
+
+```typescript
+@FieldAccess({ write: 'admin' })   // admin-only transfer
+account: AccountEntity;
+
+@FieldAccess({ write: 'owner' })   // owner can transfer (e.g., to another account)
+account: AccountEntity;
+```
 
 ---
 
@@ -747,6 +781,7 @@ PermissionRegistry.set(CourseEntity, {
   update: 'admin',
   delete: 'admin',
   accountTable: 'enrolls.student.account',
+  accountField: 'id',
 });
 
 PermissionRegistry.set(EnrollEntity, {
@@ -755,6 +790,7 @@ PermissionRegistry.set(EnrollEntity, {
   update: 'owner',
   delete: 'owner',
   accountTable: 'student.account',
+  accountField: 'id',
 });
 
 // StudentEntity has no controller → not in Registry → not filtered in nested relations
@@ -773,7 +809,7 @@ import { PermissionRegistry } from 'api-server-toolkit';
 
 const config = PermissionRegistry.get(CourseEntity);
 // { create: 'admin', read: 'owner', update: 'admin', delete: 'admin',
-//   accountTable: 'enrolls.student.account' }
+//   accountTable: 'enrolls.student.account', accountField: 'id' }
 ```
 
 ---
