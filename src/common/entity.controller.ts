@@ -17,7 +17,7 @@ import { CommonService } from './common.service';
 import { CommonDto } from './common.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AccountLike, } from './access.type';
-import { Account, Self } from './auth.decorator';
+import { accessGuard, Self } from './auth.decorator';
 import { bind } from './service/bind.service';
 import { PermissionRegistry } from './permission.registry';
 import {
@@ -53,10 +53,6 @@ function resolveBind(
   return undefined;
 }
 
-function guard(access: OperationAccess) {
-  return normalizeAccess(access) === 'public' ? Account('noBlock') : Account();
-}
-
 function route(
   access: OperationAccess,
   method: MethodDecorator,
@@ -65,7 +61,7 @@ function route(
 ): MethodDecorator {
   const level = normalizeAccess(access);
   if (level === 'closed') return applyDecorators();
-  const decs: any[] = [guard(access), method];
+  const decs: any[] = [accessGuard(access), method];
   if (docName) decs.push(Doc(docName, dto));
   return applyDecorators(...decs);
 }
@@ -143,7 +139,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('where') where: object,
       @Data('order') order: object,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity[]> {
       const b = bind(account, {
         name: accountTable || 'account',
@@ -162,7 +158,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('limit') limit: number = undefined,
       @Data('offset') offset: number = undefined,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity[]> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.find(
@@ -178,7 +174,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('where') where: object,
       @Data('order') order: object,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.findFirst(
@@ -193,7 +189,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       ids: Array<number>,
       @Data('select') select: object,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity[]> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       const result = await this.service.findMany({ ids, select, relations: filterRelations(relations, allowedRelations) }, b);
@@ -208,7 +204,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Data('select') select: object,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       const result = await this.service.findOne(
@@ -227,7 +223,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('limit') limit: number = undefined,
       @Data('offset') offset: number = undefined,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<number> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.count({ where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
@@ -237,7 +233,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     async create(
       @Body('create') dto: Dto,
       @Body('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(createAccess, account, accountTable, accountField);
       return await this.service.create(dto, filterRelations(relations, allowedRelations), b);
@@ -248,7 +244,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Body('update') dto: Dto,
       @Body('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<Entity> {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
       const result = await this.service.update(id, dto, filterRelations(relations, allowedRelations), b);
@@ -261,7 +257,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     @removeRoute
     async remove(
       @Param('id', SafeIdPipe) id: string,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<boolean> {
       const b = resolveBind(deleteAccess, account, accountTable, accountField);
       return await this.service.remove(id, b);
@@ -276,7 +272,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('limit') limit: number = undefined,
       @Data('offset') offset: number = undefined,
       @Data('relations') relations: Array<RelationsDto>,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<boolean> {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
       const result = await this.service.sortPosition(
@@ -295,7 +291,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Data('field') field: string,
       @Data('position') position: number = undefined,
-      @Self('noBlock') account: AccountLike,
+      @Self() account: AccountLike,
     ): Promise<boolean> {
       const b = resolveBind(updateAccess, account, accountTable, accountField);
       const result = await this.service.movePosition(id, field, position, b);

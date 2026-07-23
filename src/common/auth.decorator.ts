@@ -4,35 +4,56 @@ import {
   createParamDecorator,
   ExecutionContext,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { AccountLike } from './access.type';
-import { ApiType } from './type/api.type';
+import {
+  AccountLike,
+  normalizeAccess,
+  OperationAccess,
+} from './access.type';
 
-class JwtAccountGuard extends AuthGuard('jwt') {}
-
-class JwtNoBlockAccountGuard extends AuthGuard('jwt') {
-  handleRequest(err: any, user: any) {
+class JwtPublicGuard extends AuthGuard('jwt') {
+  handleRequest(_: any, user: any) {
     return user;
   }
 }
 
-export const Account = (apiType: ApiType = undefined) => {
+class JwtRequiredGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any) {
+    if (err || !user) throw err || new UnauthorizedException();
+    return user;
+  }
+}
+
+class JwtAdminGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any) {
+    if (err || !user) throw err || new UnauthorizedException();
+    if (!user.isSuperuser) {
+      throw new ForbiddenException('You have no rights!');
+    }
+    return user;
+  }
+}
+
+export function accessGuard(access: OperationAccess) {
+  const level = normalizeAccess(access);
+  if (level === 'public') return UseGuards(JwtPublicGuard);
+  if (level === 'admin') return UseGuards(JwtAdminGuard);
+  return UseGuards(JwtRequiredGuard);
+}
+
+class JwtAccountGuard extends AuthGuard('jwt') {}
+
+export const Account = (apiType?: string) => {
   if (apiType === 'noBlock') {
-    return applyDecorators(UseGuards(JwtNoBlockAccountGuard));
+    return UseGuards(JwtPublicGuard);
   }
   return applyDecorators(UseGuards(JwtAccountGuard));
 };
 
 export const Self = createParamDecorator(
-  async (apiType: ApiType = undefined, context: ExecutionContext) => {
-    const request = context.switchToHttp().getRequest();
-    const user = request?.user;
-    if (apiType !== 'noBlock') {
-      if (!user || user?.id === undefined) {
-        throw new ForbiddenException('You have no rights!');
-      }
-    }
-    return user as AccountLike;
+  (_: unknown, context: ExecutionContext) => {
+    return context.switchToHttp().getRequest()?.user as AccountLike;
   },
 );
