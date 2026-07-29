@@ -4,6 +4,26 @@
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./guard": {
+      "types": "./dist/guard.d.ts",
+      "default": "./dist/guard.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "guard": ["dist/guard.d.ts"],
+      "client": ["dist/client.d.ts"]
+    }
+  },
   "files": [
     "dist/"
   ],
