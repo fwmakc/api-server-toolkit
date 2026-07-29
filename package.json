@@ -29,7 +29,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "ai-context": "node scripts/generate-ai-context.js"
   },
   "peerDependencies": {
     "@nestjs/common": "^9.0.0",
