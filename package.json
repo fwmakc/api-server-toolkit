@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@supercharge/request-ip": "^1.2.0",
+    "axios": "^1.7.0",
     "moment": "^2.30.1"
   },
   "devDependencies": {

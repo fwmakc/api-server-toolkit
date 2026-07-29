@@ -10,6 +10,11 @@ export * from './common/common.service';
 export * from './common/entity.controller';
 export * from './common/permission.registry';
 
+// --- Client (inter-service) ---
+export * from './common/client/event-client.interfaces';
+export * from './common/client/event-client.service';
+export * from './common/client/event-client.module';
+
 // --- Columns ---
 export * from './common/column/bigint.column';
 export * from './common/column/boolean.column';
@@ -57,6 +62,7 @@ export * from './common/doc/self.doc';
 export * from './common/doc/update.doc';
 
 // --- Guards ---
+export * from './common/guard/internal-auth.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
