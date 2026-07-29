@@ -74,11 +74,17 @@ export * from './common/interceptor/remove-private.interceptor';
 // --- Pipes ---
 export * from './common/pipe/safe_id.pipe';
 
+// --- Queue ---
+export * from './common/queue/queue.interfaces';
+export * from './common/queue/queue-job.entity';
+export * from './common/queue/queue-worker.service';
+export * from './common/queue/queue.service';
+
 // --- Services ---
 export * from './common/service/bind.service';
 export * from './common/service/cookie.service';
 export * from './common/service/crypt.service';
-export * from './common/service/csv.service';
+export * from './common/service/tree.service';
 export * from './common/service/dynamic.save.service';
 export * from './common/service/dynamic.service';
 export * from './common/service/dynamic.where.service';

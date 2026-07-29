@@ -28,7 +28,6 @@ import { sanitizeForSave } from './service/sanitize.service';
 import { filterNestedRelations } from './service/nested_filter.service';
 import { searchService } from './service/search.service';
 import { bind } from './service/bind.service';
-import { CsvService } from './service/csv.service';
 import { BindDto } from './dto/bind.dto';
 
 export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
@@ -217,21 +216,6 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       .getRawOne();
 
     return Number(result?.count || 0);
-  }
-
-  async csv(
-    find: FindDto,
-    filename: string,
-    bind: BindDto = { allow: true },
-  ): Promise<any> {
-    const csvService = new CsvService({
-      service: this,
-      find,
-      bind,
-      filename,
-    });
-
-    return csvService.execute();
   }
 
   async create(
