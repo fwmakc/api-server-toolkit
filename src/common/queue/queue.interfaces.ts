@@ -2,6 +2,7 @@ export type QueueStatus = 'pending' | 'done' | 'failed';
 
 export interface QueueWorkerConfig {
   interval: number;
+  maxInterval?: number;
   batchSize: number;
   maxAttempts: number;
   retryDelay: number;

@@ -9,21 +9,22 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
   private readonly logger = new Logger(this.constructor.name);
   private workTimer: NodeJS.Timeout | null = null;
   private cleanupTimer: NodeJS.Timeout | null = null;
-  private running = false;
+  private readonly maxInterval: number;
+  private currentDelay: number;
+  private destroyed = false;
 
   constructor(
     protected readonly repo: Repository<TJob>,
     protected readonly queueConfig: QueueWorkerConfig,
-  ) {}
+  ) {
+    this.currentDelay = queueConfig.interval;
+    this.maxInterval = queueConfig.maxInterval ?? queueConfig.interval * 5;
+  }
 
   protected abstract process(job: TJob): Promise<void>;
 
   onModuleInit(): void {
-    this.workTimer = setInterval(() => {
-      this.runCycle().catch((err) =>
-        this.logger.error(`Cycle error: ${err.message}`, err.stack),
-      );
-    }, this.queueConfig.interval);
+    this.scheduleNextCycle();
 
     if (this.queueConfig.cleanup) {
       this.cleanupTimer = setInterval(() => {
@@ -34,38 +35,59 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
     }
 
     this.logger.log(
-      `Worker started (interval=${this.queueConfig.interval}ms, batch=${this.queueConfig.batchSize})`,
+      `Worker started (interval=${this.queueConfig.interval}-${this.maxInterval}ms adaptive, batch=${this.queueConfig.batchSize})`,
     );
   }
 
   onModuleDestroy(): void {
-    if (this.workTimer) clearInterval(this.workTimer);
+    this.destroyed = true;
+    if (this.workTimer) clearTimeout(this.workTimer);
     if (this.cleanupTimer) clearInterval(this.cleanupTimer);
   }
 
+  private scheduleNextCycle(): void {
+    if (this.destroyed) return;
+    this.workTimer = setTimeout(async () => {
+      await this.runCycle().catch((err) =>
+        this.logger.error(`Cycle error: ${err.message}`, err.stack),
+      );
+      this.scheduleNextCycle();
+    }, this.currentDelay);
+  }
+
   private async runCycle(): Promise<void> {
-    if (this.running) return;
-    this.running = true;
-    try {
-      const qb = this.repo
-        .createQueryBuilder('j')
-        .where('j.status = :status', { status: 'pending' })
-        .andWhere(
-          '(j.next_attempt_at IS NULL OR j.next_attempt_at <= :now)',
-          { now: new Date() },
-        )
-        .orderBy('j.id', 'ASC')
-        .take(this.queueConfig.batchSize);
+    const qb = this.repo
+      .createQueryBuilder('j')
+      .where('j.status = :status', { status: 'pending' })
+      .andWhere(
+        '(j.next_attempt_at IS NULL OR j.next_attempt_at <= :now)',
+        { now: new Date() },
+      )
+      .orderBy('j.id', 'ASC')
+      .take(this.queueConfig.batchSize);
 
-      this.loadRelations(qb);
+    this.loadRelations(qb);
 
-      const jobs = await qb.getMany();
+    const jobs = await qb.getMany();
+
+    if (jobs.length > 0) {
+      if (this.currentDelay !== this.queueConfig.interval) {
+        this.logger.log(`Work found, resuming at ${this.queueConfig.interval}ms`);
+      }
+      this.currentDelay = this.queueConfig.interval;
 
       for (const job of jobs) {
         await this.processJob(job);
       }
-    } finally {
-      this.running = false;
+    } else {
+      const prev = this.currentDelay;
+      this.currentDelay = Math.min(
+        this.currentDelay * 2,
+        this.maxInterval,
+      );
+      if (prev !== this.currentDelay) {
+        this.logger.debug(`Idle, back off to ${this.currentDelay}ms`);
+      }
     }
   }
 
