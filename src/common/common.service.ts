@@ -26,7 +26,7 @@ import {
 } from './service/private_fields.service';
 import { sanitizeForSave } from './service/sanitize.service';
 import { filterNestedRelations } from './service/nested_filter.service';
-import { searchService } from './service/search.service';
+import { buildSearchWhere, mergeSearchWhere } from './service/search.service';
 import { bind } from './service/bind.service';
 import { BindDto } from './dto/bind.dto';
 
@@ -74,6 +74,19 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       relationNames.push(name);
     }
 
+    if (search) {
+      const searchWhere = buildSearchWhere(search);
+      where = mergeSearchWhere(where, searchWhere);
+      for (const field of search.fields) {
+        if (field.includes('.')) {
+          const firstSegment = field.split('.')[0];
+          if (!relationNames.includes(firstSegment)) {
+            relationNames.push(firstSegment);
+          }
+        }
+      }
+    }
+
     const params = {
       ...otherParams,
       relations: relationNames.length > 0 ? relationNames : undefined,
@@ -119,15 +132,6 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
         result = await this.repository.find(params);
       }
       result = relationsOrder(result, relations);
-
-      if (search) {
-        result = result
-          .map((i) => {
-            const contains = searchService(i, search);
-            return contains ? i : false;
-          })
-          .filter(Boolean);
-      }
 
       if (id !== undefined && !allow && name.includes('.')) {
         const seen = new Set();
@@ -201,6 +205,8 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
     find.select = { id: true };
+    find.limit = undefined;
+    find.offset = undefined;
     const result = await this.find(find, bind);
     return result && Array.isArray(result) ? result.length : 0;
   }

@@ -216,6 +216,7 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @countRoute
     async count(
+      @Data('search') search: object,
       @Data('where') where: object,
       @Data('limit') limit: number = undefined,
       @Data('offset') offset: number = undefined,
@@ -223,7 +224,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self() account: AccountLike,
     ): Promise<number> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
-      return await this.service.count({ where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
+      return await this.service.count({ search, where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
     }
 
     @createRoute

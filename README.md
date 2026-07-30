@@ -200,7 +200,7 @@ Routes are generated based on access levels. `closed` operations produce **no ro
 | `GET` | `/find/first` | read | First matching record |
 | `GET` | `/find/many/:ids` | read | Multiple records by comma-separated IDs |
 | `GET` | `/find/:id` | read | Single record by ID |
-| `GET` | `/count` | read | Count matching records |
+| `GET` | `/count` | read | Count matching records (supports `where`, `search`; ignores `limit`/`offset`) |
 | `GET` | `/self` | read | **Only when `read: 'owner'`** — caller's records only |
 | `POST` | `/create` | create | Create with relations |
 | `PATCH` | `/update/:id` | update | Update by ID with relations |
@@ -809,7 +809,7 @@ class PostService extends CommonService<PostDto, PostEntity> {
 | `findOne(findOneDto, bind?)` | Single record by ID |
 | `findMany(findManyDto, bind?)` | Multiple records by IDs array |
 | `findFirst(findFirstDto, bind?)` | First matching record |
-| `count(findDto, bind?)` | Count matching records |
+| `count(findDto, bind?)` | Count matching records (supports `search`; ignores `limit`/`offset`) |
 | `create(dto, relations?, bind?)` | Create with nested relations |
 | `update(id, dto, relations?, bind?)` | Update by ID |
 | `upsert(dto, relations?, bind?)` | Create or update by unique columns |
