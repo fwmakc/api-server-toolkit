@@ -3,6 +3,7 @@ import {
   And,
   BaseEntity,
   DeepPartial,
+  EntityManager,
   EntityTarget,
   FindOptionsOrder,
   FindOptionsWhere,
@@ -238,20 +239,26 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     stripWriteFields(entity, this.repository.metadata.target, bind);
 
-    if (bind.id !== undefined && !bind.allow) {
-      const autoAssign = await this.resolveAutoAssign(bind);
-      if (autoAssign) {
-        entity[autoAssign.name] = { id: autoAssign.id };
-      }
-    }
-
-    await sanitizeForSave(entity, this.repository.metadata, bind, this.repository.manager);
-
     try {
-      const { id } = await this.createEntity(entity);
+      let savedId: any;
+
+      await this.repository.manager.transaction(async (manager) => {
+        if (bind.id !== undefined && !bind.allow) {
+          const autoAssign = await this.resolveAutoAssign(bind, manager);
+          if (autoAssign) {
+            entity[autoAssign.name] = { id: autoAssign.id };
+          }
+        }
+
+        await sanitizeForSave(entity, this.repository.metadata, bind, manager);
+
+        const result = await this.createEntity(entity, manager);
+        savedId = result?.id;
+      });
+
       return await this.findOne(
         {
-          id,
+          id: savedId,
           relations,
         },
         bind,
@@ -261,8 +268,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
   }
 
-  async createEntity(entity: DeepPartial<any>): Promise<any> {
-    return await this.repository.save(entity);
+  async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
+    const repo = manager ? manager.getRepository(this.repository.target) : this.repository;
+    return await repo.save(entity);
   }
 
   getUniqueColumns(): Array<string> {
@@ -342,10 +350,13 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const entity: DeepPartial<any> = { ...dto, id };
 
     stripWriteFields(entity, this.repository.metadata.target, bind);
-    await sanitizeForSave(entity, this.repository.metadata, bind, this.repository.manager);
 
     try {
-      await this.updateEntity(entity);
+      await this.repository.manager.transaction(async (manager) => {
+        await sanitizeForSave(entity, this.repository.metadata, bind, manager);
+        await this.updateEntity(entity, manager);
+      });
+
       return await this.findOne(
         {
           id,
@@ -358,10 +369,11 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
   }
 
-  async updateEntity(entity: DeepPartial<any>): Promise<any> {
+  async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
     const idType = this.getIdType();
     entity.id = idType === 'bigint' ? `${entity.id}` : +entity.id;
-    return await this.repository.save(entity);
+    const repo = manager ? manager.getRepository(this.repository.target) : this.repository;
+    return await repo.save(entity);
   }
 
   getIdType(): string {
@@ -373,6 +385,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
   private async resolveBindRelationId(
     bind: BindDto,
+    manager?: EntityManager,
   ): Promise<number | string | null> {
     const key = bind.key || 'id';
     if (key === 'id') {
@@ -390,7 +403,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
       currentMetadata = relation.inverseEntityMetadata;
     }
-    const relatedRepo = this.repository.manager.getRepository(
+    const relatedRepo = (manager ?? this.repository.manager).getRepository(
       currentMetadata.target,
     );
     const related = await relatedRepo.findOne({
@@ -401,6 +414,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
   private async resolveAutoAssign(
     bind: BindDto,
+    manager?: EntityManager,
   ): Promise<{ name: string; id: number | string } | null> {
     if (bind.id === undefined) return null;
 
@@ -408,7 +422,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const segments = name.split('.');
 
     if (segments.length === 1) {
-      const resolvedId = await this.resolveBindRelationId(bind);
+      const resolvedId = await this.resolveBindRelationId(bind, manager);
       return resolvedId !== null
         ? { name: segments[0], id: resolvedId }
         : null;
@@ -433,7 +447,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       nestedWhere = { [segments[i]]: nestedWhere };
     }
 
-    const firstRepo = this.repository.manager.getRepository(
+    const firstRepo = (manager ?? this.repository.manager).getRepository(
       relation.inverseEntityMetadata.target,
     );
 

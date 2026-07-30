@@ -1,6 +1,6 @@
 import * as moment from 'moment';
 import { BadRequestException } from '@nestjs/common';
-import { BaseEntity, DeepPartial, EntityTarget, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, EntityTarget, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
 import { FindDto } from '../dto/find.dto';
 import { CommonService } from '../common.service';
@@ -16,7 +16,7 @@ export class DynamicService<
   // protected readonly repository: Repository<Entity>;
   protected readonly repository: Repository<any>;
 
-  async createEntity(entity: DeepPartial<any>): Promise<any> {
+  async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
     const quotes = prepareQuotes();
     const tableName = this.getTableName();
 
@@ -35,14 +35,14 @@ export class DynamicService<
         (${keys})
         VALUES (${values})${returningClause};
       `;
-      const result = await this.repository.query(query);
+      const result = await (manager || this.repository).query(query);
       return { id: dbType === 'postgres' ? result[0]?.id : result.insertId };
     } catch (e) {
       this.error(e);
     }
   }
 
-  async updateEntity(entity: DeepPartial<any>): Promise<any> {
+  async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
     const { id } = entity;
 
     const quotes = prepareQuotes();
@@ -61,7 +61,7 @@ export class DynamicService<
         SET ${set}
         WHERE ${where};
       `;
-      return await this.repository.query(query);
+      return await (manager || this.repository).query(query);
     } catch (e) {
       this.error(e);
     }

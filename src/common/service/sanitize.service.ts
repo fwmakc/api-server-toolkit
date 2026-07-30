@@ -1,10 +1,33 @@
-import { EntityManager, EntityMetadata, In } from 'typeorm';
+import { EntityManager, EntityMetadata } from 'typeorm';
 import { PermissionRegistry } from '../permission.registry';
 import {
   AccessLevel,
   OperationConfig,
   normalizeAccess,
 } from '../access.type';
+
+interface RelationInfo {
+  propertyName: string;
+  inverseMetadata: EntityMetadata;
+  target: any;
+}
+
+const relationCache = new WeakMap<object, RelationInfo[]>();
+
+function getCachedRelations(metadata: EntityMetadata): RelationInfo[] {
+  const target = metadata.target as object;
+  let cached = relationCache.get(target);
+  if (cached) return cached;
+
+  cached = metadata.relations.map((relation) => ({
+    propertyName: relation.propertyName,
+    inverseMetadata: relation.inverseEntityMetadata,
+    target: relation.inverseEntityMetadata.target,
+  }));
+
+  relationCache.set(target, cached);
+  return cached;
+}
 
 function canCreate(level: AccessLevel, bind: any): boolean {
   if (!bind) return level === 'public';
@@ -44,38 +67,31 @@ async function sanitizeEntity(
   if (!entity || typeof entity !== 'object' || seen.has(entity)) return;
   seen.add(entity);
 
-  for (const relation of metadata.relations) {
-    const key = relation.propertyName;
+  const relations = getCachedRelations(metadata);
+
+  for (const info of relations) {
+    const key = info.propertyName;
     const value = entity[key];
     if (value === undefined || value === null) continue;
 
-    const relatedMeta = relation.inverseEntityMetadata;
-    const relatedTarget = relatedMeta.target;
+    const relatedMeta = info.inverseMetadata;
+    const relatedTarget = info.target;
     const config = PermissionRegistry.get(relatedTarget);
 
     const isAutoAssignRelation = bind?.name?.split('.')[0] === key;
 
     if (Array.isArray(value)) {
       const ids: any[] = [];
-      const noIdItems: any[] = [];
 
       for (const item of value) {
         if (item && typeof item === 'object' && item.id !== undefined && item.id !== null) {
           ids.push(item.id);
-        } else if (item && typeof item === 'object') {
-          noIdItems.push(item);
         }
       }
 
       const ownedSet = isAutoAssignRelation
         ? new Set(ids)
-        : await checkOwnership(
-            relatedTarget,
-            ids,
-            config,
-            bind,
-            manager,
-          );
+        : await checkOwnership(relatedTarget, ids, config, bind, manager);
 
       const sanitized: any[] = [];
       for (const item of value) {
@@ -109,13 +125,7 @@ async function sanitizeEntity(
       if (value.id !== undefined && value.id !== null) {
         const ownedSet = isAutoAssignRelation
           ? new Set([value.id])
-          : await checkOwnership(
-              relatedTarget,
-              [value.id],
-              config,
-              bind,
-              manager,
-            );
+          : await checkOwnership(relatedTarget, [value.id], config, bind, manager);
         if (ownedSet.has(value.id)) {
           entity[key] = { id: value.id };
         } else {
@@ -185,16 +195,23 @@ async function checkOwnership(
 
   const accountField = PermissionRegistry.getAccountField(relatedTarget) || 'id';
   const segments = accountRelation.split('.');
-  let accountWhere: any = { [accountField]: bind?.id };
-  for (let i = segments.length - 1; i >= 0; i--) {
-    accountWhere = { [segments[i]]: accountWhere };
+
+  const repo = manager.getRepository(relatedTarget);
+  const qb = repo
+    .createQueryBuilder('e')
+    .setLock('pessimistic_write')
+    .where('e.id IN (:...ids)', { ids })
+    .select(['e.id']);
+
+  let alias = 'e';
+  for (let i = 0; i < segments.length; i++) {
+    const nextAlias = `rel${i}`;
+    qb.leftJoin(`${alias}.${segments[i]}`, nextAlias);
+    alias = nextAlias;
   }
 
-  const relatedRepo = manager.getRepository(relatedTarget);
-  const owned = await relatedRepo.find({
-    where: { id: In(ids), ...accountWhere } as any,
-    select: { id: true } as any,
-  });
+  qb.andWhere(`${alias}.${accountField} = :accountId`, { accountId: bind?.id });
 
+  const owned = await qb.getMany();
   return new Set(owned.map((r: any) => r.id));
 }
