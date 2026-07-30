@@ -10,6 +10,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
   private workTimer: NodeJS.Timeout | null = null;
   private cleanupTimer: NodeJS.Timeout | null = null;
   private readonly maxInterval: number;
+  private readonly staleTimeout: number;
   private currentDelay: number;
   private destroyed = false;
 
@@ -19,6 +20,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
   ) {
     this.currentDelay = queueConfig.interval;
     this.maxInterval = queueConfig.maxInterval ?? queueConfig.interval * 5;
+    this.staleTimeout = queueConfig.staleTimeout ?? 300000;
   }
 
   protected abstract process(job: TJob): Promise<void>;
@@ -56,19 +58,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
   }
 
   private async runCycle(): Promise<void> {
-    const qb = this.repo
-      .createQueryBuilder('j')
-      .where('j.status = :status', { status: 'pending' })
-      .andWhere(
-        '(j.next_attempt_at IS NULL OR j.next_attempt_at <= :now)',
-        { now: new Date() },
-      )
-      .orderBy('j.id', 'ASC')
-      .take(this.queueConfig.batchSize);
-
-    this.loadRelations(qb);
-
-    const jobs = await qb.getMany();
+    const jobs = await this.claimJobs();
 
     if (jobs.length > 0) {
       if (this.currentDelay !== this.queueConfig.interval) {
@@ -89,6 +79,41 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
         this.logger.debug(`Idle, back off to ${this.currentDelay}ms`);
       }
     }
+  }
+
+  private async claimJobs(): Promise<TJob[]> {
+    const now = new Date();
+    const staleBefore = new Date(Date.now() - this.staleTimeout);
+
+    return this.repo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(this.repo.target) as Repository<TJob>;
+
+      const qb = repo
+        .createQueryBuilder('j')
+        .setLock('pessimistic_write')
+        .setOnLocked('skip_locked')
+        .where(
+          `(j.status = 'pending' AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= :now))
+           OR (j.status = 'processing' AND j.last_attempt_at < :staleBefore)`,
+          { now, staleBefore },
+        )
+        .orderBy('j.id', 'ASC')
+        .take(this.queueConfig.batchSize);
+
+      this.loadRelations(qb);
+      const jobs = await qb.getMany();
+
+      if (jobs.length > 0) {
+        await repo
+          .createQueryBuilder('j')
+          .update()
+          .set({ status: 'processing' as QueueStatus, lastAttemptAt: new Date() } as any)
+          .where('j.id IN (:...ids)', { ids: jobs.map((j) => j.id) })
+          .execute();
+      }
+
+      return jobs;
+    });
   }
 
   protected loadRelations(qb: import('typeorm').SelectQueryBuilder<TJob>): void {
@@ -128,6 +153,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
         this.queueConfig.retryDelay * 1000 * Math.pow(2, attemptNumber - 1);
       const nextAttempt = new Date(Date.now() + backoffMs);
       await this.repo.update(job.id, {
+        status: 'pending' as QueueStatus,
         attempts: attemptNumber,
         lastAttemptAt: new Date(),
         nextAttemptAt: nextAttempt,

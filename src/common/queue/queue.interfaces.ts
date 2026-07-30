@@ -1,4 +1,4 @@
-export type QueueStatus = 'pending' | 'done' | 'failed';
+export type QueueStatus = 'pending' | 'processing' | 'done' | 'failed';
 
 export interface QueueWorkerConfig {
   interval: number;
@@ -6,6 +6,7 @@ export interface QueueWorkerConfig {
   batchSize: number;
   maxAttempts: number;
   retryDelay: number;
+  staleTimeout?: number;
   cleanup?: QueueCleanupConfig;
 }
 
