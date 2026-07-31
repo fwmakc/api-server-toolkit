@@ -16,12 +16,17 @@
     "./client": {
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
+    },
+    "./helper": {
+      "types": "./dist/helper.d.ts",
+      "default": "./dist/helper.js"
     }
   },
   "typesVersions": {
     "*": {
       "guard": ["dist/guard.d.ts"],
-      "client": ["dist/client.d.ts"]
+      "client": ["dist/client.d.ts"],
+      "helper": ["dist/helper.d.ts"]
     }
   },
   "files": [

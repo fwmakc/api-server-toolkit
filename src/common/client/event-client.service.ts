@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import axios from "axios";
+import { httpPost } from "../helper/http.helper";
 import { IEventClient, PublishOptions } from "./event-client.interfaces";
 
 @Injectable()
@@ -38,7 +38,7 @@ export class HttpEventClient extends IEventClient {
     if (options?.ttl) body.ttl = options.ttl;
 
     try {
-      await axios.post(`${this.eventServerUrl}/events`, body, {
+      await httpPost(`${this.eventServerUrl}/events`, body, {
         headers: { "X-Internal-Api-Key": this.apiKey },
         timeout: 5000,
       });
