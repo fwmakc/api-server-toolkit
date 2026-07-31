@@ -6,14 +6,19 @@ const isNumber = (value) => {
 };
 
 const compare = (a, b, desc = false) => {
+  if (a instanceof Date && b instanceof Date) {
+    return desc ? b.getTime() - a.getTime() : a.getTime() - b.getTime();
+  }
   if (isNumber(a) && isNumber(b)) {
     a = parseFloat(a);
     b = parseFloat(b);
     return desc ? b - a : a - b;
   }
+  const aStr = a == null ? '' : String(a);
+  const bStr = b == null ? '' : String(b);
   return desc
-    ? b.toLowerCase().localeCompare(a.toLowerCase())
-    : a.toLowerCase().localeCompare(b.toLowerCase());
+    ? bStr.toLowerCase().localeCompare(aStr.toLowerCase())
+    : aStr.toLowerCase().localeCompare(bStr.toLowerCase());
 };
 
 export const relationsOrder = (result, relations: Array<RelationsDto>) => {

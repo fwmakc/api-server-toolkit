@@ -50,4 +50,10 @@ export class FindDto {
     description: 'Отношения',
   })
   relations?: Array<RelationsDto> = undefined;
+
+  @ApiProperty({
+    required: false,
+    description: 'Загружать отношения через JOIN (true) или batch-запросы (false, по умолчанию)',
+  })
+  join?: boolean = undefined;
 }

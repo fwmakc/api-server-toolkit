@@ -30,6 +30,7 @@ import { filterNestedRelations } from './service/nested_filter.service';
 import { buildSearchWhere, mergeSearchWhere } from './service/search.service';
 import { bind } from './service/bind.service';
 import { BindDto } from './dto/bind.dto';
+import { batchLoadRelations } from './service/batch-loader.service';
 
 export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   protected readonly repository: Repository<Entity>;
@@ -43,6 +44,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       limit: take,
       offset: skip,
       search,
+      join = false,
       ...otherParams
     } = find;
 
@@ -88,9 +90,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
     }
 
+    const useJoin = join && relationNames.length > 0;
     const params = {
       ...otherParams,
-      relations: relationNames.length > 0 ? relationNames : undefined,
+      relations: useJoin ? relationNames : undefined,
       where,
       take: take || undefined,
       skip: skip || undefined,
@@ -125,13 +128,23 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
         } else {
           result = await this.repository.find({
             ...otherParams,
-            relations: relationNames.length > 0 ? relationNames : undefined,
+            relations: useJoin ? relationNames : undefined,
             where: { id: In(paginatedIds) } as any,
           });
         }
       } else {
         result = await this.repository.find(params);
       }
+
+      if (!useJoin && relationNames.length > 0 && result.length > 0) {
+        await batchLoadRelations(
+          result,
+          relationNames,
+          this.repository.metadata,
+          this.repository.manager,
+        );
+      }
+
       result = relationsOrder(result, relations);
 
       if (id !== undefined && !allow && name.includes('.')) {

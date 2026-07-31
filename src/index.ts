@@ -104,6 +104,7 @@ export * from './common/service/quotes.service';
 export * from './common/service/relations.service';
 export * from './common/service/sanitize.service';
 export * from './common/service/search.service';
+export * from './common/service/batch-loader.service';
 export * from './common/service/where.service';
 
 // --- Types ---
