@@ -943,7 +943,7 @@ TypeORM column helpers for consistent entity definitions.
 | `SmallIntColumn()` | `smallint` | Small integer |
 | `BigIntColumn()` | `bigint` | Big integer |
 | `FloatColumn()` | `float` | Floating point |
-| `DateColumn()` | `timestamp` | Optional timestamp (nullable, defaults to NULL) |
+| `DateColumn()` | `timestamp` | Optional timestamp (nullable, no auto-fill — use for dates like birthday, deleted_at) |
 | `EnumColumn()` | `enum` | Enum value |
 | `JsonColumn()` | `json` | JSON object/array |
 
