@@ -787,6 +787,60 @@ findOne(@Param('id', SafeIdPipe) id: string) { … }  // "9223372036854775807"
 
 ---
 
+## HTTP Helper
+
+Native `fetch` wrapper with timeout, JSON serialization, and typed responses. **Replaces axios** in all service-to-service and external HTTP calls.
+
+### `httpPost(url, body?, options?)`
+
+```typescript
+import { httpPost } from 'api-server-toolkit';
+
+const { status, data, ok } = await httpPost(
+  'http://event-server:3005/events',
+  { pattern: 'user.registered', payload: { ... } },
+  {
+    headers: { 'X-Internal-Api-Key': 'secret' },
+    timeout: 5000,
+  },
+);
+```
+
+### `httpGet(url, options?)`
+
+```typescript
+import { httpGet } from 'api-server-toolkit';
+
+const { data } = await httpGet('http://auth-server:3001/.well-known/jwks.json');
+```
+
+### `raw` option — don't throw on non-2xx
+
+By default, non-2xx responses throw `HttpError`. Use `raw: true` to get the response without throwing:
+
+```typescript
+const { status, data, ok } = await httpPost(url, body, { raw: true });
+if (!ok) { /* handle non-2xx */ }
+```
+
+### Subpath import (no passport dependency)
+
+Services that don't use auth guards (e.g., event-server, message-server) should import from the subpath to avoid pulling in `@nestjs/passport`:
+
+```typescript
+import { httpPost, httpGet } from 'api-server-toolkit/helper';
+```
+
+### Types
+
+| Type | Description |
+|------|-------------|
+| `HttpResponse<T>` | `{ status: number; data: T; ok: boolean }` |
+| `HttpOptions` | `{ headers?: Record<string, string>; timeout?: number; raw?: boolean }` |
+| `HttpError` | `extends Error` — thrown on non-2xx when `raw` is not set |
+
+---
+
 ## CommonService
 
 Generic CRUD service backing the generated controller.
