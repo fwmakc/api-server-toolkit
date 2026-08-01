@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const distDir = path.join(__dirname, "..", "dist");
-const outFile = path.join(__dirname, "..", "toolkit-ai-context.md");
+const outFile = path.join(__dirname, "..", "ai-declarations.md");
 
 function findDtsFiles(dir) {
   let results = [];
@@ -27,7 +27,7 @@ if (files.length === 0) {
 }
 
 const lines = [
-  "# api-server-toolkit — AI Context",
+  "# api-server-toolkit — Type Declarations",
   "",
   "This file is auto-generated for AI-assisted development.",
   "Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.",

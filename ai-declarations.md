@@ -1,4 +1,4 @@
-# api-server-toolkit — AI Context
+# api-server-toolkit — Type Declarations
 
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.

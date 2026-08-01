@@ -30,12 +30,14 @@
     }
   },
   "files": [
-    "dist/"
+    "dist/",
+    "ai-declarations.md",
+    "scripts/generate-service-context.js"
   ],
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "ai-context": "node scripts/generate-ai-context.js"
+    "ai-declarations": "node scripts/generate-declarations.js"
   },
   "peerDependencies": {
     "@nestjs/common": "^9.0.0",
@@ -53,7 +55,6 @@
   },
   "dependencies": {
     "@supercharge/request-ip": "^1.2.0",
-    "axios": "^1.7.0",
     "moment": "^2.30.1"
   },
   "devDependencies": {
