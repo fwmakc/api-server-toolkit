@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 89 declaration files.
+Generated from 92 declaration files.
 
 ---
 
@@ -320,7 +320,7 @@ export declare enum TypeValues {
 ## dist\common\common.service.d.ts
 
 ```typescript
-import { BaseEntity, DeepPartial, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, Repository } from 'typeorm';
 import { RelationsDto } from './dto/relations.dto';
 import { CommonDto } from './common.dto';
 import { FindDto } from './dto/find.dto';
@@ -336,12 +336,12 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     count(find: FindDto, bind?: BindDto): Promise<number>;
     countDistinct(field: string, find: FindDto): Promise<number>;
     create(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
-    createEntity(entity: DeepPartial<any>): Promise<any>;
+    createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getUniqueColumns(): Array<string>;
     findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
     upsert(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
     update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
-    updateEntity(entity: DeepPartial<any>): Promise<any>;
+    updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getIdType(): string;
     private resolveBindRelationId;
     private resolveAutoAssign;
@@ -456,6 +456,7 @@ export declare class FindDto {
     limit?: number;
     offset?: number;
     relations?: Array<RelationsDto>;
+    join?: boolean;
 }
 ```
 
@@ -504,7 +505,7 @@ export declare const EntityController: (options: EntityControllerOptions) => {
         findFirst(search: object, select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         findMany(ids: Array<number>, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
         findOne(id: string, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        count(where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<number>;
+        count(search: object, where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<number>;
         create(dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         update(id: string, dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         remove(id: string, account: AccountLike): Promise<boolean>;
@@ -556,6 +557,28 @@ export declare class SimpleSecureGuard implements CanActivate {
 ```typescript
 export declare const arrayWrap: <T>(value: T | T[]) => T[];
 export declare const arrayUnwrap: <T>(value: T | T[]) => T;
+```
+
+## dist\common\helper\http.helper.d.ts
+
+```typescript
+export interface HttpOptions {
+    headers?: Record<string, string>;
+    timeout?: number;
+    raw?: boolean;
+}
+export interface HttpResponse<T = any> {
+    status: number;
+    data: T;
+    ok: boolean;
+}
+export declare class HttpError extends Error {
+    readonly status: number;
+    readonly data: any;
+    constructor(status: number, data: any, message?: string);
+}
+export declare function httpPost(url: string, body?: unknown, options?: HttpOptions): Promise<HttpResponse>;
+export declare function httpGet(url: string, options?: HttpOptions): Promise<HttpResponse>;
 ```
 
 ## dist\common\helper\object.helper.d.ts
@@ -661,12 +684,17 @@ export declare abstract class QueueWorker<TJob extends QueueJobEntity> implement
     private readonly logger;
     private workTimer;
     private cleanupTimer;
-    private running;
+    private readonly maxInterval;
+    private readonly staleTimeout;
+    private currentDelay;
+    private destroyed;
     constructor(repo: Repository<TJob>, queueConfig: QueueWorkerConfig);
     protected abstract process(job: TJob): Promise<void>;
     onModuleInit(): void;
     onModuleDestroy(): void;
+    private scheduleNextCycle;
     private runCycle;
+    private claimJobs;
     protected loadRelations(qb: import('typeorm').SelectQueryBuilder<TJob>): void;
     private processJob;
     private handleFailure;
@@ -678,12 +706,14 @@ export declare abstract class QueueWorker<TJob extends QueueJobEntity> implement
 ## dist\common\queue\queue.interfaces.d.ts
 
 ```typescript
-export type QueueStatus = 'pending' | 'done' | 'failed';
+export type QueueStatus = 'pending' | 'processing' | 'done' | 'failed';
 export interface QueueWorkerConfig {
     interval: number;
+    maxInterval?: number;
     batchSize: number;
     maxAttempts: number;
     retryDelay: number;
+    staleTimeout?: number;
     cleanup?: QueueCleanupConfig;
 }
 export interface QueueCleanupConfig {
@@ -704,6 +734,13 @@ export declare abstract class QueueService<TJob extends QueueJobEntity> {
     enqueue(data: DeepPartial<TJob>): Promise<TJob>;
     getStatus(id: number): Promise<TJob | null>;
 }
+```
+
+## dist\common\service\batch-loader.service.d.ts
+
+```typescript
+import { EntityManager } from 'typeorm';
+export declare function batchLoadRelations(entities: any[], relationPaths: string[], metadata: any, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\service\bind.service.d.ts
@@ -749,15 +786,15 @@ export declare const parseDynamicSaveObject: (entity: any) => {};
 ## dist\common\service\dynamic.service.d.ts
 
 ```typescript
-import { BaseEntity, DeepPartial, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
 import { FindDto } from '../dto/find.dto';
 import { CommonService } from '../common.service';
 import { BindDto } from '../dto/bind.dto';
 export declare class DynamicService<Dto extends CommonDto, Entity extends BaseEntity> extends CommonService<Dto, Entity> {
     protected readonly repository: Repository<any>;
-    createEntity(entity: DeepPartial<any>): Promise<any>;
-    updateEntity(entity: DeepPartial<any>): Promise<any>;
+    createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
+    updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     find(find: FindDto, bind?: BindDto): Promise<Entity[]>;
     protected getTableName(): string;
     protected fromToString(): string;
@@ -837,7 +874,10 @@ export declare function sanitizeForSave(entity: any, metadata: EntityMetadata, b
 ## dist\common\service\search.service.d.ts
 
 ```typescript
+import { FindOptionsWhere } from 'typeorm';
 import { SearchType } from '../type/search.type';
+export declare const buildSearchWhere: (search: SearchType) => FindOptionsWhere<any>[];
+export declare const mergeSearchWhere: (baseWhere: any, searchWhere: any[]) => any;
 export declare const searchService: (result: any, search: SearchType) => boolean;
 ```
 
@@ -877,6 +917,12 @@ export * from './common/guard/internal-auth.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
+```
+
+## dist\helper.d.ts
+
+```typescript
+export * from './common/helper/http.helper';
 ```
 
 ## dist\index.d.ts
@@ -938,6 +984,7 @@ export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
 export * from './common/helper/array.helper';
+export * from './common/helper/http.helper';
 export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
@@ -965,6 +1012,7 @@ export * from './common/service/quotes.service';
 export * from './common/service/relations.service';
 export * from './common/service/sanitize.service';
 export * from './common/service/search.service';
+export * from './common/service/batch-loader.service';
 export * from './common/service/where.service';
 export * from './common/type/api.type';
 export * from './common/type/search.type';

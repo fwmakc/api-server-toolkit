@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const distDir = path.join(__dirname, "..", "dist");
-const outFile = path.join(__dirname, "..", "fwmakc-ai-context.md");
+const outFile = path.join(__dirname, "..", "toolkit-ai-context.md");
 
 function findDtsFiles(dir) {
   let results = [];
