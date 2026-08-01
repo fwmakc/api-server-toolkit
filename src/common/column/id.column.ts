@@ -6,7 +6,7 @@ export function IdColumn(
   type: IdTypes = 'bigint',
   comment = undefined,
 ): PropertyDecorator {
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     PrimaryGeneratedColumn({
       comment,
       name: 'id',

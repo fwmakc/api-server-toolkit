@@ -129,7 +129,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
         nextAttemptAt: null,
       } as any);
     } catch (err) {
-      await this.handleFailure(job, err);
+      await this.handleFailure(job, err instanceof Error ? err : new Error(String(err)));
     }
   }
 

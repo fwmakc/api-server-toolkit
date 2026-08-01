@@ -758,8 +758,7 @@ Result: admin creates article owned by Bob ✓
 |--------|-------------|
 | `@Account()` | Applies JWT `AuthGuard` — throws 401 if no valid token |
 | `@Account('noBlock')` | Applies JWT guard but **does not throw** if no token (user is `undefined`) |
-| `@Self()` | Param decorator — extracts `request.user`, throws 403 if missing |
-| `@Self('noBlock')` | Same, but returns `undefined` instead of throwing |
+| `@Self()` | Param decorator — extracts `request.user` (requires `@Account()` guard to populate it) |
 | `@Secure` | `@UseGuards(SecureGuard)` — token-based access |
 | `@SimpleSecure` | `@UseGuards(SimpleSecureGuard)` — lightweight token check |
 | `@Data()` | Param decorator — merges `request.query` + `request.body`, JSON-parses strings |
@@ -783,7 +782,6 @@ findOne(@Param('id', SafeIdPipe) id: string) { … }  // "9223372036854775807"
 
 - Rejects non-numeric strings with `400 Bad Request`.
 - Returns the raw string — no precision loss through `parseInt`.
-- Exported from `api-server-toolkit/pipe`.
 
 ---
 
@@ -916,7 +914,6 @@ class PostService extends CommonService<PostDto, PostEntity> {
 | `remove(id, bind?)` | Remove by ID — returns `false` if not found (no throw) |
 | `sortPosition(field, findDto, bind?)` | Re-sort all records by field |
 | `movePosition(id, field, position?, bind?)` | Move record to specific position |
-| `toCsv(findDto, bind?)` | Export matching records to CSV |
 
 The `bind` parameter controls row scoping. When omitted, defaults to `{ allow: true }`
 (no scoping).
@@ -941,14 +938,14 @@ TypeORM column helpers for consistent entity definitions.
 |---------|------|-------------|
 | `VarcharColumn()` | `varchar` | String (configurable length, default 255) |
 | `TextColumn()` | `text` | Long text |
-| `BooleanColumn()` | `boolean` | True/false |
+| `BooleanColumn()` | `smallint` | True/false (stored as 0/1) |
 | `IntColumn()` | `int` | Integer |
 | `SmallIntColumn()` | `smallint` | Small integer |
 | `BigIntColumn()` | `bigint` | Big integer |
 | `FloatColumn()` | `float` | Floating point |
-| `DateColumn()` | `date` | Date |
+| `DateColumn()` | `timestamp` | Optional timestamp (nullable, defaults to NULL) |
 | `EnumColumn()` | `enum` | Enum value |
-| `JsonColumn()` | `jsonb` | JSON object/array |
+| `JsonColumn()` | `json` | JSON object/array |
 
 ### Sorting
 
@@ -957,23 +954,23 @@ TypeORM column helpers for consistent entity definitions.
 | `PositionAscColumn()` | `int` | Ascending sort position |
 | `PositionDescColumn()` | `int` | Descending sort position |
 
-### DTO-Bound Columns
+### DTO Decorators
 
-Mirrors a field from the DTO class, automatically synced:
+Swagger documentation and validation decorators for DTO classes (not entity columns):
 
 | Factory | Description |
 |---------|-------------|
-| `DtoColumn(DtoClass, 'field')` | Column from DTO field |
-| `DtoCreatedColumn(DtoClass)` | `createdAt` from DTO |
-| `DtoUpdatedColumn(DtoClass)` | `updatedAt` from DTO |
-| `DtoEnumColumn(DtoClass, 'field')` | Enum column from DTO |
-| `DtoJsonColumn(DtoClass, 'field')` | JSON column from DTO |
+| `DtoColumn(description?, options?)` | `@ApiProperty` with description, required, default |
+| `DtoCreatedColumn()` | `@ApiProperty` for auto-set created timestamp |
+| `DtoUpdatedColumn()` | `@ApiProperty` for auto-set updated timestamp |
+| `DtoEnumColumn(description, enum, default?, options?)` | `@ApiProperty` + `@IsEnum` validation |
+| `DtoJsonColumn(description, options?)` | `@ApiProperty` + `@IsJSON` + `@IsOptional` validation |
 
 ### Indexed
 
 | Factory | Description |
 |---------|-------------|
-| `IndexedColumn(columnFn)` | Wraps any column factory with an index |
+| `IndexedColumn('unique')` | Adds a database index (pass `'unique'` for unique index, omit for plain index) |
 
 ---
 

@@ -23,7 +23,7 @@ export function SmallIntColumn(
     width = undefined,
   } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     if (index) {
       IndexedColumn(index)(object, propertyName);
     }

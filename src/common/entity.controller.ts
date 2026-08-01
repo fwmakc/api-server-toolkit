@@ -182,8 +182,8 @@ export const EntityController = (options: EntityControllerOptions) => {
 
     @readManyRoute
     async findMany(
-      @Param('ids', new ParseArrayPipe({ items: Number, separator: ',' }))
-      ids: Array<number>,
+      @Param('ids', new ParseArrayPipe({ items: String, separator: ',' }))
+      ids: Array<string>,
       @Data('select') select: object,
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,

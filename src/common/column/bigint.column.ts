@@ -5,8 +5,8 @@ class BigIntColumnTransformer {
   to(data: number): number {
     return data;
   }
-  from(data: string): number {
-    return parseInt(data);
+  from(data: string): string {
+    return data;
   }
 }
 
@@ -23,7 +23,7 @@ export function BigIntColumn(
     width = undefined,
   } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     if (index) {
       IndexedColumn(index)(object, propertyName);
     }

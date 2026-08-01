@@ -40,7 +40,7 @@ export async function encrypt(data) {
         .join(''),
     };
   } catch (e) {
-    throw new BadRequestException(`Error encrypting data: ${e.message}`);
+    throw new BadRequestException(`Error encrypting data: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -74,7 +74,7 @@ export async function decrypt(encryptedData, iv) {
     // Возвращаем расшифрованные данные в виде строки
     return new TextDecoder().decode(new Uint8Array(decrypted));
   } catch (e) {
-    throw new BadRequestException(`Error decrypting data: ${e.message}`);
+    throw new BadRequestException(`Error decrypting data: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

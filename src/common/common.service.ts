@@ -218,10 +218,8 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
-    find.select = { id: true };
-    find.limit = undefined;
-    find.offset = undefined;
-    const result = await this.find(find, bind);
+    const findCopy = { ...find, select: { id: true }, limit: undefined, offset: undefined };
+    const result = await this.find(findCopy, bind);
     return result && Array.isArray(result) ? result.length : 0;
   }
 
@@ -245,8 +243,6 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   ): Promise<Entity> {
     // next this columns from bind
     delete dto.id;
-    // delete dto.createdAt;
-    // delete dto.updatedAt;
 
     const entity: DeepPartial<any> = { ...dto };
 

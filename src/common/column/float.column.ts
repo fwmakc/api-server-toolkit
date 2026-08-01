@@ -23,7 +23,7 @@ export function FloatColumn(
     scale = 2,
   } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     if (index) {
       IndexedColumn(index)(object, propertyName);
     }

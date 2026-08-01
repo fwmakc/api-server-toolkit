@@ -2,7 +2,6 @@ import {
   And,
   Any,
   Between,
-  Equal,
   FindOperator,
   In,
   IsNull,
@@ -45,7 +44,7 @@ export const parseWhereObject = (where) => {
 
     let tempProperty = value;
     modifiers?.reverse()?.forEach((modifier) => {
-      tempProperty = prepareWhereValue(tempProperty, modifier);
+      tempProperty = prepareWhereValue(tempProperty, modifier, property);
     });
     parsed[property] = tempProperty;
   });
@@ -59,8 +58,7 @@ const prepareAndOrValues = (values, modifiers) => {
     const [_, ...otherModifiers] = modifiers;
     otherModifiers?.reverse()?.forEach((modifier) => {
       tempProperty = prepareWhereValue(tempProperty, modifier);
-    });
-    properties.push(tempProperty);
+    });    properties.push(tempProperty);
   });
   if (modifiers[0] === 'and') {
     return And(...properties);
@@ -70,7 +68,7 @@ const prepareAndOrValues = (values, modifiers) => {
   }
 };
 
-const prepareWhereValue = (value, modifier) => {
+const prepareWhereValue = (value, modifier, key = '') => {
   let property;
   switch (modifier) {
     case 'any':
@@ -78,7 +76,7 @@ const prepareWhereValue = (value, modifier) => {
         property = Any(value);
       } else {
         throw new Error(
-          `'any' modifier expects an array with more than 1 elements for property '${property}'`,
+          `'any' modifier expects a non-empty array for property '${key}'`,
         );
       }
       break;
@@ -87,7 +85,7 @@ const prepareWhereValue = (value, modifier) => {
         property = Between(value[0], value[1]);
       } else {
         throw new Error(
-          `'between' modifier expects an array with 2 elements for property '${property}'`,
+          `'between' modifier expects an array with 2 elements for property '${key}'`,
         );
       }
       break;
@@ -111,7 +109,7 @@ const prepareWhereValue = (value, modifier) => {
         property = In(value);
       } else {
         throw new Error(
-          `'in' modifier expects an array with more than 1 elements for property '${property}'`,
+          `'in' modifier expects a non-empty array for property '${key}'`,
         );
       }
       break;

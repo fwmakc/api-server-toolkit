@@ -7,7 +7,7 @@ export class Cookie {
     this.response.cookie(name, data, {
       httpOnly: true,
       path: '/',
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
     });
   }
 
@@ -15,7 +15,7 @@ export class Cookie {
     this.response.cookie(name, JSON.stringify(data), {
       httpOnly: true,
       path: '/',
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
     });
   }
 

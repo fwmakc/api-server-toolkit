@@ -10,23 +10,18 @@ export function DtoEnumColumn(
 ): PropertyDecorator {
   const { required = false } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     const properties: DeepPartial<any> = {
       description,
       required,
       enum: value,
     };
 
-    const params: DeepPartial<any> = {
-      nullable: true,
-    };
-
     if (defaultValue !== undefined) {
       properties.default = defaultValue;
-      params.defaultValue = defaultValue;
     }
 
     ApiProperty(properties)(object, propertyName);
-    IsEnum(value);
+    IsEnum(value)(object, propertyName);
   };
 }

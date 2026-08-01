@@ -503,7 +503,7 @@ export declare const EntityController: (options: EntityControllerOptions) => {
         self(select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
         find(search: object, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
         findFirst(search: object, select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        findMany(ids: Array<number>, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
+        findMany(ids: Array<string>, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
         findOne(id: string, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
         count(search: object, where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<number>;
         create(dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;

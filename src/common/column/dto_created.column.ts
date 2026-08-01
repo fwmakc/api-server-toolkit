@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export function DtoCreatedColumn(): PropertyDecorator {
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     ApiProperty({
       description: 'Дата и время создания записи, назначается автоматически',
       required: false,

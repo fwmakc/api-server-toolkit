@@ -45,7 +45,7 @@ export class HttpEventClient extends IEventClient {
       this.logger.log(`Event published: ${pattern}`);
     } catch (err) {
       this.logger.error(
-        `Failed to publish event "${pattern}": ${err.message || err}`
+        `Failed to publish event "${pattern}": ${err instanceof Error ? err.message : err}`
       );
     }
   }

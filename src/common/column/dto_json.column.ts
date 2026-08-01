@@ -8,18 +8,14 @@ export function DtoJsonColumn(
 ): PropertyDecorator {
   const { required = false } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     const properties: DeepPartial<any> = {
       description,
       required,
     };
 
-    const params: DeepPartial<any> = {
-      nullable: true,
-    };
-
     ApiProperty(properties)(object, propertyName);
-    IsJSON();
-    IsOptional();
+    IsJSON()(object, propertyName);
+    IsOptional()(object, propertyName);
   };
 }

@@ -13,7 +13,7 @@ class TextColumnTransformer {
 export function TextColumn(name, options = undefined): PropertyDecorator {
   const { comment = undefined, index = undefined } = options || {};
 
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     if (index) {
       IndexedColumn(index)(object, propertyName);
     }

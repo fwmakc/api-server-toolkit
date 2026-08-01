@@ -1,4 +1,3 @@
-import * as moment from 'moment';
 import { BadRequestException } from '@nestjs/common';
 import { BaseEntity, DeepPartial, EntityManager, EntityTarget, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
@@ -9,11 +8,16 @@ import { prepareQuotes } from './quotes.service';
 import { BindDto } from '../dto/bind.dto';
 import { parseDynamicSaveObject } from './dynamic.save.service';
 
+/**
+ * @deprecated DynamicService uses raw SQL string concatenation and is vulnerable to
+ * SQL injection. Use CommonService instead, which uses TypeORM's parameterized queries.
+ * If raw SQL is unavoidable, always use parameterized queries ($1, $2, ...) via
+ * ParamSymbolService — never interpolate values directly.
+ */
 export class DynamicService<
   Dto extends CommonDto,
   Entity extends BaseEntity,
 > extends CommonService<Dto, Entity> {
-  // protected readonly repository: Repository<Entity>;
   protected readonly repository: Repository<any>;
 
   async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {

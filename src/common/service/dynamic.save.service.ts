@@ -1,4 +1,3 @@
-import * as moment from 'moment';
 import { escapeQuotes } from './escape.service';
 
 export const parseDynamicSaveObject = (entity) => {
@@ -36,21 +35,30 @@ export const parseDynamicSaveObject = (entity) => {
 };
 
 const parseDate = (dateValue) => {
-  if (typeof dateValue === 'number') {
+  if (dateValue === null || dateValue === undefined) {
     return null;
   }
 
-  if (typeof dateValue === 'string') {
-    if (dateValue?.length < 10 || dateValue?.length > 29) {
+  if (dateValue instanceof Date) {
+    if (isNaN(dateValue.getTime())) {
       return null;
     }
+    return dateValue.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
   }
 
-  const datetime = moment(dateValue, moment.ISO_8601, true);
-
-  if (!datetime.isValid()) {
+  if (typeof dateValue !== 'string') {
     return null;
   }
 
-  return datetime.format('YYYY-MM-DD HH:mm:ss');
+  if (dateValue.length < 10 || dateValue.length > 29) {
+    return null;
+  }
+
+  const datetime = new Date(dateValue);
+
+  if (isNaN(datetime.getTime())) {
+    return null;
+  }
+
+  return datetime.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
 };
