@@ -1138,3 +1138,29 @@ GET /courses/find
 POST /courses/create  { title: "Chemistry" }
 → 201                                       ← admin bypass
 ```
+
+---
+
+## Build a monolith, split into microservices when ready
+
+The toolkit works standalone. Start with one service (like api-server), add entities, wire
+up `EntityController`. When you're ready to split:
+
+1. **Extract auth** → auth-server (JWT RS256, social login, password reset)
+2. **Extract events** → event-server (webhook pub/sub)
+3. **Extract files** → file-server (upload, image processing)
+4. **Extract email** → message-server (queued, retry, templates)
+
+Each extraction is additive — the original service keeps working. The toolkit provides the
+shared CRUD engine, guards, and columns that all services use.
+
+## Migration to plain TypeORM
+
+When you outgrow the toolkit's `EntityController`:
+
+1. Replace `EntityController` with your own controllers (keep `CommonService`)
+2. Replace column factories with native TypeORM `@Column()` decorators
+3. Keep guards (`InternalAuthGuard`, `SecureGuard`) — they work independently
+4. Keep `httpPost`/`httpGet` helpers — they have no NestJS dependencies
+
+The toolkit is designed to be adopted incrementally and abandoned incrementally.
