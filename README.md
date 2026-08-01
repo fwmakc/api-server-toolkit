@@ -8,7 +8,7 @@ Shared CRUD engine for NestJS microservices. Auto-generates REST controllers wit
 npm install github:fwmakc/api-server-toolkit#master
 ```
 
-npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed.
+npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).
 
 ---
 
@@ -838,6 +838,52 @@ import { httpPost, httpGet } from 'api-server-toolkit/helper';
 | `HttpResponse<T>` | `{ status: number; data: T; ok: boolean }` |
 | `HttpOptions` | `{ headers?: Record<string, string>; timeout?: number; raw?: boolean }` |
 | `HttpError` | `extends Error` — thrown on non-2xx when `raw` is not set |
+
+---
+
+## AI Context Generation
+
+The toolkit ships two tools for AI-assisted development:
+
+### 1. Type Declarations (`ai-declarations.md`)
+
+Raw `.d.ts` declarations for every toolkit export. Generated from `dist/` and shipped inside the npm package.
+
+```bash
+# In the toolkit repo:
+npm run ai-declarations    # → ai-declarations.md
+```
+
+Consumer services get this file automatically via `node_modules/api-server-toolkit/ai-declarations.md`.
+
+### 2. Service Context (`ai-context.md`)
+
+Scans the consumer service's `./src/` directory — controllers, routes, services, entities, DTOs — and generates a structured markdown reference.
+
+Add to your service's `package.json`:
+
+```json
+"scripts": {
+  "ai-context": "node node_modules/api-server-toolkit/scripts/generate-service-context.js"
+}
+```
+
+Then run:
+
+```bash
+npm run ai-context    # → ./ai-context.md
+```
+
+**What it scans:**
+
+| Pattern | Extracted |
+|---------|-----------|
+| `**/*.controller.ts` | Class name, `@Controller` base path, `@Get`/`@Post`/etc routes, `@ApiTags` |
+| `**/*.service.ts` | Class name, parent class, public methods with parameters and return types |
+| `**/*.entity.ts` | Class name, `@Entity` table name, columns, relations |
+| `**/*.dto.ts` | Class name, fields with types |
+
+Skips: `node_modules/`, `dist/`, `tests/`, `*.spec.ts`, `*.test.ts`
 
 ---
 
