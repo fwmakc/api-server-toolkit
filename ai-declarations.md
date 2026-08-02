@@ -3,9 +3,64 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 92 declaration files.
+Generated from 106 declaration files.
 
 ---
+
+## dist\__tests__\access.type.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\http.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\internal-auth.guard.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\permission.registry.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\private-fields.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\safe-id.pipe.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\search.service.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\token-validate.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\bootstrap.d.ts
+
+```typescript
+export * from './common/bootstrap/bootstrap.type';
+export * from './common/bootstrap/bootstrap.service';
+```
 
 ## dist\client.d.ts
 
@@ -58,8 +113,35 @@ export declare function getBindPath(access: OperationAccess | undefined, fallbac
 ```typescript
 import { OperationAccess } from './access.type';
 export declare function accessGuard(access: OperationAccess): MethodDecorator & ClassDecorator;
-export declare const Account: (apiType?: string) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const Account: (apiType?: string) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 export declare const Self: (...dataOrPipes: unknown[]) => ParameterDecorator;
+```
+
+## dist\common\bootstrap\bootstrap.service.d.ts
+
+```typescript
+import { BootstrapOptions } from './bootstrap.type';
+export declare function bootstrap(options: BootstrapOptions): Promise<void>;
+```
+
+## dist\common\bootstrap\bootstrap.type.d.ts
+
+```typescript
+import { Type } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+export interface BootstrapOptions {
+    module: Type<unknown>;
+    serviceName: string;
+    port?: number | string;
+    ip?: string;
+    cors?: boolean | Record<string, unknown>;
+    swagger?: boolean;
+    morgan?: boolean;
+    cookieParser?: boolean;
+    passport?: boolean;
+    transactional?: boolean;
+    beforeListen?: (app: NestExpressApplication) => void | Promise<void>;
+}
 ```
 
 ## dist\common\client\event-client.interfaces.d.ts
@@ -259,9 +341,9 @@ export { BigIntColumn, BooleanColumn, CreatedColumn, DateColumn, DtoColumn, DtoC
 
 ```typescript
 export declare const Data: (...dataOrPipes: any[]) => ParameterDecorator;
-export declare const Doc: (type: any, classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
-export declare const Secure: () => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
-export declare const SimpleSecure: () => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const Doc: (type: any, classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const Secure: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const SimpleSecure: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\common.doc.d.ts
@@ -274,7 +356,7 @@ export declare const CommonDoc: ({ title, models, success, relations, queries, p
     relations?: boolean;
     queries?: any;
     params?: any;
-}) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+}) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\common.dto.d.ts
@@ -369,67 +451,67 @@ export declare function FieldAccess(options: FieldAccessOptions): (target: any, 
 ## dist\common\doc\count.doc.d.ts
 
 ```typescript
-export declare const CountDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const CountDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\create.doc.d.ts
 
 ```typescript
-export declare const CreateDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const CreateDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\find.doc.d.ts
 
 ```typescript
-export declare const FindDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const FindDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\find_first.doc.d.ts
 
 ```typescript
-export declare const FindFirstDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const FindFirstDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\find_many.doc.d.ts
 
 ```typescript
-export declare const FindManyDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const FindManyDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\find_one.doc.d.ts
 
 ```typescript
-export declare const FindOneDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const FindOneDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\position_move.doc.d.ts
 
 ```typescript
-export declare const MovePositionDoc: () => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const MovePositionDoc: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\position_sort.doc.d.ts
 
 ```typescript
-export declare const SortPositionDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const SortPositionDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\remove.doc.d.ts
 
 ```typescript
-export declare const RemoveDoc: () => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const RemoveDoc: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\self.doc.d.ts
 
 ```typescript
-export declare const SelfDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const SelfDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\doc\update.doc.d.ts
 
 ```typescript
-export declare const UpdateDoc: (classDto: any) => <TFunction extends Function, Y>(target: object | TFunction, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+export declare const UpdateDoc: (classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\dto\bind.dto.d.ts
@@ -549,6 +631,30 @@ export declare function tokenValidateSimple(token: string): boolean;
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 export declare class SimpleSecureGuard implements CanActivate {
     canActivate(context: ExecutionContext): boolean;
+}
+```
+
+## dist\common\health\health.controller.d.ts
+
+```typescript
+export declare const HEALTH_SERVICE_NAME = "HEALTH_SERVICE_NAME";
+export declare class HealthController {
+    private readonly serviceName;
+    constructor(serviceName: string);
+    health(): {
+        status: string;
+        timestamp: string;
+        service: string;
+    };
+}
+```
+
+## dist\common\health\health.module.d.ts
+
+```typescript
+import { DynamicModule } from '@nestjs/common';
+export declare class HealthModule {
+    static forRoot(serviceName: string): DynamicModule;
 }
 ```
 
@@ -919,6 +1025,13 @@ export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
 ```
 
+## dist\health.d.ts
+
+```typescript
+export * from './common/health/health.module';
+export * from './common/health/health.controller';
+```
+
 ## dist\helper.d.ts
 
 ```typescript
@@ -979,6 +1092,8 @@ export * from './common/doc/position_sort.doc';
 export * from './common/doc/remove.doc';
 export * from './common/doc/self.doc';
 export * from './common/doc/update.doc';
+export * from './common/health/health.module';
+export * from './common/health/health.controller';
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';

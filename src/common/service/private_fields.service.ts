@@ -123,6 +123,8 @@ export const stripWriteFields = (
   entityTarget: any,
   bind: any,
 ): void => {
+  if (!dto || typeof dto !== 'object') return;
+
   const proto = entityTarget?.prototype;
   if (!proto) return;
 

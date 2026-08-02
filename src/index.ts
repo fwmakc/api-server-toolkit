@@ -61,6 +61,10 @@ export * from './common/doc/remove.doc';
 export * from './common/doc/self.doc';
 export * from './common/doc/update.doc';
 
+// --- Health ---
+export * from './common/health/health.module';
+export * from './common/health/health.controller';
+
 // --- Guards ---
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/secure.guard.service';

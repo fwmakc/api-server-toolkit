@@ -1,6 +1,6 @@
 {
   "name": "api-server-toolkit",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,13 +20,33 @@
     "./helper": {
       "types": "./dist/helper.d.ts",
       "default": "./dist/helper.js"
+    },
+    "./health": {
+      "types": "./dist/health.d.ts",
+      "default": "./dist/health.js"
+    },
+    "./bootstrap": {
+      "types": "./dist/bootstrap.d.ts",
+      "default": "./dist/bootstrap.js"
     }
   },
   "typesVersions": {
     "*": {
-      "guard": ["dist/guard.d.ts"],
-      "client": ["dist/client.d.ts"],
-      "helper": ["dist/helper.d.ts"]
+      "guard": [
+        "dist/guard.d.ts"
+      ],
+      "client": [
+        "dist/client.d.ts"
+      ],
+      "helper": [
+        "dist/helper.d.ts"
+      ],
+      "health": [
+        "dist/health.d.ts"
+      ],
+      "bootstrap": [
+        "dist/bootstrap.d.ts"
+      ]
     }
   },
   "engines": {
@@ -40,6 +60,8 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --watch",
     "ai-declarations": "node scripts/generate-declarations.js"
   },
   "peerDependencies": {
@@ -50,11 +72,22 @@
     "@nestjs/platform-express": "^10.0.0 || ^11.0.0",
     "@nestjs/swagger": "^8.0.0 || ^11.0.0",
     "@nestjs/typeorm": "^10.0.0 || ^11.0.0",
+    "@sentry/nestjs": "^9.0.0 || ^10.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "helmet": "^7.0.0 || ^8.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "typeorm": "^0.3.20"
+  },
+  "peerDependenciesMeta": {
+    "@sentry/nestjs": { "optional": true },
+    "helmet": { "optional": true },
+    "cookie-parser": { "optional": true },
+    "morgan": { "optional": true },
+    "passport": { "optional": true },
+    "redoc-express": { "optional": true },
+    "typeorm-transactional": { "optional": true }
   },
   "dependencies": {
     "@supercharge/request-ip": "^1.2.0"
@@ -67,14 +100,19 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@sentry/nestjs": "^10.69.0",
     "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
+    "helmet": "^8.3.0",
+    "jest": "^29.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
+    "ts-jest": "^29.4.12",
     "typeorm": "^0.3.31",
     "typescript": "^5.7.0"
   }
