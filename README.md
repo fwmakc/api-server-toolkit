@@ -1141,7 +1141,21 @@ POST /courses/create  { title: "Chemistry" }
 
 ---
 
-## Build a monolith, split into microservices when ready
+The toolkit is designed to be adopted incrementally and abandoned incrementally.
+
+## Backend-Only — Build Your Application
+
+The toolkit is a backend library. No frontend, no UI, no client SDK generator.
+
+It gives you the tools to build a production-ready REST API: entities with
+access control, auto-generated Swagger docs, guards, inter-service communication,
+and a startup function. You bring the domain logic and the frontend.
+
+Use it with any frontend framework: React, Vue, Next.js, mobile — anything
+that speaks HTTP. The generated Swagger/OpenAPI spec works with code generators
+(openapi-generator, Orval, swagger-codegen) if you want a typed client.
+
+## Build a Monolith, Split Into Microservices
 
 The toolkit works standalone. Start with one service (like api-server), add entities, wire
 up `EntityController`. When you're ready to split:
