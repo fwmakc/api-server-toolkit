@@ -155,11 +155,12 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('limit') limit: number = undefined,
       @Data('offset') offset: number = undefined,
       @Data('relations') relations: Array<RelationsDto>,
+      @Data('join') join: boolean = false,
       @Self() account: AccountLike,
     ): Promise<Entity[]> {
       const b = resolveBind(readAccess, account, accountTable, accountField);
       return await this.service.find(
-        { search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) },
+        { search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations), join },
         b,
       );
     }
