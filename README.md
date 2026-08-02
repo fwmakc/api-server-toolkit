@@ -1189,6 +1189,128 @@ When you outgrow the toolkit's `EntityController`:
 
 The toolkit is designed to be adopted incrementally and abandoned incrementally.
 
+## Changing the Domain Model
+
+The toolkit's access-control layer assumes a specific identity model:
+
+- **`account`** — the default relation name linking entities to their owner
+- **`isSuperuser`** — a boolean on the JWT payload; the sole admin-bypass mechanism
+- **`'jwt'`** — the hardcoded Passport strategy name
+- **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'owner' | 'admin' | 'closed'`
+
+This is fine if your project uses the same model (the fwmakc stack does). If your
+domain is different, here's what you can change and how.
+
+### Scenario 1: Different table name (no fork needed)
+
+Your users live in a `users` table instead of `accounts`. The toolkit already
+supports this via `EntityControllerOptions`:
+
+```typescript
+@EntityController({
+  name: 'posts',
+  dto: PostDto,
+  entity: PostEntity,
+  accountTable: 'user',    // relation name on the entity (default: 'account')
+  accountField: 'id',      // PK field on the owner (default: 'id')
+})
+```
+
+This works for CRUD scoping, `/self` routes, and ownership enforcement.
+
+**What still won't change:**
+
+- The `AccessLevel` string `'account'` (meaning "any authenticated user") stays
+  as-is — it's a label, not a table reference
+- `isSuperuser` is still the admin check
+- If you use `RemovePrivateFieldsInterceptor`, it hardcodes `name: 'account'`
+  (see file list below)
+
+### Scenario 2: Different admin model (workaround or fork)
+
+You want role-based admin (`roles: ['admin']`) instead of `isSuperuser: true`.
+
+**Workaround (no fork):** Map your roles in your Passport JWT strategy so the
+toolkit sees the shape it expects:
+
+```typescript
+// In your service's JWT strategy (e.g. JwtStrategy.validate):
+validate(payload: any) {
+  return {
+    id: payload.sub,
+    username: payload.email,
+    isSuperuser: payload.roles?.includes('admin') ?? false,
+  };
+}
+```
+
+The toolkit reads `user.isSuperuser` and works unchanged.
+
+**Fork required if:** You need multiple admin tiers, permission checks beyond
+a boolean, or scoped admin access. Replace these files:
+
+| File | Line | What to change |
+|------|------|----------------|
+| `src/common/auth.decorator.ts` | 32 | `user.isSuperuser` → your check |
+| `src/common/entity.controller.ts` | 43 | `account?.isSuperuser` → your check |
+| `src/common/interceptor/remove-private.interceptor.ts` | 18 | `user?.isSuperuser` → your check |
+| `src/common/access.type.ts` | 9 | `AccountLike.isSuperuser` → your field |
+
+### Scenario 3: Completely custom identity model (fork required)
+
+You want a fundamentally different model: multi-tenant with `tenant_id`,
+OAuth-only with no local users, or a permission matrix instead of access levels.
+
+This touches the core access-control layer. Here's every file that encodes
+domain assumptions:
+
+| File | Lines | Coupling |
+|------|-------|----------|
+| `src/common/access.type.ts` | 3 | `AccessLevel` enum — fixed set of 5 levels, includes `'account'` and `'admin'` |
+| `src/common/access.type.ts` | 5-10 | `AccountLike` interface — assumes `id`, `username`, `isActivated`, `isSuperuser` |
+| `src/common/auth.decorator.ts` | 16, 22, 29, 46 | Passport strategy name `'jwt'` hardcoded in 4 guard classes |
+| `src/common/auth.decorator.ts` | 32 | `JwtAdminGuard` checks `user.isSuperuser` |
+| `src/common/auth.decorator.ts` | 55-58 | `@Self()` casts `request.user` to `AccountLike` |
+| `src/common/service/bind.service.ts` | 8 | Default relation name: `name \|\| 'account'` |
+| `src/common/entity.controller.ts` | 39 | `resolveBind` — default table `'account'` |
+| `src/common/entity.controller.ts` | 43 | Owner queries bypassed if `account.isSuperuser` |
+| `src/common/entity.controller.ts` | 142 | `/self` route uses `accountTable \|\| 'account'` |
+| `src/common/common.service.ts` | 403 | `resolveBindRelationId`: `bind.name \|\| 'account'` |
+| `src/common/common.service.ts` | 430 | `resolveAutoAssign`: `bind.name \|\| 'account'` |
+| `src/common/common.service.ts` | 526 | `sortPosition`: `bind.name \|\| 'account'` |
+| `src/common/common.service.ts` | 255-260 | Auto-assigns owner FK on create (silently sets `entity.account = { id: callerId }`) |
+| `src/common/interceptor/remove-private.interceptor.ts` | 17-22 | Reconstructs bind with hardcoded `isSuperuser`, `'id'`, `'account'` |
+| `src/common/service/private_fields.service.ts` | 18 | Owner-field resolution: `name = 'account'` default |
+| `src/common/service/private_fields.service.ts` | 30-36 | Checks `dto[bind.name]` and `dto[bind.name + 'Id']` for ownership |
+| `src/common/service/private_fields.service.ts` | 131-145 | `stripWriteFields` — prevents writing the owner FK field |
+| `src/common/service/sanitize.service.ts` | 191-197 | Validates ownership of nested relations via `accountTable` from registry |
+| `src/common/service/nested_filter.service.ts` | 27, 42-65 | Filters nested relations by ownership using registry config |
+| `src/common/permission.registry.ts` | 18-24 | `getAccountTable` / `getAccountField` — named after the `account` concept |
+
+**What's domain-neutral (no changes needed):**
+
+- All column decorators (`IdColumn`, `VarcharColumn`, etc.)
+- `CommonService` query helpers (`parseWhereObject`, `buildSearchWhere`, etc.)
+- Queue system (`QueueJobEntity`, `QueueWorker`, `QueueService`)
+- `HealthModule`, `bootstrap()`
+- `httpPost` / `httpGet` helpers
+- `InternalAuthGuard` (shared-secret, no identity model)
+- Legacy `SecureGuard` / `SimpleSecureGuard` (HMAC token, no identity extraction)
+
+### Checklist: fork and adapt
+
+If you decide to fork the toolkit for a custom domain model:
+
+1. Copy the repo, change the package name
+2. Update `AccessLevel` in `access.type.ts` — add/remove levels
+3. Update `AccountLike` in `access.type.ts` — match your JWT payload shape
+4. Search for all `'account'` string literals — replace with your relation name
+5. Search for all `isSuperuser` — replace with your admin check
+6. If using a different Passport strategy name, update `auth.decorator.ts`
+7. Update `bind.service.ts` defaults
+8. Run the test suite (`npm test`) — it will catch missed references
+9. Pin your fork: `"api-server-toolkit": "github:yourorg/your-toolkit-fork#v1.0.0"`
+
 ## Related Services
 
 The toolkit is the foundation for the entire microservices stack:
