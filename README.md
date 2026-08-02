@@ -1,11 +1,21 @@
 # api-server-toolkit
 
-Shared CRUD engine for NestJS microservices. Auto-generates REST controllers with multi-layer access control, Swagger docs, and TypeORM row-level security.
+> NestJS CRUD engine, access control guards, column factories, and bootstrap helper.
+
+## What This Is
+
+A **working foundation** — not a demo, not a toy. Production-ready npm package
+that auto-generates REST controllers with multi-layer access control, Swagger
+docs, and TypeORM row-level security. Used by all services in the
+[microservices stack](https://github.com/fwmakc/gateway-server).
+
+Build your application on top of it — even a monolith that you split into
+microservices later. Adopt incrementally, abandon incrementally.
 
 ## Installation
 
 ```bash
-npm install github:fwmakc/api-server-toolkit#master
+npm install github:fwmakc/api-server-toolkit#v2.1.0
 ```
 
 npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).
@@ -1178,3 +1188,17 @@ When you outgrow the toolkit's `EntityController`:
 4. Keep `httpPost`/`httpGet` helpers — they have no NestJS dependencies
 
 The toolkit is designed to be adopted incrementally and abandoned incrementally.
+
+## Related Services
+
+The toolkit is the foundation for the entire microservices stack:
+
+| Service | Uses toolkit for | Repo |
+|---------|------------------|------|
+| api-server | EntityController, CommonService, columns, access control | [fwmakc/api-server](https://github.com/fwmakc/api-server) |
+| auth-server | Guards, columns, bootstrap, HealthModule | [fwmakc/auth-server](https://github.com/fwmakc/auth-server) |
+| event-server | InternalAuthGuard, httpPost, HealthModule, bootstrap | [fwmakc/event-server](https://github.com/fwmakc/event-server) |
+| message-server | Queue system, guards, HealthModule, bootstrap | [fwmakc/message-server](https://github.com/fwmakc/message-server) |
+| file-server | Guards, HealthModule, bootstrap | [fwmakc/file-server](https://github.com/fwmakc/file-server) |
+| scaffold | bootstrap, HealthModule (minimal template) | [fwmakc/scaffold](https://github.com/fwmakc/scaffold) |
+| gateway-server | Orchestration only (no toolkit dependency) | [fwmakc/gateway-server](https://github.com/fwmakc/gateway-server) |
