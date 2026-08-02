@@ -2,6 +2,27 @@
   "name": "api-server-toolkit",
   "version": "2.1.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "github:fwmakc/api-server-toolkit"
+  },
+  "keywords": [
+    "nestjs",
+    "typeorm",
+    "crud",
+    "rest-api",
+    "swagger",
+    "guards",
+    "decorators",
+    "microservices",
+    "access-control",
+    "entity-controller"
+  ],
+  "bugs": {
+    "url": "https://github.com/fwmakc/api-server-toolkit/issues"
+  },
+  "homepage": "https://github.com/fwmakc/api-server-toolkit#readme",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

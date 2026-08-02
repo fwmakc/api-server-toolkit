@@ -1,5 +1,9 @@
 # api-server-toolkit
 
+[![Tests](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml)
+[![Version](https://img.shields.io/badge/version-v2.1.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/api-server-toolkit/blob/master/LICENSE)
+
 > NestJS CRUD engine, access control guards, column factories, and bootstrap helper.
 
 ## What This Is
