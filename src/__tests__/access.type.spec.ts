@@ -9,7 +9,7 @@ describe('access.type utilities', () => {
   describe('normalizeAccess', () => {
     it('returns string access as-is', () => {
       expect(normalizeAccess('public')).toBe('public');
-      expect(normalizeAccess('admin')).toBe('admin');
+      expect(normalizeAccess('superuser')).toBe('superuser');
       expect(normalizeAccess('owner')).toBe('owner');
       expect(normalizeAccess('closed')).toBe('closed');
       expect(normalizeAccess('account')).toBe('account');
@@ -45,7 +45,7 @@ describe('access.type utilities', () => {
 
     it('returns undefined for non-owner access levels', () => {
       expect(getBindPath('public', 'fallback')).toBeUndefined();
-      expect(getBindPath('admin', 'fallback')).toBeUndefined();
+      expect(getBindPath('superuser', 'fallback')).toBeUndefined();
       expect(getBindPath('account', 'fallback')).toBeUndefined();
       expect(getBindPath('closed', 'fallback')).toBeUndefined();
     });

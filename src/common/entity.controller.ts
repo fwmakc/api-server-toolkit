@@ -45,7 +45,7 @@ function resolveBind(
       allow: isSuperuser(account),
     });
   }
-  if (level === 'admin') {
+  if (level === 'superuser') {
     return { allow: true };
   }
   return undefined;

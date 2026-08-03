@@ -40,7 +40,7 @@ class JwtAdminGuard extends AuthGuard('jwt') {
 export function accessGuard(access: OperationAccess) {
   const level = normalizeAccess(access);
   if (level === 'public') return UseGuards(JwtPublicGuard);
-  if (level === 'admin') return UseGuards(JwtAdminGuard);
+  if (level === 'superuser') return UseGuards(JwtAdminGuard);
   return UseGuards(JwtRequiredGuard);
 }
 

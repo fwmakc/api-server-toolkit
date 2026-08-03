@@ -36,7 +36,7 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
           String(ownerIdFallback) === String(id)
         );
       }
-    case 'admin':
+    case 'superuser':
       return !!bind.allow;
     case 'closed':
       return false;
@@ -54,7 +54,7 @@ function canWrite(level: AccessLevel, bind: any): boolean {
       return bind?.id !== undefined || bind?.allow === true;
     case 'owner':
       return true;
-    case 'admin':
+    case 'superuser':
       return !!bind?.allow;
     case 'closed':
       return false;

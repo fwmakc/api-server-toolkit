@@ -38,7 +38,7 @@ function canCreate(level: AccessLevel, bind: any): boolean {
       return bind?.id !== undefined || bind?.allow === true;
     case 'owner':
       return true;
-    case 'admin':
+    case 'superuser':
       return !!bind?.allow;
     case 'closed':
       return false;

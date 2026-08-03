@@ -8,7 +8,7 @@ class TestEntity {
   @FieldAccess({ read: 'public', write: 'public' })
   title: string;
 
-  @FieldAccess({ read: 'admin', write: 'admin' })
+  @FieldAccess({ read: 'superuser', write: 'superuser' })
   secret: string;
 
   @FieldAccess({ read: 'owner', write: 'owner' })

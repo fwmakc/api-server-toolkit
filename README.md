@@ -37,7 +37,7 @@ replace the queue backend — service code stays the same.
 
 This toolkit optimizes for a specific domain model. It is **not**:
 
-- **RBAC system** — 5 access levels (`public`, `account`, `owner`, `admin`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
+- **RBAC system** — 5 access levels (`public`, `account`, `owner`, `superuser`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
 - **Multi-tenant** — single-dimension ownership, no `tenant_id` scoping. The owner relation name is configurable via `OWNER_TABLE` env var (default: `account`), but multi-tenancy requires a fork.
 - **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). For complex RBAC (roles, permissions matrix), add your own guard.
 
@@ -88,7 +88,7 @@ Client request
 │ Layer 2: Access level guard         │
 │  public → token optional            │
 │  account/owner → token required     │
-│  admin → superuser required         │
+│  superuser → superuser required     │
 │  owner → WHERE bind filters rows    │
 └─────────────────────────────────────┘
     │
@@ -113,7 +113,7 @@ Client request
 │ Layer 4: Field-level access         │
 │  @FieldAccess per field:            │
 │  owner → strip if not owner         │
-│  admin → strip if not superuser     │
+│  superuser → strip if not superuser │
 │  closed → always strip              │
 └─────────────────────────────────────┘
     │
@@ -134,7 +134,7 @@ Five independent restriction levels. Each CRUD operation gets its **own** level.
 | `public` | Token **optional** | None | N/A |
 | `account` | Token **required** (401) | None — sees all records | N/A |
 | `owner` | Token **required** (401) | `WHERE ... = caller.id` | Yes — bypasses scoping |
-| `admin` | Token **required** (401) | 403 if not admin | N/A (only admin passes) |
+| `superuser` | Token **required** (401) | 403 if not superuser | N/A (only superuser passes) |
 | `closed` | Route **not generated** | — | No one |
 
 Admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). See [FAQ](#faq-addressing-common-concerns).
@@ -146,18 +146,18 @@ Admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (
 | `public` | 200 | 200 | 200 | 200 |
 | `account` | 401 | 200 | 200 | 200 |
 | `owner` | 401 | 404 | 200 | 200 *(bypass)* |
-| `admin` | 401 | 403 | 403 | 200 |
+| `superuser` | 401 | 403 | 403 | 200 |
 | `closed` | 404 | 404 | 404 | 404 |
 
 ### Levels are NOT cumulative
 
 These are **independent restriction modes**, not a hierarchy:
 
-1. **`admin` does NOT include `owner`** — the record owner gets 403 at `admin` level
+1. **`superuser` does NOT include `owner`** — the record owner gets 403 at `superuser` level
    unless they are also a superuser.
 2. **`owner` does NOT include `account`** — a regular authenticated user gets 404 on
    someone else's record. Being authenticated grants nothing.
-3. **The only overlap** — admin bypass at the `owner` level: if
+3. **The only overlap** — superuser bypass at the `owner` level: if
    `isSuperuser()` returns `true` (configurable via `SUPERUSER_FIELD`/`SUPERUSER_VALUE`),
    row scoping is skipped.
 
@@ -189,7 +189,7 @@ import { EntityController, CommonService } from 'api-server-toolkit';
   name: 'posts',
   dto: PostDto,
   entity: PostEntity,
-  operations: { read: 'public', create: 'account', update: 'owner', delete: 'admin' },
+  operations: { read: 'public', create: 'account', update: 'owner', delete: 'superuser' },
   relations: ['tags'],  // only tags can be loaded; everything else stripped
 })
 export class PostController extends BaseEntityController {
@@ -232,7 +232,7 @@ If `operations` is omitted or partially specified, missing operations default to
 
 // Admin panel — superuser only
 @EntityController({
-  operations: { read: 'admin', create: 'admin', update: 'admin', delete: 'admin' },
+  operations: { read: 'superuser', create: 'superuser', update: 'superuser', delete: 'superuser' },
 })
 ```
 
@@ -299,7 +299,7 @@ When the connection to the account spans multiple tables, use dot-notation in
 ```typescript
 @EntityController({
   accountTable: 'enrolls.student.account',
-  operations: { read: 'owner', create: 'admin', update: 'admin', delete: 'admin' },
+  operations: { read: 'owner', create: 'superuser', update: 'superuser', delete: 'superuser' },
 })
 ```
 
@@ -388,9 +388,9 @@ bind = { id: 1, name: 'student.account' }
 - Affects `create()` and `upsert()`.
 - **Runs after `stripWriteFields`** — auto-assign overwrites any user-supplied value,
   so the caller cannot forge the ownership field.
-- **Admin skip:** when `bind.allow === true` (superuser), auto-assign is skipped.
-  The admin can set the ownership field from the DTO — but only if the developer
-  explicitly allows it via `@FieldAccess({ write: 'admin' })` on the bind-field.
+- **Superuser skip:** when `bind.allow === true` (superuser), auto-assign is skipped.
+  The superuser can set the ownership field from the DTO — but only if the developer
+  explicitly allows it via `@FieldAccess({ write: 'superuser' })` on the bind-field.
   Without the decorator, the field defaults to `closed` and is stripped for everyone.
 
 ### Deduplication
@@ -536,7 +536,7 @@ class UserEntity extends BaseEntity {
   email: string;
 
   @VarcharColumn()
-  @FieldAccess({ read: 'admin', write: 'admin' })
+  @FieldAccess({ read: 'superuser', write: 'superuser' })
   internalNotes: string;
 
   @VarcharColumn()
@@ -561,13 +561,13 @@ class UserEntity extends BaseEntity {
 |---|---|
 | `public` | Anyone via create/update (default) |
 | `owner` | Owner-only (checked at service level) |
-| `admin` | Superuser only |
-| `closed` | Never (always stripped from input) |
+| `superuser` | Superuser only |
+| `closed` | No one (always stripped) |
 
 > **Bind-field exception:** the field matching `bind.name.split('.')[0]` (the
 > ownership relation) defaults to `closed` when no `@FieldAccess` decorator is
 > present — even for superusers. This prevents unauthorized ownership transfer.
-> To allow it, decorate the field explicitly (e.g., `@FieldAccess({ write: 'admin' })`).
+> To allow it, decorate the field explicitly (e.g., `@FieldAccess({ write: 'superuser' })`).
 
 ### Nested field access (bind propagation)
 
@@ -640,7 +640,7 @@ Strips unauthorized fields from nested entities before saving:
   removed entirely.
 
   ```json
-  // If CourseEntity has create: 'admin' and caller is not superuser:
+  // If CourseEntity has create: 'superuser' and caller is not superuser:
   // Input: { "course": { "title": "New Course" } }
   // After sanitize: {} (relation stripped)
   ```
@@ -653,12 +653,12 @@ levels and the caller's permissions.
 **Bind-field default `closed`:** the field matching `bind.name.split('.')[0]` (the
 ownership relation) defaults to `closed` when no `@FieldAccess` decorator is present.
 This prevents unauthorized ownership transfer via create/update — neither regular users
-nor admins can change the owner unless the developer explicitly allows it.
+nor superusers can change the owner unless the developer explicitly allows it.
 
 To enable ownership transfer, decorate the field:
 
 ```typescript
-@FieldAccess({ write: 'admin' })   // admin-only transfer
+@FieldAccess({ write: 'superuser' })   // superuser-only transfer
 account: AccountEntity;
 
 @FieldAccess({ write: 'owner' })   // owner can transfer (e.g., to another account)
@@ -735,12 +735,12 @@ Step 2: 'account' absent from entity → TypeORM leaves account_id unchanged
 Result: account_id stays 1 (Alice) ✓
 ```
 
-### 3. Admin transfer blocked (no decorator)
+### 3. Superuser transfer blocked (no decorator)
 
 Even a superuser cannot transfer ownership without explicit decorator:
 
 ```
-PATCH /articles/update/1  (admin, bind.allow = true)
+PATCH /articles/update/1  (superuser, bind.allow = true)
 { "account": { "id": 2 } }
 
 Step 1: stripWriteFields
@@ -750,20 +750,20 @@ Step 1: stripWriteFields
 Result: account_id stays 1 — 'closed' blocks everyone
 ```
 
-### 4. Ownership transfer allowed with `@FieldAccess({ write: 'admin' })`
+### 4. Ownership transfer allowed with `@FieldAccess({ write: 'superuser' })`
 
 ```typescript
-@FieldAccess({ write: 'admin' })
+@FieldAccess({ write: 'superuser' })
 @ManyToOne(() => AccountEntity)
 account: AccountEntity;
 ```
 
 ```
-PATCH /articles/update/1  (admin, bind.allow = true)
+PATCH /articles/update/1  (superuser, bind.allow = true)
 { "account": { "id": 2 } }
 
 Step 1: stripWriteFields
-  → writeLevel = 'admin' → canWrite('admin', { allow: true }) = true → NOT stripped
+  → writeLevel = 'superuser' → canWrite('superuser', { allow: true }) = true → NOT stripped
 
 Step 2: sanitizeForSave
   → isAutoAssignRelation = true → skips ownership check → keeps { id: 2 }
@@ -773,17 +773,17 @@ Step 3: save → account_id = 2
 Result: ownership transferred to Bob ✓
 ```
 
-### 5. Admin creates article for another user
+### 5. Superuser creates article for another user
 
-With `create: 'owner'` + `@FieldAccess({ write: 'admin' })`, admin can set the owner
-explicitly (auto-assign is skipped for admin):
+With `create: 'owner'` + `@FieldAccess({ write: 'superuser' })`, superuser can set the owner
+explicitly (auto-assign is skipped for superuser):
 
 ```
-POST /articles/create  (admin, create: 'owner', bind.allow = true)
+POST /articles/create  (superuser, create: 'owner', bind.allow = true)
 { "title": "For Bob", "account": { "id": 2 } }
 
 Step 1: stripWriteFields
-  → writeLevel = 'admin' → canWrite('admin', { allow: true }) = true → NOT stripped
+  → writeLevel = 'superuser' → canWrite('superuser', { allow: true }) = true → NOT stripped
 
 Step 2: auto-assign → SKIPPED (bind.allow = true)
   → account from DTO preserved: { id: 2 }
@@ -793,7 +793,7 @@ Step 3: sanitizeForSave
 
 Step 4: save → article with account_id = 2
 
-Result: admin creates article owned by Bob ✓
+Result: superuser creates article owned by Bob ✓
 ```
 
 ---
@@ -1050,10 +1050,10 @@ In-memory map recording per-entity access configuration. Populated **automatical
 ```typescript
 // Automatically set by EntityController factory:
 PermissionRegistry.set(CourseEntity, {
-  create: 'admin',
+  create: 'superuser',
   read: 'owner',
-  update: 'admin',
-  delete: 'admin',
+  update: 'superuser',
+  delete: 'superuser',
   accountTable: 'enrolls.student.account',
   accountField: 'id',
 });
@@ -1082,7 +1082,7 @@ PermissionRegistry.set(EnrollEntity, {
 import { PermissionRegistry } from 'api-server-toolkit';
 
 const config = PermissionRegistry.get(CourseEntity);
-// { create: 'admin', read: 'owner', update: 'admin', delete: 'admin',
+// { create: 'superuser', read: 'owner', update: 'superuser', delete: 'superuser',
 //   accountTable: 'enrolls.student.account', accountField: 'id' }
 ```
 
@@ -1137,7 +1137,7 @@ class StudentEntity extends BaseEntity {
   dto: CourseDto,
   entity: CourseEntity,
   accountTable: 'enrolls.student.account',
-  operations: { read: 'owner', create: 'admin', update: 'admin', delete: 'admin' },
+  operations: { read: 'owner', create: 'superuser', update: 'superuser', delete: 'superuser' },
   relations: ['enrolls'],
 })
 class CourseController { ... }
@@ -1169,10 +1169,10 @@ GET /courses/find/2  (Physics — Alice not enrolled)
 → 404                                       ← access denied
 
 POST /courses/create
-→ 403                                       ← create is admin-only
+→ 403                                       ← create is superuser-only
 
 DELETE /courses/remove/1
-→ 403                                       ← delete is admin-only
+→ 403                                       ← delete is superuser-only
 ```
 
 **Admin** (superuser):
@@ -1182,7 +1182,7 @@ GET /courses/find
 → [Algebra, Physics, Programming]           ← all courses, no filtering
 
 POST /courses/create  { title: "Chemistry" }
-→ 201                                       ← admin bypass
+→ 201                                       ← superuser bypass
 ```
 
 ---
@@ -1232,7 +1232,7 @@ The toolkit's access-control layer assumes a specific identity model:
 - **`account`** — the default relation name linking entities to their owner (configurable via `OWNER_TABLE`)
 - **`isSuperuser`** — the admin-bypass check (configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE`)
 - **`'jwt'`** — the hardcoded Passport strategy name
-- **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'owner' | 'admin' | 'closed'`
+- **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'owner' | 'superuser' | 'closed'`
 
 This is fine if your project uses the same model (the fwmakc stack does). If your
 domain is different, here's what you can change and how.
@@ -1340,7 +1340,7 @@ domain assumptions:
 
 | File | Lines | Coupling |
 |------|-------|----------|
-| `src/common/access.type.ts` | 3 | `AccessLevel` enum — fixed set of 5 levels, includes `'account'` and `'admin'` |
+| `src/common/access.type.ts` | 3 | `AccessLevel` enum — fixed set of 5 levels, includes `'account'` and `'superuser'` |
 | `src/common/access.type.ts` | 5-10 | `AccountLike` interface — assumes `id`, `username`, `isActivated`, `isSuperuser` |
 | `src/common/auth.decorator.ts` | 16, 22, 29, 46 | Passport strategy name `'jwt'` hardcoded in 4 guard classes |
 | `src/common/auth.decorator.ts` | 32 | `JwtAdminGuard` checks `user.isSuperuser` |
@@ -1404,7 +1404,7 @@ bind scoping.
 
 ### "5 fixed access levels — too rigid?"
 
-The levels (`public`, `account`, `owner`, `admin`, `closed`) control which CRUD
+The levels (`public`, `account`, `owner`, `superuser`, `closed`) control which CRUD
 routes exist and who can call them. They are presets, not constraints. You can:
 
 - Set any operation to `'closed'` and implement the route yourself

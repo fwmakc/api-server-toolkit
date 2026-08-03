@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 
-export type AccessLevel = 'public' | 'account' | 'owner' | 'admin' | 'closed';
+export type AccessLevel = 'public' | 'account' | 'owner' | 'superuser' | 'closed';
 
 export interface AccountLike {
   id: number | string;

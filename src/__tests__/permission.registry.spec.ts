@@ -22,7 +22,7 @@ describe('PermissionRegistry', () => {
 
   it('set() then get() returns config', () => {
     const config = {
-      create: 'admin' as const,
+      create: 'superuser' as const,
       read: 'public' as const,
       update: 'owner' as const,
       delete: 'closed' as const,
@@ -52,12 +52,12 @@ describe('PermissionRegistry', () => {
 
   it('getCreate returns registered value', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'admin',
+      create: 'superuser',
       read: 'public',
       update: 'owner',
       delete: 'closed',
     });
-    expect(PermissionRegistry.getCreate(EntityA)).toBe('admin');
+    expect(PermissionRegistry.getCreate(EntityA)).toBe('superuser');
     expect(PermissionRegistry.getRead(EntityA)).toBe('public');
     expect(PermissionRegistry.getUpdate(EntityA)).toBe('owner');
     expect(PermissionRegistry.getDelete(EntityA)).toBe('closed');
@@ -124,10 +124,10 @@ describe('PermissionRegistry', () => {
 
   it('isolates configs between different entities', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'admin',
-      read: 'admin',
-      update: 'admin',
-      delete: 'admin',
+      create: 'superuser',
+      read: 'superuser',
+      update: 'superuser',
+      delete: 'superuser',
     });
     PermissionRegistry.set(EntityB, {
       create: 'public',
@@ -135,7 +135,7 @@ describe('PermissionRegistry', () => {
       update: 'public',
       delete: 'public',
     });
-    expect(PermissionRegistry.getCreate(EntityA)).toBe('admin');
+    expect(PermissionRegistry.getCreate(EntityA)).toBe('superuser');
     expect(PermissionRegistry.getCreate(EntityB)).toBe('public');
   });
 });
