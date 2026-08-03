@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-08-03
+
+Reset to pre-release versioning. The toolkit is feature-complete and well-tested (111 tests), but the overall stack is not yet production-hardened. 1.0.0 will be tagged when all services reach production readiness.
+
+### Added
+- `join` parameter wired through `EntityController` find route.
+- `HealthModule`, `bootstrap()`, subpath exports (`/health`, `/bootstrap`, `/helper`, `/guard`, `/client`).
+
+### Changed
+- Version reset from 2.x.x to 0.9.0. Previous v2.x tags reflected stack alignment, not production maturity.
+
 ## [2.2.0] - 2026-08-03
 
 ### Added
