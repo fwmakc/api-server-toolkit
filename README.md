@@ -1,7 +1,7 @@
 # api-server-toolkit
 
 [![Tests](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
+[![Version](https://img.shields.io/badge/version-v0.10.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/api-server-toolkit/blob/master/LICENSE)
 
 > Framework within a framework — CRUD engine, access control, column factories, and bootstrap helper for NestJS microservices.
