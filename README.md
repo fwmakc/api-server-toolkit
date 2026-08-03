@@ -19,7 +19,7 @@ microservices later. Adopt incrementally, abandon incrementally.
 ## Installation
 
 ```bash
-npm install github:fwmakc/api-server-toolkit#v2.1.0
+npm install github:fwmakc/api-server-toolkit#v0.9.0
 ```
 
 npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).

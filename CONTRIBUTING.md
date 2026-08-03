@@ -49,7 +49,7 @@ npm run build
 ```
 
 Output goes to `dist/`. The `dist/` directory is consumed by all services via
-`github:fwmakc/api-server-toolkit#v2.1.0`.
+`github:fwmakc/api-server-toolkit#v0.9.0`.
 
 ## Code Style
 
