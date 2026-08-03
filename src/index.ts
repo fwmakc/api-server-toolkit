@@ -92,6 +92,8 @@ export * from './common/queue/queue-worker.service';
 export * from './common/queue/queue.service';
 
 // --- Services ---
+export * from './common/service/admin.service';
+export * from './common/service/owner.service';
 export * from './common/service/bind.service';
 export * from './common/service/cookie.service';
 export * from './common/service/crypt.service';

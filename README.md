@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/api-server-toolkit/blob/master/LICENSE)
 
-> NestJS CRUD engine, access control guards, column factories, and bootstrap helper.
+> Framework within a framework — CRUD engine, access control, column factories, and bootstrap helper for NestJS microservices.
 
 ## What This Is
 
@@ -15,6 +15,35 @@ docs, and TypeORM row-level security. Used by all services in the
 
 Build your application on top of it — even a monolith that you split into
 microservices later. Adopt incrementally, abandon incrementally.
+
+## Framework Within a Framework
+
+NestJS gives you the building blocks (DI, modules, routing). Toolkit gives you
+the domain-specific patterns:
+
+| Layer | NestJS provides | Toolkit adds |
+|-------|----------------|--------------|
+| **Controllers** | `@Controller`, `@Get`, `@Post` | `EntityController` — auto-generates 10 routes with access control, Swagger, bind scoping |
+| **Access control** | `@UseGuards` (manual per route) | `operations: { read: 'public', create: 'owner' }` — declarative, data-driven |
+| **TypeORM columns** | `@Column`, `@PrimaryColumn` | `@IdColumn`, `@BooleanColumn`, `@FieldAccess` — semantic, no boilerplate |
+| **Startup** | Manual `app.listen()` + 15 lines of config | `bootstrap({ module, serviceName, cors: true })` — one call |
+| **Relations** | Manual `leftJoin` per query | Batch-loader: one query per relation, N+1 → 2 queries |
+
+**The key idea:** services depend on toolkit abstractions, not on specific
+implementations. Swap the event bus transport, change the auth strategy,
+replace the queue backend — service code stays the same.
+
+## Limitations
+
+This toolkit optimizes for a specific domain model. It is **not**:
+
+- **RBAC system** — 5 access levels (`public`, `account`, `owner`, `admin`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
+- **Multi-tenant** — single-dimension ownership, no `tenant_id` scoping. The owner relation name is configurable via `OWNER_TABLE` env var (default: `account`), but multi-tenancy requires a fork.
+- **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). For complex RBAC (roles, permissions matrix), add your own guard.
+
+If you need multi-tenancy or a fundamentally different access model, see
+[Changing the Domain Model](#changing-the-domain-model) below — it lists the
+exact files to fork and modify.
 
 ## Installation
 
@@ -100,17 +129,19 @@ Five independent restriction levels. Each CRUD operation gets its **own** level.
 
 ### The five levels
 
-| Level | Authentication | Row scoping | Superuser bypass |
+| Level | Authentication | Row scoping | Admin bypass |
 |-------|---------------|-------------|------------------|
 | `public` | Token **optional** | None | N/A |
 | `account` | Token **required** (401) | None — sees all records | N/A |
 | `owner` | Token **required** (401) | `WHERE ... = caller.id` | Yes — bypasses scoping |
-| `admin` | Token **required** (401) | 403 if `!isSuperuser` | N/A (only superuser passes) |
+| `admin` | Token **required** (401) | 403 if not admin | N/A (only admin passes) |
 | `closed` | Route **not generated** | — | No one |
+
+Admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). See [FAQ](#faq-addressing-common-concerns).
 
 ### Access matrix — who can do what
 
-| Level | Unauthenticated | Authenticated (not owner) | Record Owner | Superuser |
+| Level | Unauthenticated | Authenticated (not owner) | Record Owner | Admin |
 |-------|:---:|:---:|:---:|:---:|
 | `public` | 200 | 200 | 200 | 200 |
 | `account` | 401 | 200 | 200 | 200 |
@@ -126,8 +157,9 @@ These are **independent restriction modes**, not a hierarchy:
    unless they are also a superuser.
 2. **`owner` does NOT include `account`** — a regular authenticated user gets 404 on
    someone else's record. Being authenticated grants nothing.
-3. **The only overlap** — superuser bypass at the `owner` level: if
-   `account.isSuperuser === true`, row scoping is skipped.
+3. **The only overlap** — admin bypass at the `owner` level: if
+   `isSuperuser()` returns `true` (configurable via `SUPERUSER_FIELD`/`SUPERUSER_VALUE`),
+   row scoping is skipped.
 
 ---
 
@@ -1197,8 +1229,8 @@ The toolkit is designed to be adopted incrementally and abandoned incrementally.
 
 The toolkit's access-control layer assumes a specific identity model:
 
-- **`account`** — the default relation name linking entities to their owner
-- **`isSuperuser`** — a boolean on the JWT payload; the sole admin-bypass mechanism
+- **`account`** — the default relation name linking entities to their owner (configurable via `OWNER_TABLE`)
+- **`isSuperuser`** — the admin-bypass check (configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE`)
 - **`'jwt'`** — the hardcoded Passport strategy name
 - **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'owner' | 'admin' | 'closed'`
 
@@ -1207,35 +1239,62 @@ domain is different, here's what you can change and how.
 
 ### Scenario 1: Different table name (no fork needed)
 
-Your users live in a `users` table instead of `accounts`. The toolkit already
-supports this via `EntityControllerOptions`:
+Your users live in a `users` table instead of `accounts`.
+
+**Option A — global env var (one line, no code):**
+
+```env
+OWNER_TABLE=user
+```
+
+All ownership queries, bind scoping, `/self` routes, and field security now use
+`user` as the relation name. No per-controller configuration needed.
+
+**Option B — per-controller override:**
 
 ```typescript
 @EntityController({
   name: 'posts',
   dto: PostDto,
   entity: PostEntity,
-  accountTable: 'user',    // relation name on the entity (default: 'account')
+  accountTable: 'user',    // overrides OWNER_TABLE for this controller
   accountField: 'id',      // PK field on the owner (default: 'id')
 })
 ```
 
-This works for CRUD scoping, `/self` routes, and ownership enforcement.
+**What stays unchanged:**
 
-**What still won't change:**
+- The `AccessLevel` string `'account'` (meaning "any authenticated user") — it's a
+  label, not a table reference
 
-- The `AccessLevel` string `'account'` (meaning "any authenticated user") stays
-  as-is — it's a label, not a table reference
-- `isSuperuser` is still the admin check
-- If you use `RemovePrivateFieldsInterceptor`, it hardcodes `name: 'account'`
-  (see file list below)
+### Scenario 2: Different admin model
 
-### Scenario 2: Different admin model (workaround or fork)
+You want role-based admin (`role: 'admin'`) instead of `isSuperuser: true`.
 
-You want role-based admin (`roles: ['admin']`) instead of `isSuperuser: true`.
+**Option A — env vars (no fork, no code changes):**
 
-**Workaround (no fork):** Map your roles in your Passport JWT strategy so the
-toolkit sees the shape it expects:
+The toolkit reads `SUPERUSER_FIELD` and `SUPERUSER_VALUE` from the environment:
+
+```env
+# Default: checks isSuperuser === true
+SUPERUSER_FIELD=isSuperuser
+SUPERUSER_VALUE=true
+
+# Custom: checks role === admin
+SUPERUSER_FIELD=role
+SUPERUSER_VALUE=admin
+
+# Multiple values: checks role IN (admin, superadmin)
+SUPERUSER_FIELD=role
+SUPERUSER_VALUE=admin,superadmin
+```
+
+All three admin checks (guard, owner bypass, field access) use this configuration.
+
+**Option B — JWT mapping (no fork):**
+
+Map your roles in your Passport JWT strategy so the toolkit sees the shape
+it expects:
 
 ```typescript
 // In your service's JWT strategy (e.g. JwtStrategy.validate):
@@ -1248,17 +1307,28 @@ validate(payload: any) {
 }
 ```
 
-The toolkit reads `user.isSuperuser` and works unchanged.
+**Option C — add a custom guard (no fork):**
 
-**Fork required if:** You need multiple admin tiers, permission checks beyond
-a boolean, or scoped admin access. Replace these files:
+The 5 access levels are CRUD route presets. For fine-grained RBAC, add your
+own guard on top of EntityController:
 
-| File | Line | What to change |
-|------|------|----------------|
-| `src/common/auth.decorator.ts` | 32 | `user.isSuperuser` → your check |
-| `src/common/entity.controller.ts` | 43 | `account?.isSuperuser` → your check |
-| `src/common/interceptor/remove-private.interceptor.ts` | 18 | `user?.isSuperuser` → your check |
-| `src/common/access.type.ts` | 9 | `AccountLike.isSuperuser` → your field |
+```typescript
+@EntityController({
+  name: 'posts',
+  dto: PostDto,
+  entity: PostEntity,
+  operations: { read: 'public', create: 'account' },
+})
+@UseGuards(RbacGuard) // your guard checks permissions matrix
+export class PostsController {}
+```
+
+The toolkit's access level check runs first (is the user authenticated?),
+then your `RbacGuard` checks fine-grained permissions. Both coexist without
+conflict.
+
+**Fork required if:** You need to change the 5-level enum itself, or add
+multi-tenancy (`tenant_id` scoping). See Scenario 3 below.
 
 ### Scenario 3: Completely custom identity model (fork required)
 
@@ -1306,14 +1376,72 @@ domain assumptions:
 If you decide to fork the toolkit for a custom domain model:
 
 1. Copy the repo, change the package name
-2. Update `AccessLevel` in `access.type.ts` — add/remove levels
-3. Update `AccountLike` in `access.type.ts` — match your JWT payload shape
-4. Search for all `'account'` string literals — replace with your relation name
-5. Search for all `isSuperuser` — replace with your admin check
+2. Set `OWNER_TABLE` env var — no code changes needed for table name
+3. Set `SUPERUSER_FIELD`/`SUPERUSER_VALUE` env vars — no code changes for admin check
+4. Update `AccessLevel` in `access.type.ts` — add/remove levels (only if you need different levels)
+5. Update `AccountLike` in `access.type.ts` — match your JWT payload shape
 6. If using a different Passport strategy name, update `auth.decorator.ts`
-7. Update `bind.service.ts` defaults
-8. Run the test suite (`npm test`) — it will catch missed references
-9. Pin your fork: `"api-server-toolkit": "github:yourorg/your-toolkit-fork#v1.0.0"`
+7. Run the test suite (`npm test`) — it will catch missed references
+8. Pin your fork: `"api-server-toolkit": "github:yourorg/your-toolkit-fork#v1.0.0"`
+
+## FAQ: Addressing Common Concerns
+
+### "Only `isSuperuser` for admin — what if I need roles?"
+
+Set `SUPERUSER_FIELD` and `SUPERUSER_VALUE` env vars. The toolkit checks any JWT field
+against any value(s) — no code changes:
+
+```env
+SUPERUSER_FIELD=role
+SUPERUSER_VALUE=admin,superadmin
+```
+
+For fine-grained RBAC (permissions matrix like `canEditPosts`), add a custom
+`@UseGuards(RbacGuard)` alongside `@EntityController`. The 5 access levels are
+CRUD route presets (think Express middleware), not a security model. Your guard
+handles authorization logic; the toolkit handles route generation, Swagger, and
+bind scoping.
+
+### "5 fixed access levels — too rigid?"
+
+The levels (`public`, `account`, `owner`, `admin`, `closed`) control which CRUD
+routes exist and who can call them. They are presets, not constraints. You can:
+
+- Set any operation to `'closed'` and implement the route yourself
+- Add `@UseGuards(YourGuard)` on top for additional checks
+- Fork to change the enum itself (see [Changing the Domain Model](#changing-the-domain-model))
+
+### "Single maintainer, no community — what about support?"
+
+This is a **fork-first** codebase. You own the code from day one — no SaaS
+dependency, no API key to revoke, no service to shut down. The toolkit ships
+with 111 tests and full type declarations (`ai-declarations.md`). You inherit a
+tested foundation, not a black box.
+
+Forking is the standard enterprise pattern (cf. internal Spring Boot forks,
+Keycloak forks, Django forks). Pin your fork: `"api-server-toolkit":
+"github:yourorg/your-toolkit-fork#v1.0.0"`.
+
+### "Microservices overhead — too complex for a startup?"
+
+The toolkit works in a monolith too. Use `EntityController` + `CommonService`
+in a single NestJS app — no gateway, no event-server, no Docker Compose needed.
+Split into microservices when traffic demands it, not before.
+
+The microservices stack (gateway, event bus, separate servers) is a reference
+architecture showing how to structure services when you need them. It's not a
+requirement for using the toolkit.
+
+### "B2B SaaS with multi-tenancy — easier to build from scratch?"
+
+No. The toolkit gives you CRUD generation, Swagger docs, batch-loaded relations,
+and field-level security — tested and documented. A multi-tenancy fork touches
+5-7 files (listed in [Scenario 3](#scenario-3-completely-custom-identity-model-fork-required)).
+You build the tenant layer; you inherit the infrastructure.
+
+Starting from scratch means rebuilding all of that plus the tenant layer.
+Forking the toolkit means adding only the tenant layer (`tenant_id` scoping,
+auto-assignment, query filtering) — a day of work, not weeks.
 
 ## Related Services
 

@@ -3,6 +3,7 @@ import {
   FIELD_ACCESS_METADATA,
   FieldAccessOptions,
 } from '../decorator/field_access.decorator';
+import { OWNER_TABLE } from './owner.service';
 
 function canRead(level: AccessLevel, bind: any, dto: any): boolean {
   if (!bind) return level === 'public';
@@ -15,7 +16,7 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
       if (bind.allow) return true;
       if (bind.id === undefined) return false;
       {
-        const { id, key = 'id', name = 'account' } = bind;
+        const { id, key = 'id', name = OWNER_TABLE } = bind;
         let ownerEntity;
         if (name === '') {
           ownerEntity = dto;

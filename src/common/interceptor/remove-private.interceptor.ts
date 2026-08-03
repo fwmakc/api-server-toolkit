@@ -7,6 +7,8 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs';
 import { removePrivateFields } from '../service/private_fields.service';
+import { isSuperuser } from '../service/admin.service';
+import { OWNER_TABLE } from '../service/owner.service';
 
 @Injectable()
 export class RemovePrivateFieldsInterceptor implements NestInterceptor {
@@ -15,10 +17,10 @@ export class RemovePrivateFieldsInterceptor implements NestInterceptor {
     const user = request.user;
 
     const bind = {
-      allow: user?.isSuperuser ?? false,
+      allow: isSuperuser(user),
       id: user?.id,
       key: 'id',
-      name: 'account',
+      name: OWNER_TABLE,
     };
 
     return next

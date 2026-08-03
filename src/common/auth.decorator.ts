@@ -12,6 +12,7 @@ import {
   normalizeAccess,
   OperationAccess,
 } from './access.type';
+import { isSuperuser } from './service/admin.service';
 
 class JwtPublicGuard extends AuthGuard('jwt') {
   handleRequest(_: any, user: any) {
@@ -29,7 +30,7 @@ class JwtRequiredGuard extends AuthGuard('jwt') {
 class JwtAdminGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any) {
     if (err || !user) throw err || new UnauthorizedException();
-    if (!user.isSuperuser) {
+    if (!isSuperuser(user)) {
       throw new ForbiddenException('You have no rights!');
     }
     return user;

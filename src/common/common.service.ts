@@ -29,6 +29,7 @@ import { sanitizeForSave } from './service/sanitize.service';
 import { filterNestedRelations } from './service/nested_filter.service';
 import { buildSearchWhere, mergeSearchWhere } from './service/search.service';
 import { bind } from './service/bind.service';
+import { OWNER_TABLE } from './service/owner.service';
 import { BindDto } from './dto/bind.dto';
 import { batchLoadRelations } from './service/batch-loader.service';
 
@@ -400,7 +401,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (key === 'id') {
       return bind.id;
     }
-    const name = bind.name || 'account';
+    const name = bind.name || OWNER_TABLE;
     const segments = name.split('.');
     let currentMetadata = this.repository.metadata;
     for (const segment of segments) {
@@ -427,7 +428,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   ): Promise<{ name: string; id: number | string } | null> {
     if (bind.id === undefined) return null;
 
-    const name = bind.name || 'account';
+    const name = bind.name || OWNER_TABLE;
     const segments = name.split('.');
 
     if (segments.length === 1) {
@@ -523,7 +524,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
             const resolvedId = await this.resolveBindRelationId(bind);
             resetWhere = {
               ...resetWhere,
-              [bind.name || 'account']:
+              [bind.name || OWNER_TABLE]:
                 resolvedId !== null
                   ? { id: resolvedId }
                   : { [bind.key || 'id']: bind.id },

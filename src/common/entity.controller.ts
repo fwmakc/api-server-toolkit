@@ -18,6 +18,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { AccountLike, } from './access.type';
 import { accessGuard, Self } from './auth.decorator';
 import { bind } from './service/bind.service';
+import { isSuperuser } from './service/admin.service';
+import { OWNER_TABLE } from './service/owner.service';
 import { PermissionRegistry } from './permission.registry';
 import {
   EntityControllerOptions,
@@ -36,11 +38,11 @@ function resolveBind(
 ): BindDto | undefined {
   const level = normalizeAccess(access);
   if (level === 'owner') {
-    const bindPath = getBindPath(access, accountTable || 'account');
+    const bindPath = getBindPath(access, accountTable || OWNER_TABLE);
     return bind(account, {
       name: bindPath,
       key: accountField,
-      allow: account?.isSuperuser,
+      allow: isSuperuser(account),
     });
   }
   if (level === 'admin') {
@@ -139,7 +141,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self() account: AccountLike,
     ): Promise<Entity[]> {
       const b = bind(account, {
-        name: accountTable || 'account',
+        name: accountTable || OWNER_TABLE,
         key: accountField,
         allow: false,
       });
