@@ -320,6 +320,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     dto: Dto,
     relations: Array<RelationsDto> = undefined,
     bind: BindDto = { allow: true },
+    externalManager?: EntityManager,
   ): Promise<Entity> {
     // next this columns from bind
     delete dto.id;
@@ -331,7 +332,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     try {
       let savedId: any;
 
-      await this.repository.manager.transaction(async (manager) => {
+      const doCreate = async (manager: EntityManager) => {
         if (bind.id !== undefined && !bind.allow) {
           const autoAssign = await this.resolveAutoAssign(bind, manager);
           if (autoAssign) {
@@ -352,7 +353,13 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
         const result = await this.createEntity(entity, manager);
         savedId = result?.id;
-      });
+      };
+
+      if (externalManager) {
+        await doCreate(externalManager);
+      } else {
+        await this.repository.manager.transaction(doCreate);
+      }
 
       return await this.findOne(
         {
@@ -444,6 +451,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     dto: Dto,
     relations: Array<RelationsDto> = undefined,
     bind: BindDto = { allow: true },
+    externalManager?: EntityManager,
   ): Promise<Entity> {
     if (id === undefined) {
       return;
@@ -459,10 +467,16 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     stripWriteFields(entity, this.repository.metadata.target, bind);
 
     try {
-      await this.repository.manager.transaction(async (manager) => {
+      const doUpdate = async (manager: EntityManager) => {
         await sanitizeForSave(entity, this.repository.metadata, bind, manager);
         await this.updateEntity(entity, manager);
-      });
+      };
+
+      if (externalManager) {
+        await doUpdate(externalManager);
+      } else {
+        await this.repository.manager.transaction(doUpdate);
+      }
 
       return await this.findOne(
         {
@@ -572,7 +586,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return { name: firstSegment, id: result.id };
   }
 
-  async remove(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
+  async remove(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
     if (bind.id !== undefined && !bind.allow) {
       const find = await this.findOne({ id, select: { id: true } }, bind);
       if (!find) {
@@ -580,7 +594,8 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
     }
     try {
-      const result = await this.repository.delete(id);
+      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const result = await repo.delete(id);
       return !!result?.affected;
     } catch (e) {
       this.error(e);
