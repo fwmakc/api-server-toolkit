@@ -1581,28 +1581,26 @@ OAuth-only with no local users, or a permission matrix instead of access levels.
 This touches the core access-control layer. Here's every file that encodes
 domain assumptions:
 
-| File | Lines | Coupling |
-|------|-------|----------|
-| `src/common/access.type.ts` | 3 | `AccessLevel` enum — fixed set of 5 levels, includes `'account'` and `'superuser'` |
-| `src/common/access.type.ts` | 5-10 | `AccountLike` interface — assumes `id`, `username`, `isActivated`, `isSuperuser` |
-| `src/common/auth.decorator.ts` | 16, 22, 29, 46 | Passport strategy name `'jwt'` hardcoded in 4 guard classes |
-| `src/common/auth.decorator.ts` | 32 | `JwtAdminGuard` checks `user.isSuperuser` |
-| `src/common/auth.decorator.ts` | 55-58 | `@Self()` casts `request.user` to `AccountLike` |
-| `src/common/service/bind.service.ts` | 8 | Default relation name: `name \|\| 'account'` |
-| `src/common/entity.controller.ts` | 39 | `resolveBind` — default table `'account'` |
-| `src/common/entity.controller.ts` | 43 | Owner queries bypassed if `account.isSuperuser` |
-| `src/common/entity.controller.ts` | 142 | `/self` route uses `accountTable \|\| 'account'` |
-| `src/common/common.service.ts` | 403 | `resolveBindRelationId`: `bind.name \|\| 'account'` |
-| `src/common/common.service.ts` | 430 | `resolveAutoAssign`: `bind.name \|\| 'account'` |
-| `src/common/common.service.ts` | 526 | `sortPosition`: `bind.name \|\| 'account'` |
-| `src/common/common.service.ts` | 255-260 | Auto-assigns owner FK on create (silently sets `entity.account = { id: callerId }`) |
-| `src/common/interceptor/remove-private.interceptor.ts` | 17-22 | Reconstructs bind with hardcoded `isSuperuser`, `'id'`, `'account'` |
-| `src/common/service/private_fields.service.ts` | 18 | Owner-field resolution: `name = 'account'` default |
-| `src/common/service/private_fields.service.ts` | 30-36 | Checks `dto[bind.name]` and `dto[bind.name + 'Id']` for ownership |
-| `src/common/service/private_fields.service.ts` | 131-145 | `stripWriteFields` — prevents writing the owner FK field |
-| `src/common/service/sanitize.service.ts` | 191-197 | Validates ownership of nested relations via `accountTable` from registry |
-| `src/common/service/nested_filter.service.ts` | 27, 42-65 | Filters nested relations by ownership using registry config |
-| `src/common/permission.registry.ts` | 18-24 | `getAccountTable` / `getAccountField` — named after the `account` concept |
+| File | Symbol | Coupling |
+|------|--------|----------|
+| `src/common/access.type.ts` | `AccessLevel` type | Fixed set of 6 levels, includes `'account'` and `'superuser'` |
+| `src/common/access.type.ts` | `AccountLike` interface | Assumes `id`, `username`, `isActivated`, `isSuperuser` |
+| `src/common/auth.decorator.ts` | `AuthGuard('jwt')` | Passport strategy name `'jwt'` hardcoded in 4 guard classes |
+| `src/common/auth.decorator.ts` | `JwtAdminGuard` | Checks `isSuperuser(user)` |
+| `src/common/auth.decorator.ts` | `@Self()` | Casts `request.user` to `AccountLike` |
+| `src/common/service/bind.service.ts` | `bind()` | Default relation name: `OWNER_TABLE` |
+| `src/common/entity.controller.ts` | `resolveBind()` | Owner queries bypassed if `isSuperuser(account)` |
+| `src/common/entity.controller.ts` | `self()` | Uses `accountTable \|\| OWNER_TABLE` |
+| `src/common/common.service.ts` | `resolveBindRelationId()` | Resolves bind path to relation ID |
+| `src/common/common.service.ts` | `resolveAutoAssign()` | Auto-assigns owner FK on create |
+| `src/common/common.service.ts` | `sortPosition()` | Uses bind for reset scope |
+| `src/common/common.service.ts` | `create()` | Silently sets `entity[ownerTable] = { id: callerId }` |
+| `src/common/interceptor/remove-private.interceptor.ts` | `RemovePrivateFieldsInterceptor` | Reconstructs bind from `request.user` |
+| `src/common/service/private_fields.service.ts` | `canRead()` | Owner-field resolution: `name = OWNER_TABLE` default |
+| `src/common/service/private_fields.service.ts` | `stripWriteFields()` | Prevents writing the owner FK field |
+| `src/common/service/sanitize.service.ts` | `checkOwnership()` | Validates ownership of nested relations via registry |
+| `src/common/service/nested_filter.service.ts` | `filterNestedRelations()` | Filters nested relations by ownership |
+| `src/common/permission.registry.ts` | `PermissionRegistry` | `getAccountTable` / `getAccountField` accessors |
 
 **What's domain-neutral (no changes needed):**
 
