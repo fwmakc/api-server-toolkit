@@ -882,6 +882,7 @@ Result: superuser creates article owned by Bob ✓
 | `@SimpleSecure` | `@UseGuards(SimpleSecureGuard)` — lightweight token check |
 | `@Data()` | Param decorator — merges `request.query` + `request.body`, JSON-parses strings |
 | `@FieldAccess({ read, write })` | Property decorator — field-level access control on entity columns |
+| `@SoftDelete()` | Property decorator — marks a Date column for soft delete. `remove()` becomes soft, `hardDelete()` + `restore()` routes generated |
 | `@Doc(name, dto)` | Composes Swagger documentation decorators |
 
 ---
@@ -1114,16 +1115,87 @@ class PostService extends CommonService<PostDto, PostEntity> {
 | `findOne(findOneDto, bind?)` | Single record by ID |
 | `findMany(findManyDto, bind?)` | Multiple records by IDs array |
 | `findFirst(findFirstDto, bind?)` | First matching record |
-| `count(findDto, bind?)` | Count matching records (supports `search`; ignores `limit`/`offset`) |
-| `create(dto, relations?, bind?)` | Create with nested relations |
-| `update(id, dto, relations?, bind?)` | Update by ID |
-| `upsert(dto, relations?, bind?)` | Create or update by unique columns |
-| `remove(id, bind?)` | Remove by ID — returns `false` if not found (no throw) |
+| `count(findDto, bind?)` | Count matching records (DB-side `COUNT(*)`) |
+| `create(dto, relations?, bind?, manager?)` | Create with nested relations |
+| `update(id, dto, relations?, bind?, manager?)` | Update by ID |
+| `upsert(dto, relations?, bind?)` | Create or update by unique columns (race-safe) |
+| `remove(id, bind?, manager?)` | Smart delete — soft if `@SoftDelete()`, hard otherwise |
+| `hardDelete(id, bind?, manager?)` | Force physical delete (ignores `@SoftDelete()`) |
+| `restore(id, bind?)` | Undo soft delete (requires `@SoftDelete()`) |
 | `sortPosition(field, findDto, bind?)` | Re-sort all records by field |
 | `movePosition(id, field, position?, bind?)` | Move record to specific position |
 
+All write methods (`create`, `update`, `remove`, `hardDelete`) accept an optional
+`manager?: EntityManager` parameter for transaction support:
+
+```typescript
+await dataSource.transaction(async (manager) => {
+  await orderService.create(orderDto, [], bind, manager);
+  await invoiceService.create(invoiceDto, [], bind, manager);
+});
+```
+
 The `bind` parameter controls row scoping. When omitted, defaults to `{ allow: true }`
 (no scoping).
+
+### Error handling
+
+Database errors are mapped to appropriate HTTP status codes via `throwDbError()`:
+
+| PostgreSQL code | HTTP status | Example |
+|----------------|-------------|---------|
+| `23505` unique_violation | 409 Conflict | Duplicate email |
+| `23503` foreign_key_violation | 409 Conflict | Invalid FK reference |
+| `23502` not_null_violation | 400 Bad Request | Missing required field |
+| `08006` connection_failure | 503 Service Unavailable | DB unreachable |
+| `40001` serialization_failure | 503 Service Unavailable | Deadlock |
+| `40P01` deadlock_detected | 503 Service Unavailable | Deadlock |
+| Other | 500 Internal Server Error | |
+
+Schema details (table/column names) are never leaked to the client.
+Full error details are logged server-side via `Logger`.
+
+---
+
+## Soft Delete
+
+Optional soft delete via `@SoftDelete()` decorator. When present on an entity column,
+`remove()` automatically performs soft delete instead of hard delete.
+
+### Setup
+
+```typescript
+@Entity('articles')
+class ArticleEntity extends CommonColumn {
+  @IdColumn() id: number;
+
+  @SoftDelete()       // ← marks this column for soft delete
+  @DateColumn()
+  deletedAt: Date;
+}
+```
+
+### Behavior
+
+| Operation | Without `@SoftDelete()` | With `@SoftDelete()` |
+|-----------|------------------------|---------------------|
+| `remove(id)` | `DELETE FROM` | `UPDATE SET deletedAt = now()` |
+| `hardDelete(id)` | (route not generated) | `DELETE FROM` — force physical delete |
+| `restore(id)` | (route not generated) | `UPDATE SET deletedAt = NULL` |
+| `find()` | Normal | Auto-filters `WHERE deletedAt IS NULL` |
+
+### Generated routes
+
+When `@SoftDelete()` is present, EntityController generates two additional routes
+alongside the standard `DELETE /remove/:id`:
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `DELETE /remove/:id` | `remove()` | Smart — soft delete |
+| `DELETE /hard-delete/:id` | `hardDelete()` | Force physical delete |
+| `PATCH /restore/:id` | `restore()` | Undo soft delete |
+
+All three are controlled by the `delete` access level.
 
 ---
 
