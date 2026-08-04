@@ -20,6 +20,7 @@ import { accessGuard, Self } from './auth.decorator';
 import { bind } from './service/bind.service';
 import { isSuperuser } from './service/admin.service';
 import { OWNER_TABLE } from './service/owner.service';
+import { TENANT_TABLE, TENANT_FIELD } from './service/tenant.service';
 import { PermissionRegistry } from './permission.registry';
 import {
   EntityControllerOptions,
@@ -35,19 +36,37 @@ function resolveBind(
   account: AccountLike,
   accountTable: string,
   accountField: string,
+  tenantTable?: string,
+  tenantField?: string,
 ): BindDto | undefined {
   const level = normalizeAccess(access);
+  if (level === 'closed') return undefined;
+  if (level === 'public') return undefined;
+  if (level === 'superuser') return { allow: true };
+
+  const allow = isSuperuser(account);
+  const b: BindDto = { allow };
+
   if (level === 'owner') {
     const bindPath = getBindPath(access, accountTable || OWNER_TABLE);
-    return bind(account, {
-      name: bindPath,
-      key: accountField,
-      allow: isSuperuser(account),
-    });
+    b.id = account?.['id'];
+    b.key = accountField || 'id';
+    b.name = bindPath;
   }
-  if (level === 'superuser') {
-    return { allow: true };
+
+  if ((level === 'tenant' || level === 'owner') && !allow) {
+    const tName = tenantTable || TENANT_TABLE;
+    if (tName) {
+      b.tenantName = tName;
+      b.tenantKey = tenantField || TENANT_FIELD;
+      b.tenantId = account?.tenantId;
+    }
   }
+
+  if (b.id !== undefined || b.tenantId !== undefined) {
+    return b;
+  }
+
   return undefined;
 }
 
@@ -77,6 +96,8 @@ export const EntityController = (options: EntityControllerOptions) => {
   const { name, dto, entity } = options;
   const accountTable = options.accountTable ?? '';
   const accountField = options.accountField ?? 'id';
+  const tenantTable = options.tenantTable ?? '';
+  const tenantField = options.tenantField ?? '';
 
   const readAccess = options.operations?.read ?? 'closed';
   const createAccess = options.operations?.create ?? 'closed';
@@ -92,6 +113,8 @@ export const EntityController = (options: EntityControllerOptions) => {
     delete: deleteAccess,
     accountTable: accountTable || undefined,
     accountField: accountField || undefined,
+    tenantTable: tenantTable || undefined,
+    tenantField: tenantField || undefined,
   });
 
   const readRoute = route(readAccess, Get('find'), 'find', dto);
@@ -144,6 +167,8 @@ export const EntityController = (options: EntityControllerOptions) => {
         name: accountTable || OWNER_TABLE,
         key: accountField,
         allow: false,
+        ...(tenantTable ? { tenantName: tenantTable } : {}),
+        ...(tenantField ? { tenantKey: tenantField } : {}),
       });
       return await this.service.find({ where, select, order, relations: filterRelations(relations, allowedRelations) }, b);
     }
@@ -160,7 +185,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('join') join: boolean = false,
       @Self() account: AccountLike,
     ): Promise<Entity[]> {
-      const b = resolveBind(readAccess, account, accountTable, accountField);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.find(
         { search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations), join },
         b,
@@ -176,7 +201,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<Entity> {
-      const b = resolveBind(readAccess, account, accountTable, accountField);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.findFirst(
         { search, select, where, order, relations: filterRelations(relations, allowedRelations) },
         b,
@@ -191,7 +216,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<Entity[]> {
-      const b = resolveBind(readAccess, account, accountTable, accountField);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField);
       const result = await this.service.findMany({ ids, select, relations: filterRelations(relations, allowedRelations) }, b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
@@ -206,7 +231,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<Entity> {
-      const b = resolveBind(readAccess, account, accountTable, accountField);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField);
       const result = await this.service.findOne(
         { id, select, relations: filterRelations(relations, allowedRelations) },
         b,
@@ -226,7 +251,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<number> {
-      const b = resolveBind(readAccess, account, accountTable, accountField);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.count({ search, where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
     }
 
@@ -236,7 +261,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Body('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<Entity> {
-      const b = resolveBind(createAccess, account, accountTable, accountField);
+      const b = resolveBind(createAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.create(dto, filterRelations(relations, allowedRelations), b);
     }
 
@@ -247,7 +272,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Body('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<Entity> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField);
       const result = await this.service.update(id, dto, filterRelations(relations, allowedRelations), b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
@@ -260,7 +285,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Self() account: AccountLike,
     ): Promise<boolean> {
-      const b = resolveBind(deleteAccess, account, accountTable, accountField);
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.remove(id, b);
     }
 
@@ -275,7 +300,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountLike,
     ): Promise<boolean> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField);
       const result = await this.service.sortPosition(
         field,
         { select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) },
@@ -294,7 +319,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('position') position: number = undefined,
       @Self() account: AccountLike,
     ): Promise<boolean> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField);
       const result = await this.service.movePosition(id, field, position, b);
       if (!result) {
         throw new NotFoundException('Entrie position has not been moved');

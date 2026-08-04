@@ -12,6 +12,8 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
       return true;
     case 'account':
       return bind.id !== undefined || bind.allow === true;
+    case 'tenant':
+      return bind.tenantId !== undefined || bind.allow === true;
     case 'owner':
       if (bind.allow) return true;
       if (bind.id === undefined) return false;
@@ -52,6 +54,8 @@ function canWrite(level: AccessLevel, bind: any): boolean {
       return true;
     case 'account':
       return bind?.id !== undefined || bind?.allow === true;
+    case 'tenant':
+      return bind?.tenantId !== undefined || bind?.allow === true;
     case 'owner':
       return true;
     case 'superuser':

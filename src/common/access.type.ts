@@ -1,12 +1,19 @@
 import { Type } from '@nestjs/common';
 
-export type AccessLevel = 'public' | 'account' | 'owner' | 'superuser' | 'closed';
+export type AccessLevel =
+  | 'public'
+  | 'account'
+  | 'tenant'
+  | 'owner'
+  | 'superuser'
+  | 'closed';
 
 export interface AccountLike {
   id: number | string;
   username?: string;
   isActivated?: boolean;
   isSuperuser?: boolean;
+  tenantId?: number | string;
 }
 
 export type OperationAccess =
@@ -23,6 +30,8 @@ export interface OperationConfig {
 export interface EntityPermissionConfig extends OperationConfig {
   accountTable?: string;
   accountField?: string;
+  tenantTable?: string;
+  tenantField?: string;
 }
 
 export interface EntityControllerOptions {
@@ -31,6 +40,8 @@ export interface EntityControllerOptions {
   entity: Type<unknown>;
   accountTable?: string;
   accountField?: string;
+  tenantTable?: string;
+  tenantField?: string;
   operations?: Partial<OperationConfig>;
   relations?: string[];
 }

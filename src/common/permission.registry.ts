@@ -23,6 +23,14 @@ export const PermissionRegistry = {
     return registry.get(entity)?.accountField;
   },
 
+  getTenantTable(entity: any): string | undefined {
+    return registry.get(entity)?.tenantTable;
+  },
+
+  getTenantField(entity: any): string | undefined {
+    return registry.get(entity)?.tenantField;
+  },
+
   getCreate(entity: any): OperationAccess {
     return registry.get(entity)?.create ?? 'closed';
   },

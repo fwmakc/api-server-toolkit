@@ -37,8 +37,8 @@ replace the queue backend — service code stays the same.
 
 This toolkit optimizes for a specific domain model. It is **not**:
 
-- **RBAC system** — 5 access levels (`public`, `account`, `owner`, `superuser`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
-- **Multi-tenant** — single-dimension ownership, no `tenant_id` scoping. The owner relation name is configurable via `OWNER_TABLE` env var (default: `account`), but multi-tenancy requires a fork.
+- **RBAC system** — 6 access levels (`public`, `account`, `tenant`, `owner`, `superuser`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
+- **Multi-tenant ready** — optional tenant scoping via `TENANT_TABLE` env var. When set, a second WHERE dimension filters all queries by tenant. When empty (default), behavior is single-tenant. See [Multi-tenancy](#multi-tenancy) below.
 - **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). For complex RBAC (roles, permissions matrix), add your own guard.
 
 If you need multi-tenancy or a fundamentally different access model, see
@@ -48,7 +48,7 @@ exact files to fork and modify.
 ## Installation
 
 ```bash
-npm install github:fwmakc/api-server-toolkit#v0.10.0
+npm install github:fwmakc/api-server-toolkit#v0.11.0
 ```
 
 npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).
@@ -125,15 +125,16 @@ Client request
 
 ## Access levels
 
-Five independent restriction levels. Each CRUD operation gets its **own** level.
+Six independent restriction levels. Each CRUD operation gets its **own** level.
 
-### The five levels
+### The six levels
 
 | Level | Authentication | Row scoping | Admin bypass |
 |-------|---------------|-------------|------------------|
 | `public` | Token **optional** | None | N/A |
 | `account` | Token **required** (401) | None — sees all records | N/A |
-| `owner` | Token **required** (401) | `WHERE ... = caller.id` | Yes — bypasses scoping |
+| `tenant` | Token **required** (401) | `WHERE tenant = caller.tenantId` (when `TENANT_TABLE` set) | Yes — bypasses scoping |
+| `owner` | Token **required** (401) | `WHERE ... = caller.id` (+ tenant when set) | Yes — bypasses scoping |
 | `superuser` | Token **required** (401) | 403 if not superuser | N/A (only superuser passes) |
 | `closed` | Route **not generated** | — | No one |
 
@@ -145,6 +146,7 @@ Admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (
 |-------|:---:|:---:|:---:|:---:|
 | `public` | 200 | 200 | 200 | 200 |
 | `account` | 401 | 200 | 200 | 200 |
+| `tenant` | 401 | 200 *(same tenant)* | 200 | 200 *(bypass)* |
 | `owner` | 401 | 404 | 200 | 200 *(bypass)* |
 | `superuser` | 401 | 403 | 403 | 200 |
 | `closed` | 404 | 404 | 404 | 404 |
@@ -160,6 +162,75 @@ These are **independent restriction modes**, not a hierarchy:
 3. **The only overlap** — superuser bypass at the `owner` level: if
    `isSuperuser()` returns `true` (configurable via `SUPERUSER_FIELD`/`SUPERUSER_VALUE`),
    row scoping is skipped.
+
+---
+
+## Multi-tenancy
+
+Optional tenant scoping via two env vars. When `TENANT_TABLE` is empty (default),
+the system is single-tenant — zero overhead, no behavior change.
+
+### Enable tenant scoping
+
+```env
+# .env
+TENANT_TABLE=tenant          # relation path to tenant table
+TENANT_FIELD=id              # field on tenant table to match (default: id)
+```
+
+When set, the `tenant` access level filters all queries by `WHERE tenant.id = :jwtTenantId`.
+The `owner` level adds tenant filtering on top of owner filtering.
+
+The JWT payload must include `tenantId`:
+
+```typescript
+// auth-server: include tenantId in JWT
+const token = jwt.sign({
+  id: userId,
+  username: email,
+  isSuperuser: false,
+  tenantId: 5,           // ← required when TENANT_TABLE is set
+});
+```
+
+### Tenant relation models
+
+`TENANT_TABLE` is a **relation path** (supports multi-hop), not just a table name:
+
+| Model | TENANT_TABLE | Schema requirement |
+|-------|-------------|-------------------|
+| Direct column | `tenant` | Every entity has `tenant_id` FK |
+| Through account | `account.organization` | `account` has `organization_id` FK |
+| Hierarchical | `team.department.org` | Existing relations, no new columns |
+| Many-to-many | `tenant` | Auth-server handles M2M; toolkit reads `tenantId` from JWT |
+
+Per-entity override:
+
+```typescript
+@EntityController({
+  name: 'articles',
+  operations: { read: 'tenant', create: 'tenant', update: 'owner', delete: 'superuser' },
+  tenantTable: 'organization',  // overrides global TENANT_TABLE for this entity
+})
+```
+
+### `account` vs `tenant` level
+
+| Level | TENANT_TABLE not set | TENANT_TABLE set |
+|-------|---------------------|------------------|
+| `account` | Sees all records | Sees all records (**all tenants**) |
+| `tenant` | Sees all records (same as account) | Sees records in **own tenant only** |
+| `owner` | Sees own records | Sees own records **in own tenant** |
+
+Use `account` for cross-tenant admin dashboards. Use `tenant` for regular user data.
+
+### What's NOT covered (Phase 1)
+
+- **Schema-per-tenant** (separate PostgreSQL schemas) — requires `SET search_path` per request
+- **Database-per-tenant** (separate databases) — requires connection pool management
+
+These are DB-level isolation strategies that can't be solved with WHERE clauses.
+They're documented as future extensions.
 
 ---
 
@@ -1232,7 +1303,7 @@ The toolkit's access-control layer assumes a specific identity model:
 - **`account`** — the default relation name linking entities to their owner (configurable via `OWNER_TABLE`)
 - **`isSuperuser`** — the admin-bypass check (configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE`)
 - **`'jwt'`** — the hardcoded Passport strategy name
-- **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'owner' | 'superuser' | 'closed'`
+- **`AccessLevel`** — a fixed enum: `'public' | 'account' | 'tenant' | 'owner' | 'superuser' | 'closed'`
 
 This is fine if your project uses the same model (the fwmakc stack does). If your
 domain is different, here's what you can change and how.

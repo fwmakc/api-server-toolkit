@@ -1,6 +1,6 @@
 {
   "name": "api-server-toolkit",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "license": "MIT",
   "repository": {

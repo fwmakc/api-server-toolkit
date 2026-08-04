@@ -49,7 +49,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       ...otherParams
     } = find;
 
-    const { id, name, key = 'id', allow } = bind;
+    const { id, name, key = 'id', allow, tenantId, tenantName, tenantKey = 'id' } = bind;
 
     let where = parseWhereObject(find.where);
     // "username.not.like": "%user%"
@@ -69,6 +69,20 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
     }
 
+    if (tenantId !== undefined && tenantName && !allow) {
+      const tenantBindValue = { [tenantKey]: tenantId };
+      if (tenantName.includes('.')) {
+        const segments = tenantName.split('.');
+        let nested: any = tenantBindValue;
+        for (let i = segments.length - 1; i >= 0; i--) {
+          nested = { [segments[i]]: nested };
+        }
+        where = { ...where, ...nested };
+      } else {
+        where = { ...where, [tenantName]: tenantBindValue };
+      }
+    }
+
     const relationNames = relations?.map((i) => i.name) || [];
     if (
       id !== undefined &&
@@ -76,6 +90,14 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       !relationNames.includes(name)
     ) {
       relationNames.push(name);
+    }
+    if (
+      tenantId !== undefined &&
+      tenantName &&
+      !tenantName.includes('.') &&
+      !relationNames.includes(tenantName)
+    ) {
+      relationNames.push(tenantName);
     }
 
     if (search) {
@@ -103,7 +125,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     try {
       let result;
 
-      const isMultiHop = id !== undefined && !allow && name.includes('.');
+      const isMultiHop =
+        (id !== undefined && !allow && name.includes('.')) ||
+        (tenantId !== undefined && !allow && tenantName?.includes('.'));
       const hasPagination = !!(take || skip);
 
       if (isMultiHop && hasPagination) {
@@ -148,7 +172,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
       result = relationsOrder(result, relations);
 
-      if (id !== undefined && !allow && name.includes('.')) {
+      if (
+        (id !== undefined && !allow && name.includes('.')) ||
+        (tenantId !== undefined && !allow && tenantName?.includes('.'))
+      ) {
         const seen = new Set();
         result = result.filter((item: any) => {
           if (seen.has(item.id)) return false;
@@ -258,6 +285,15 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
           if (autoAssign) {
             entity[autoAssign.name] = { id: autoAssign.id };
           }
+        }
+
+        if (
+          bind.tenantId !== undefined &&
+          !bind.allow &&
+          bind.tenantName &&
+          !bind.tenantName.includes('.')
+        ) {
+          entity[bind.tenantName] = { id: bind.tenantId };
         }
 
         await sanitizeForSave(entity, this.repository.metadata, bind, manager);
@@ -528,6 +564,18 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
                 resolvedId !== null
                   ? { id: resolvedId }
                   : { [bind.key || 'id']: bind.id },
+            };
+          }
+          if (
+            bind.tenantId !== undefined &&
+            bind.tenantName &&
+            !bind.allow
+          ) {
+            resetWhere = {
+              ...resetWhere,
+              [bind.tenantName]: {
+                [bind.tenantKey || 'id']: bind.tenantId,
+              },
             };
           }
           if (Object.keys(resetWhere).length > 0) {

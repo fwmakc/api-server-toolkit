@@ -25,4 +25,22 @@ export class BindDto {
       'поле управляет отображением защищенных полей: true - разрешить все, false - разрешает отображение защищенных полей только для указанного ID связанной записи',
   })
   allow?: boolean;
+
+  @ApiProperty({
+    required: false,
+    description: 'ID тенанта (relation path из TENANT_TABLE)',
+  })
+  tenantId?: number | string;
+
+  @ApiProperty({
+    required: false,
+    description: 'ключ поля ID тенанта',
+  })
+  tenantKey?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'путь связи к таблице тенанта',
+  })
+  tenantName?: string;
 }
