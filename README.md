@@ -1,7 +1,7 @@
 # api-server-toolkit
 
 [![Tests](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-v0.11.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
+[![Version](https://img.shields.io/badge/version-v0.12.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/api-server-toolkit/blob/master/LICENSE)
 
 > Framework within a framework — CRUD engine, access control, column factories, and bootstrap helper for NestJS microservices.
@@ -49,7 +49,7 @@ exact files to fork and modify.
 ## Installation
 
 ```bash
-npm install github:fwmakc/api-server-toolkit#v0.11.0
+npm install github:fwmakc/api-server-toolkit#v0.12.0
 ```
 
 npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).
