@@ -21,6 +21,7 @@ import { bind } from './service/bind.service';
 import { isSuperuser } from './service/admin.service';
 import { OWNER_TABLE } from './service/owner.service';
 import { TENANT_TABLE, TENANT_FIELD } from './service/tenant.service';
+import { getSoftDeleteColumn } from './service/soft-delete.service';
 import { PermissionRegistry } from './permission.registry';
 import {
   EntityControllerOptions,
@@ -143,6 +144,14 @@ export const EntityController = (options: EntityControllerOptions) => {
     'movePosition',
     dto,
   );
+
+  const softDeleteCol = getSoftDeleteColumn(entity);
+  const softDeleteRoute = softDeleteCol
+    ? route(deleteAccess, Delete('soft-delete/:id'), 'softDelete')
+    : applyDecorators();
+  const restoreRoute = softDeleteCol
+    ? route(deleteAccess, Patch('restore/:id'), 'restore')
+    : applyDecorators();
 
   const hasSelf = normalizeAccess(readAccess) === 'owner';
   const selfDecorator = hasSelf ? selfRoute : applyDecorators();
@@ -287,6 +296,24 @@ export const EntityController = (options: EntityControllerOptions) => {
     ): Promise<boolean> {
       const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField);
       return await this.service.remove(id, b);
+    }
+
+    @softDeleteRoute
+    async softDelete(
+      @Param('id', SafeIdPipe) id: string,
+      @Self() account: AccountLike,
+    ): Promise<boolean> {
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField);
+      return await this.service.softDelete(id, b);
+    }
+
+    @restoreRoute
+    async restore(
+      @Param('id', SafeIdPipe) id: string,
+      @Self() account: AccountLike,
+    ): Promise<boolean> {
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField);
+      return await this.service.restore(id, b);
     }
 
     @sortRoute

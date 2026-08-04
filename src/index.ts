@@ -40,6 +40,7 @@ export * from './common/column/varchar.column';
 
 // --- Decorators ---
 export * from './common/decorator/field_access.decorator';
+export * from './common/decorator/soft-delete.decorator';
 
 // --- DTOs ---
 export * from './common/dto/bind.dto';
@@ -104,6 +105,7 @@ export * from './common/service/dynamic.service';
 export * from './common/service/dynamic.where.service';
 export * from './common/service/escape.service';
 export * from './common/service/error.service';
+export * from './common/service/soft-delete.service';
 export * from './common/service/json.service';
 export * from './common/service/like.service';
 export * from './common/service/nested_filter.service';

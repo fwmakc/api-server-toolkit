@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { throwDbError } from './service/error.service';
 import { buildNestedWhere } from './service/bind-path.service';
+import { getSoftDeleteColumn } from './service/soft-delete.service';
 import {
   And,
   BaseEntity,
@@ -10,6 +11,7 @@ import {
   FindOptionsOrder,
   FindOptionsWhere,
   In,
+  IsNull,
   LessThan,
   LessThanOrEqual,
   MoreThan,
@@ -55,11 +57,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     let where = parseWhereObject(find.where);
 
-    if (
-      process.env.SOFT_DELETE === 'true' &&
-      this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt')
-    ) {
-      where = { ...where, deletedAt: undefined } as any;
+    const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
+    if (softDeleteCol) {
+      where = { ...where, [softDeleteCol]: IsNull() } as any;
     }
 
     // "username.not.like": "%user%"
@@ -233,17 +233,6 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       bind,
     );
     return result;
-  }
-
-  async findAndCount(
-    find: FindDto = {},
-    bind: BindDto = { allow: true },
-  ): Promise<{ data: Entity[]; total: number }> {
-    const [data, total] = await Promise.all([
-      this.find(find, bind),
-      this.count(find, bind),
-    ]);
-    return { data, total };
   }
 
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
@@ -590,12 +579,6 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
-      const useSoftDelete = process.env.SOFT_DELETE === 'true' &&
-        this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt');
-      if (useSoftDelete) {
-        const result = await repo.update(id, { deletedAt: new Date() } as any);
-        return !!result?.affected;
-      }
       const result = await repo.delete(id);
       return !!result?.affected;
     } catch (e) {
@@ -603,11 +586,37 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
   }
 
-  async restore(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
-    const hasSoftDelete = this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt');
-    if (!hasSoftDelete) return false;
+  async softDelete(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
+    const col = getSoftDeleteColumn(this.repository.metadata.target);
+    if (!col) return false;
+
+    if (bind.id !== undefined && !bind.allow) {
+      const find = await this.findOne({ id, select: { id: true } }, bind);
+      if (!find) {
+        return false;
+      }
+    }
     try {
-      const result = await this.repository.update(id, { deletedAt: null } as any);
+      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const result = await repo.update(id, { [col]: new Date() } as any);
+      return !!result?.affected;
+    } catch (e) {
+      this.error(e);
+    }
+  }
+
+  async restore(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
+    const col = getSoftDeleteColumn(this.repository.metadata.target);
+    if (!col) return false;
+
+    if (bind.id !== undefined && !bind.allow) {
+      const find = await this.findOne({ id, select: { id: true } }, bind);
+      if (!find) {
+        return false;
+      }
+    }
+    try {
+      const result = await this.repository.update(id, { [col]: null } as any);
       return !!result?.affected;
     } catch (e) {
       this.error(e);
