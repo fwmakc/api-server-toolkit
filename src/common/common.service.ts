@@ -246,6 +246,17 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return result;
   }
 
+  async findAndCount(
+    find: FindDto = {},
+    bind: BindDto = { allow: true },
+  ): Promise<{ data: Entity[]; total: number }> {
+    const [data, total] = await Promise.all([
+      this.find(find, bind),
+      this.count(find, bind),
+    ]);
+    return { data, total };
+  }
+
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
     const { id, name, key = 'id', allow, tenantId, tenantName, tenantKey = 'id' } = bind;
 
