@@ -7,12 +7,19 @@ import { parseDynamicWhereObject } from './dynamic.where.service';
 import { prepareQuotes } from './quotes.service';
 import { BindDto } from '../dto/bind.dto';
 import { parseDynamicSaveObject } from './dynamic.save.service';
+import { escapeIdentifier } from './escape.service';
 
 /**
- * @deprecated DynamicService uses raw SQL string concatenation and is vulnerable to
- * SQL injection. Use CommonService instead, which uses TypeORM's parameterized queries.
- * If raw SQL is unavoidable, always use parameterized queries ($1, $2, ...) via
- * ParamSymbolService — never interpolate values directly.
+ * DynamicService — raw SQL CRUD for dynamic schemas where entity definitions
+ * can't reflect runtime column changes (e.g. legacy tables with ALTER TABLE).
+ *
+ * All user input is escaped:
+ * - String values: escapeQuotes() (single-quote doubling)
+ * - Identifiers (column/table names): escapeIdentifier() (double-quote doubling)
+ * - Numeric values: parseFloat()
+ *
+ * Use CommonService for standard CRUD (TypeORM parameterized queries).
+ * Use DynamicService only when the schema is unknown at compile time.
  */
 export class DynamicService<
   Dto extends CommonDto,
@@ -26,7 +33,7 @@ export class DynamicService<
 
     const entityData = parseDynamicSaveObject(entity);
     const keys = Object.keys(entityData)
-      .map((key) => `${quotes}${key}${quotes}`)
+      .map((key) => `${quotes}${escapeIdentifier(key)}${quotes}`)
       .join(', ');
     const values = Object.values(entityData).join(', ');
 
@@ -54,10 +61,10 @@ export class DynamicService<
 
     const entityData = parseDynamicSaveObject(entity);
     const set = Object.entries(entityData)
-      .map(([key, value]) => `${quotes}${key}${quotes} = ${value}`)
+      .map(([key, value]) => `${quotes}${escapeIdentifier(key)}${quotes} = ${value}`)
       .join(', ');
 
-    const where = `${quotes}id${quotes} = ${id}`;
+    const where = `${quotes}id${quotes} = ${parseFloat(String(id)) || 0}`;
 
     try {
       const query = `
@@ -129,7 +136,7 @@ export class DynamicService<
       orderString = Object.entries(order)
         .map(
           ([key, value]) =>
-            `${quotes}${key}${quotes} ${`${value || ''}`.toUpperCase()}`,
+            `${quotes}${escapeIdentifier(key)}${quotes} ${`${value || ''}`.toUpperCase()}`,
         )
         .filter(Boolean)
         .join(', ');
@@ -150,7 +157,7 @@ export class DynamicService<
     if (select && Array.isArray(select)) {
       const quotes = prepareQuotes();
       selectString = select
-        .map((value) => `${quotes}${value}${quotes}`)
+        .map((value) => `${quotes}${escapeIdentifier(value)}${quotes}`)
         .join(', ');
     }
 

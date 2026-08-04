@@ -1,6 +1,6 @@
 import { prepareLike } from './like.service';
 import { prepareQuotes } from './quotes.service';
-import { escapeQuotes } from './escape.service';
+import { escapeQuotes, escapeIdentifier } from './escape.service';
 
 export const parseDynamicWhereObject = (where) => {
   const parsed = [];
@@ -12,7 +12,7 @@ export const parseDynamicWhereObject = (where) => {
 
   Object.entries(where)?.forEach(([key, value]) => {
     const [property, ...modifiers] = key.split('.');
-    const propertyName = `${quotes}${property}${quotes}`;
+    const propertyName = `${quotes}${escapeIdentifier(property)}${quotes}`;
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return;
@@ -141,7 +141,7 @@ const prepareDynamicWhereValue = (property, value, modifiers) => {
         .replace(/[^0-9a-zа-я ]/giu, ' ')
         .split(' ')
         .filter(Boolean)
-        .map((i) => `(${property}${ifNot} ${like} '%${i}%')`)
+        .map((i) => `(${property}${ifNot} ${like} '%${escapeQuotes(i)}%')`)
         .join(' AND ');
       break;
     case 'string':
