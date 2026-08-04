@@ -53,6 +53,14 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const { id, name, key = 'id', allow, tenantId, tenantName, tenantKey = 'id' } = bind;
 
     let where = parseWhereObject(find.where);
+
+    if (
+      process.env.SOFT_DELETE === 'true' &&
+      this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt')
+    ) {
+      where = { ...where, deletedAt: undefined } as any;
+    }
+
     // "username.not.like": "%user%"
     // "username.and.not.like": ["%user1%", "%user2%"]
 
@@ -606,7 +614,24 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const useSoftDelete = process.env.SOFT_DELETE === 'true' &&
+        this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt');
+      if (useSoftDelete) {
+        const result = await repo.update(id, { deletedAt: new Date() } as any);
+        return !!result?.affected;
+      }
       const result = await repo.delete(id);
+      return !!result?.affected;
+    } catch (e) {
+      this.error(e);
+    }
+  }
+
+  async restore(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
+    const hasSoftDelete = this.repository.metadata.columns.some((c) => c.propertyName === 'deletedAt');
+    if (!hasSoftDelete) return false;
+    try {
+      const result = await this.repository.update(id, { deletedAt: null } as any);
       return !!result?.affected;
     } catch (e) {
       this.error(e);
