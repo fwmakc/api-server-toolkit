@@ -246,9 +246,60 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
-    const findCopy = { ...find, select: { id: true }, limit: undefined, offset: undefined };
-    const result = await this.find(findCopy, bind);
-    return result && Array.isArray(result) ? result.length : 0;
+    const { id, name, key = 'id', allow, tenantId, tenantName, tenantKey = 'id' } = bind;
+
+    let where = parseWhereObject(find.where);
+    const relationNames: string[] = [];
+
+    if (id !== undefined && !allow) {
+      const bindValue = { [key]: id };
+      if (name.includes('.')) {
+        const segments = name.split('.');
+        let nested: any = bindValue;
+        for (let i = segments.length - 1; i >= 0; i--) {
+          nested = { [segments[i]]: nested };
+        }
+        where = { ...where, ...nested };
+        relationNames.push(segments[0]);
+      } else {
+        where = { ...where, [name]: bindValue };
+      }
+    }
+
+    if (tenantId !== undefined && tenantName && !allow) {
+      const tenantBindValue = { [tenantKey]: tenantId };
+      if (tenantName.includes('.')) {
+        const segments = tenantName.split('.');
+        let nested: any = tenantBindValue;
+        for (let i = segments.length - 1; i >= 0; i--) {
+          nested = { [segments[i]]: nested };
+        }
+        where = { ...where, ...nested };
+        if (!relationNames.includes(segments[0])) {
+          relationNames.push(segments[0]);
+        }
+      } else {
+        where = { ...where, [tenantName]: tenantBindValue };
+      }
+    }
+
+    if (find.search) {
+      const searchWhere = buildSearchWhere(find.search);
+      where = mergeSearchWhere(where, searchWhere);
+      for (const field of find.search.fields) {
+        if (field.includes('.')) {
+          const firstSegment = field.split('.')[0];
+          if (!relationNames.includes(firstSegment)) {
+            relationNames.push(firstSegment);
+          }
+        }
+      }
+    }
+
+    return await this.repository.count({
+      where,
+      ...(relationNames.length > 0 ? { relations: relationNames } : {}),
+    });
   }
 
   async countDistinct(field: string, find: FindDto): Promise<number> {
@@ -387,9 +438,8 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       return;
     }
 
-    const select = { id: true };
-    const find = await this.findOne({ id, select, relations }, bind);
-    if (!find) {
+    const exists = await this.findOne({ id, select: { id: true } }, bind);
+    if (!exists) {
       return;
     }
 
@@ -537,7 +587,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       find.order = { [field]: 'asc', id: 'asc' } as FindOptionsOrder<any>;
     }
 
-    const entries = await this.find(find, bind);
+    const entries = await this.find(
+      { ...find, select: { id: true, [field]: true } as any, relations: undefined },
+      bind,
+    );
 
     if (!entries) {
       return;
@@ -614,15 +667,16 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       return false;
     }
 
-    const entrie = await this.findOne(
-      {
-        id,
-        select: {
-          [field]: true,
-        },
-      },
-      bind,
-    );
+    const [entrie, lastEntrie] = await Promise.all([
+      this.findOne(
+        { id, select: { [field]: true } },
+        bind,
+      ),
+      this.findFirst(
+        { select: { id: true, [field]: true }, order: { [field]: 'DESC' } },
+        bind,
+      ),
+    ]);
 
     if (!entrie) {
       return false;
@@ -632,23 +686,10 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       this.error({ message: 'cannot position by non-numeric field' });
     }
 
-    const lastEntrie: DeepPartial<any> = await this.findFirst(
-      {
-        select: {
-          id: true,
-          [field]: true,
-        },
-        order: {
-          [field]: 'DESC',
-        },
-      },
-      bind,
-    );
-
-    const lastPosition = +lastEntrie?.[field] || 0;
+    const lastPosition = +(lastEntrie as any)?.[field] || 0;
 
     if (position < 0 || position > lastPosition + 1) {
-      if (String(id) === String(lastEntrie?.id)) {
+      if (String(id) === String((lastEntrie as any)?.id)) {
         return false;
       }
       position = lastPosition + 1;

@@ -93,7 +93,8 @@ async function sanitizeEntity(
         ? new Set(ids)
         : await checkOwnership(relatedTarget, ids, config, bind, manager);
 
-      const sanitized: any[] = [];
+      const slots: any[] = [];
+
       for (const item of value) {
         if (
           item &&
@@ -102,24 +103,21 @@ async function sanitizeEntity(
           item.id !== null
         ) {
           if (ownedSet.has(item.id)) {
-            sanitized.push({ id: item.id });
+            slots.push({ id: item.id });
           }
         } else if (item && typeof item === 'object') {
-          const result = await sanitizeRelationItem(
-            item,
-            relatedMeta,
-            config,
-            bind,
-            seen,
-            manager,
+          slots.push(
+            sanitizeRelationItem(item, relatedMeta, config, bind, seen, manager),
           );
-          if (result !== null) sanitized.push(result);
         } else {
           if (item !== null && item !== undefined) {
-            sanitized.push(item);
+            slots.push(item);
           }
         }
       }
+
+      const resolved = await Promise.all(slots);
+      const sanitized = resolved.filter((r) => r !== null);
       entity[key] = sanitized;
     } else if (typeof value === 'object' && value.constructor !== Date) {
       if (value.id !== undefined && value.id !== null) {
