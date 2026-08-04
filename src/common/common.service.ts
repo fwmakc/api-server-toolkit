@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { throwDbError } from './service/error.service';
+import { buildNestedWhere } from './service/bind-path.service';
 import {
   And,
   BaseEntity,
@@ -65,31 +66,11 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     // "username.and.not.like": ["%user1%", "%user2%"]
 
     if (id !== undefined && !allow) {
-      const bindValue = { [key]: id };
-      if (name.includes('.')) {
-        const segments = name.split('.');
-        let nested: any = bindValue;
-        for (let i = segments.length - 1; i >= 0; i--) {
-          nested = { [segments[i]]: nested };
-        }
-        where = { ...where, ...nested };
-      } else {
-        where = { ...where, [name]: bindValue };
-      }
+      where = { ...where, ...buildNestedWhere(name, key, id) };
     }
 
     if (tenantId !== undefined && tenantName && !allow) {
-      const tenantBindValue = { [tenantKey]: tenantId };
-      if (tenantName.includes('.')) {
-        const segments = tenantName.split('.');
-        let nested: any = tenantBindValue;
-        for (let i = segments.length - 1; i >= 0; i--) {
-          nested = { [segments[i]]: nested };
-        }
-        where = { ...where, ...nested };
-      } else {
-        where = { ...where, [tenantName]: tenantBindValue };
-      }
+      where = { ...where, ...buildNestedWhere(tenantName, tenantKey, tenantId) };
     }
 
     const relationNames = relations?.map((i) => i.name) || [];
@@ -272,34 +253,14 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const relationNames: string[] = [];
 
     if (id !== undefined && !allow) {
-      const bindValue = { [key]: id };
-      if (name.includes('.')) {
-        const segments = name.split('.');
-        let nested: any = bindValue;
-        for (let i = segments.length - 1; i >= 0; i--) {
-          nested = { [segments[i]]: nested };
-        }
-        where = { ...where, ...nested };
-        relationNames.push(segments[0]);
-      } else {
-        where = { ...where, [name]: bindValue };
-      }
+      where = { ...where, ...buildNestedWhere(name, key, id) };
+      if (name.includes('.')) relationNames.push(name.split('.')[0]);
     }
 
     if (tenantId !== undefined && tenantName && !allow) {
-      const tenantBindValue = { [tenantKey]: tenantId };
-      if (tenantName.includes('.')) {
-        const segments = tenantName.split('.');
-        let nested: any = tenantBindValue;
-        for (let i = segments.length - 1; i >= 0; i--) {
-          nested = { [segments[i]]: nested };
-        }
-        where = { ...where, ...nested };
-        if (!relationNames.includes(segments[0])) {
-          relationNames.push(segments[0]);
-        }
-      } else {
-        where = { ...where, [tenantName]: tenantBindValue };
+      where = { ...where, ...buildNestedWhere(tenantName, tenantKey, tenantId) };
+      if (tenantName.includes('.') && !relationNames.includes(tenantName.split('.')[0])) {
+        relationNames.push(tenantName.split('.')[0]);
       }
     }
 
