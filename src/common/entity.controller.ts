@@ -146,8 +146,8 @@ export const EntityController = (options: EntityControllerOptions) => {
   );
 
   const softDeleteCol = getSoftDeleteColumn(entity);
-  const softDeleteRoute = softDeleteCol
-    ? route(deleteAccess, Delete('soft-delete/:id'), 'softDelete')
+  const hardDeleteRoute = softDeleteCol
+    ? route(deleteAccess, Delete('hard-delete/:id'), 'hardDelete')
     : applyDecorators();
   const restoreRoute = softDeleteCol
     ? route(deleteAccess, Patch('restore/:id'), 'restore')
@@ -298,13 +298,13 @@ export const EntityController = (options: EntityControllerOptions) => {
       return await this.service.remove(id, b);
     }
 
-    @softDeleteRoute
-    async softDelete(
+    @hardDeleteRoute
+    async hardDelete(
       @Param('id', SafeIdPipe) id: string,
       @Self() account: AccountLike,
     ): Promise<boolean> {
       const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField);
-      return await this.service.softDelete(id, b);
+      return await this.service.hardDelete(id, b);
     }
 
     @restoreRoute

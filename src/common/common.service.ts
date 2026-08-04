@@ -579,6 +579,11 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
+      if (softDeleteCol) {
+        const result = await repo.update(id, { [softDeleteCol]: new Date() } as any);
+        return !!result?.affected;
+      }
       const result = await repo.delete(id);
       return !!result?.affected;
     } catch (e) {
@@ -586,10 +591,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
   }
 
-  async softDelete(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
-    const col = getSoftDeleteColumn(this.repository.metadata.target);
-    if (!col) return false;
-
+  async hardDelete(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
     if (bind.id !== undefined && !bind.allow) {
       const find = await this.findOne({ id, select: { id: true } }, bind);
       if (!find) {
@@ -598,7 +600,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
-      const result = await repo.update(id, { [col]: new Date() } as any);
+      const result = await repo.delete(id);
       return !!result?.affected;
     } catch (e) {
       this.error(e);
