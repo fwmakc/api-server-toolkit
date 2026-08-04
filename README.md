@@ -1384,6 +1384,88 @@ When you outgrow the toolkit's `EntityController`:
 
 The toolkit is designed to be adopted incrementally and abandoned incrementally.
 
+## Migrating from Legacy
+
+### Scenario: you have an existing PostgreSQL database and want to adopt the toolkit
+
+The toolkit uses standard TypeORM entities — no magic schema. You can connect
+to an existing database and map your tables to toolkit entities.
+
+### Step 1: Connect to existing database
+
+```typescript
+// app.module.ts — point to your existing database
+TypeOrmModule.forRoot({
+  type: 'postgres',
+  host: 'your-existing-db',
+  database: 'your_legacy_db',
+  entities: [YourEntity],  // toolkit entities mapped to existing tables
+  synchronize: false,      // ← CRITICAL: don't auto-create schema
+  migrations: ['dist/migrations/*{.ts,.js}'],
+})
+```
+
+### Step 2: Map existing tables to toolkit entities
+
+Existing table:
+```sql
+CREATE TABLE myapp_users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  is_active BOOLEAN DEFAULT true,
+  created TIMESTAMP DEFAULT now()
+);
+```
+
+Toolkit entity (maps to the same table):
+```typescript
+@Entity('myapp_users')  // ← existing table name
+export class UserEntity extends CommonColumn {
+  @IdColumn() id: number;
+  @VarcharColumn() email: string;
+  @VarcharColumn('password_hash') password: string;  // ← existing column name
+  @BooleanColumn('is_active') isActivated: boolean;   // ← alias mapping
+}
+```
+
+**Key rules:**
+- `@Entity('existing_table_name')` — use the existing table name
+- Column decorators accept a custom column name: `@VarcharColumn('legacy_name')`
+- `synchronize: false` — never let TypeORM modify existing schema
+- You don't need to use all toolkit columns — just the ones you need
+
+### Step 3: Gradual endpoint migration
+
+Run old and new in parallel:
+
+```
+nginx
+  ├── /api/v1/legacy-users → old server (existing code)
+  └── /api/v2/users        → new toolkit service (EntityController)
+```
+
+Migrate endpoints one at a time. When all traffic moves to v2, decommission v1.
+
+### Step 4: Auth integration
+
+**If your legacy system uses JWT:** configure toolkit's `AccountStrategy` to
+validate your existing tokens. Point `JWT_PUBLIC_KEY_PATH` to your existing
+public key.
+
+**If your legacy system uses sessions:** use the toolkit's auth-server to issue
+new JWTs alongside existing sessions. Migrate endpoints gradually.
+
+**If you want to replace auth entirely:** use the toolkit's auth-server. It
+issues JWTs that all services can validate via JWKS.
+
+### What NOT to do
+
+- **Don't run `synchronize: true`** on an existing database — TypeORM may drop/recreate columns
+- **Don't rename existing columns** — use TypeORM's `@Column({ name: 'legacy_name' })` or the toolkit's `@VarcharColumn('legacy_name')` to alias
+- **Don't migrate all endpoints at once** — do it one controller at a time
+- **Don't forget foreign keys** — if your legacy tables have FK constraints, TypeORM needs `@ManyToOne`/`@OneToMany` relations defined to match
+
 ## Changing the Domain Model
 
 The toolkit's access-control layer assumes a specific identity model:

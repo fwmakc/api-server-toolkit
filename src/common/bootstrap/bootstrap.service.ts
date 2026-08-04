@@ -80,9 +80,24 @@ export async function bootstrap(
     }),
   );
 
-  if (enableMorgan && process.env.MORGAN_LOG_FORMAT) {
+  if (enableMorgan) {
     const morgan = require('morgan');
-    app.use(morgan(process.env.MORGAN_LOG_FORMAT));
+    const format = process.env.MORGAN_LOG_FORMAT || 'dev';
+    if (format === 'json') {
+      morgan.format('json', (tokens, req, res) =>
+        JSON.stringify({
+          method: tokens.method(req, res),
+          url: tokens.url(req, res),
+          status: Number(tokens.status(req, res)),
+          responseTime: Number(tokens['response-time'](req, res)),
+          contentLength: tokens.res(req, res, 'content-length'),
+          userAgent: req.headers['user-agent'],
+          remoteAddr: tokens['remote-addr'](req, res),
+          timestamp: new Date().toISOString(),
+        }),
+      );
+    }
+    app.use(morgan(format));
   }
 
   if (process.env.PREFIX) {
