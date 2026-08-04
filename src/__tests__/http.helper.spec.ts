@@ -13,13 +13,19 @@ describe('http.helper', () => {
     status?: number;
     body?: string;
     delay?: number;
+    headers?: Record<string, string>;
   }) {
-    const { ok = true, status = 200, body = '{}', delay = 0 } = opts;
+    const { ok = true, status = 200, body = '{}', delay = 0, headers = {} } = opts;
     const jsonBody = typeof body === 'string' ? body : JSON.stringify(body);
     const response = {
       ok,
       status,
       text: async () => jsonBody,
+      headers: {
+        forEach: (cb: (value: string, key: string) => void) => {
+          Object.entries(headers).forEach(([k, v]) => cb(v, k));
+        },
+      },
     } as any;
     global.fetch = jest.fn(async () => {
       if (delay) await new Promise((r) => setTimeout(r, delay));

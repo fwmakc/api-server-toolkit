@@ -8,6 +8,7 @@ export interface HttpResponse<T = any> {
   status: number;
   data: T;
   ok: boolean;
+  headers?: Record<string, string>;
 }
 
 export class HttpError extends Error {
@@ -51,7 +52,12 @@ async function request(
       throw new HttpError(response.status, data);
     }
 
-    return { status: response.status, data, ok: response.ok };
+    const headers: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+
+    return { status: response.status, data, ok: response.ok, headers };
   } finally {
     clearTimeout(timer);
   }
