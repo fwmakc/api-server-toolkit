@@ -89,6 +89,20 @@ function computeNestedBind(bind: any, key: string): any {
   return { ...bind, name: '' };
 }
 
+const metadataCache = new WeakMap<object, Map<string, FieldAccessOptions | undefined>>();
+
+function getCachedFieldAccess(proto: object, key: string): FieldAccessOptions | undefined {
+  let fieldMap = metadataCache.get(proto);
+  if (!fieldMap) {
+    fieldMap = new Map();
+    metadataCache.set(proto, fieldMap);
+  }
+  if (!fieldMap.has(key)) {
+    fieldMap.set(key, Reflect.getMetadata(FIELD_ACCESS_METADATA, proto, key));
+  }
+  return fieldMap.get(key);
+}
+
 const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
   if (!dto || typeof dto !== 'object' || seen.has(dto)) return;
   seen.add(dto);
@@ -97,7 +111,7 @@ const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
 
   for (const key of Object.keys(dto)) {
     const fieldAccess: FieldAccessOptions | undefined = proto
-      ? Reflect.getMetadata(FIELD_ACCESS_METADATA, proto, key)
+      ? getCachedFieldAccess(proto, key)
       : undefined;
 
     if (fieldAccess?.read && fieldAccess.read !== 'public') {

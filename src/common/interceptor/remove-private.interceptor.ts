@@ -32,6 +32,11 @@ export class RemovePrivateFieldsInterceptor implements NestInterceptor {
 
     return next
       .handle()
-      .pipe(map((result) => removePrivateFields(result, bind)));
+      .pipe(map((result) => {
+        if (result === null || result === undefined || typeof result !== 'object') {
+          return result;
+        }
+        return removePrivateFields(result, bind);
+      }));
   }
 }

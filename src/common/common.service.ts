@@ -284,6 +284,14 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async countDistinct(field: string, find: FindDto): Promise<number> {
+    if (!field || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) {
+      throw new BadRequestException(`Invalid field name: ${field}`);
+    }
+    const columnNames = this.repository.metadata.columns.map((c) => c.propertyName);
+    if (!columnNames.includes(field)) {
+      throw new BadRequestException(`Unknown field: ${field}`);
+    }
+
     const qb = this.repository.createQueryBuilder('t');
 
     const where = parseWhereObject(find.where);
@@ -358,37 +366,44 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return await repo.save(entity);
   }
 
-  getUniqueColumns(): Array<string> {
-    const uniques: Array<string> = [];
+  getUniqueColumns(): Array<string[]> {
+    const uniques: Array<string[]> = [];
     this.repository.metadata.indices.forEach((index) => {
       if (index.isUnique) {
-        const name = index.columns?.[0]?.propertyName;
-        if (name) {
-          uniques.push(name);
+        const cols = (index.columns || [])
+          .map((c) => c.propertyName)
+          .filter(Boolean);
+        if (cols.length > 0) {
+          uniques.push(cols);
         }
       }
     });
     return uniques;
   }
 
+  async findUniqueEntry(entity: DeepPartial<any>): Promise<any> {
+    const uniqueGroups = this.getUniqueColumns();
+    if (uniqueGroups.length === 0) {
+      return null;
+    }
+
+    for (const cols of uniqueGroups) {
+      const hasAll = cols.every((field) => entity[field] !== undefined && entity[field] !== null);
+      if (!hasAll) continue;
+
+      const where = cols.reduce((acc, field) => ({ ...acc, [field]: entity[field] }), {});
+      const result = await this.repository.findOne({
+        select: { id: true } as any,
+        where: where as any,
+      });
+      if (result) return result;
+    }
+
+    return null;
+  }
+
   async findUniqueEntrie(entity: DeepPartial<any>): Promise<any> {
-    const uniques = this.getUniqueColumns();
-    if (uniques.length === 0) {
-      return null;
-    }
-
-    const where = uniques
-      .filter((field) => entity[field] !== undefined && entity[field] !== null)
-      .map((field) => ({ [field]: entity[field] }));
-
-    if (where.length === 0) {
-      return null;
-    }
-
-    return await this.repository.findOne({
-      select: { id: true } as any,
-      where: where as any,
-    });
+    return this.findUniqueEntry(entity);
   }
 
   async upsert(
