@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { throwDbError } from './service/error.service';
 import {
   And,
   BaseEntity,
@@ -425,7 +426,17 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       return await this.update(existsEntrie.id, dto, relations, bind);
     }
 
-    return await this.create(dto, relations, bind);
+    try {
+      return await this.create(dto, relations, bind);
+    } catch (e) {
+      if (e?.code === '23505') {
+        const retryEntrie = await this.findUniqueEntrie(entity);
+        if (retryEntrie?.id) {
+          return await this.update(retryEntrie.id, dto, relations, bind);
+        }
+      }
+      this.error(e);
+    }
   }
 
   async update(
@@ -768,6 +779,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   error(e) {
-    throw new BadRequestException(`Incorrect request conditions: ${e.message}`);
+    if (e && typeof e === 'object' && 'message' in e && !('code' in e)) {
+      throw new BadRequestException(e.message);
+    }
+    throwDbError(e);
   }
 }

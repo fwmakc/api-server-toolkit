@@ -626,7 +626,8 @@ class UserEntity extends BaseEntity {
 | `public` | Everyone (default) |
 | `account` | Any authenticated user |
 | `owner` | Record owner or superuser |
-| `admin` | Superuser only |
+| `superuser` | Superuser only |
+| `tenant` | Authenticated in same tenant |
 | `closed` | No one (always stripped) |
 
 | `write` level | Who can set/modify the field |
@@ -1097,9 +1098,10 @@ Generic CRUD service backing the generated controller.
 ```typescript
 class PostService extends CommonService<PostDto, PostEntity> {
   constructor(
-    @InjectRepository(PostEntity) repo: Repository<PostEntity>,
+    @InjectRepository(PostEntity)
+    protected readonly repository: Repository<PostEntity>,
   ) {
-    super(repo, PostDto, PostEntity);
+    super();
   }
 }
 ```
@@ -1550,7 +1552,7 @@ validate(payload: any) {
 
 **Option C — add a custom guard (no fork):**
 
-The 5 access levels are CRUD route presets. For fine-grained RBAC, add your
+The 6 access levels are CRUD route presets. For fine-grained RBAC, add your
 own guard on top of EntityController:
 
 ```typescript
@@ -1568,7 +1570,7 @@ The toolkit's access level check runs first (is the user authenticated?),
 then your `RbacGuard` checks fine-grained permissions. Both coexist without
 conflict.
 
-**Fork required if:** You need to change the 5-level enum itself, or add
+**Fork required if:** You need to change the 6-level enum itself, or add
 multi-tenancy (`tenant_id` scoping). See Scenario 3 below.
 
 ### Scenario 3: Completely custom identity model (fork required)
@@ -1638,7 +1640,7 @@ SUPERUSER_VALUE=admin,superadmin
 ```
 
 For fine-grained RBAC (permissions matrix like `canEditPosts`), add a custom
-`@UseGuards(RbacGuard)` alongside `@EntityController`. The 5 access levels are
+`@UseGuards(RbacGuard)` alongside `@EntityController`. The 6 access levels are
 CRUD route presets (think Express middleware), not a security model. Your guard
 handles authorization logic; the toolkit handles route generation, Swagger, and
 bind scoping.
@@ -1656,7 +1658,7 @@ routes exist and who can call them. They are presets, not constraints. You can:
 
 This is a **fork-first** codebase. You own the code from day one — no SaaS
 dependency, no API key to revoke, no service to shut down. The toolkit ships
-with 111 tests and full type declarations (`ai-declarations.md`). You inherit a
+with 125 unit tests and full type declarations (`ai-declarations.md`). You inherit a
 tested foundation, not a black box.
 
 Forking is the standard enterprise pattern (cf. internal Spring Boot forks,

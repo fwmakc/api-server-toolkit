@@ -103,6 +103,7 @@ export * from './common/service/dynamic.save.service';
 export * from './common/service/dynamic.service';
 export * from './common/service/dynamic.where.service';
 export * from './common/service/escape.service';
+export * from './common/service/error.service';
 export * from './common/service/json.service';
 export * from './common/service/like.service';
 export * from './common/service/nested_filter.service';

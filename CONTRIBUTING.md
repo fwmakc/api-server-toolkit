@@ -7,7 +7,6 @@ Thanks for your interest in contributing! This is the shared framework library f
 
 - **Node.js** 20+ (`node -v`)
 - **npm** 10+
-- **PostgreSQL** 14+ (for test suite — uses real DB, not mocks)
 
 ## Development Setup
 
@@ -38,9 +37,11 @@ Or use the stack-level script: `link-toolkit.ps1` from the `servers/` root.
 npm test
 ```
 
-8 test suites, 111 tests. Tests use real PostgreSQL with `dropSchema: true` +
-`synchronize: true` for clean state. Ensure `DB_HOST`, `DB_PORT`, `DB_USER`,
-`DB_PASSWORD` are set (or use `.env`).
+9 test suites, 125 unit tests — no database required.
+
+Integration tests (with real PostgreSQL) live in consumer repos:
+- [api-server](https://github.com/fwmakc/api-server) — 546 tests, exercises CRUD, bind scoping, sanitize, nested filter, field access
+- [auth-server](https://github.com/fwmakc/auth-server) — 63 tests, exercises JWT, OAuth flows, token grants
 
 ## Building
 
@@ -49,7 +50,7 @@ npm run build
 ```
 
 Output goes to `dist/`. The `dist/` directory is consumed by all services via
-`github:fwmakc/api-server-toolkit#v0.9.0`.
+`github:fwmakc/api-server-toolkit#v0.11.0`.
 
 ## Code Style
 

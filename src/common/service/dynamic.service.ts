@@ -8,6 +8,7 @@ import { prepareQuotes } from './quotes.service';
 import { BindDto } from '../dto/bind.dto';
 import { parseDynamicSaveObject } from './dynamic.save.service';
 import { escapeIdentifier } from './escape.service';
+import { throwDbError } from './error.service';
 
 /**
  * DynamicService — raw SQL CRUD for dynamic schemas where entity definitions
@@ -171,6 +172,9 @@ export class DynamicService<
   }
 
   error(e) {
-    throw new BadRequestException(`Incorrect request conditions: ${e.message}`);
+    if (e && typeof e === 'object' && 'message' in e && !('code' in e)) {
+      throw new BadRequestException(e.message);
+    }
+    throwDbError(e);
   }
 }
