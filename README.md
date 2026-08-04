@@ -1,7 +1,7 @@
 # api-server-toolkit
 
 [![Tests](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/fwmakc/api-server-toolkit/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-v0.10.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
+[![Version](https://img.shields.io/badge/version-v0.11.0-blue)](https://github.com/fwmakc/api-server-toolkit/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/fwmakc/api-server-toolkit/blob/master/LICENSE)
 
 > Framework within a framework — CRUD engine, access control, column factories, and bootstrap helper for NestJS microservices.
@@ -40,6 +40,7 @@ This toolkit optimizes for a specific domain model. It is **not**:
 - **RBAC system** — 6 access levels (`public`, `account`, `tenant`, `owner`, `superuser`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
 - **Multi-tenant ready** — optional tenant scoping via `TENANT_TABLE` env var. When set, a second WHERE dimension filters all queries by tenant. When empty (default), behavior is single-tenant. See [Multi-tenancy](#multi-tenancy) below.
 - **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). For complex RBAC (roles, permissions matrix), add your own guard.
+- **Message broker** — no Kafka/Redis/NATS dependency. Events are published via HTTP by default. The `IEventClient` interface lets you plug in any broker — see [Event Publishing](#event-publishing) below.
 
 If you need multi-tenancy or a fundamentally different access model, see
 [Changing the Domain Model](#changing-the-domain-model) below — it lists the
@@ -999,6 +1000,93 @@ npm run ai-context    # → ./ai-context.md
 | `**/*.dto.ts` | Class name, fields with types |
 
 Skips: `node_modules/`, `dist/`, `tests/`, `*.spec.ts`, `*.test.ts`
+
+---
+
+## Event Publishing
+
+The toolkit provides `IEventClient` — a transport-agnostic interface for publishing events.
+The default implementation (`HttpEventClient`) POSTs to event-server via HTTP.
+
+```typescript
+import { IEventClient } from 'api-server-toolkit';
+
+constructor(private readonly eventClient: IEventClient) {}
+
+async onRegister(user: User) {
+  await this.eventClient.publish('user.registered', {
+    userId: user.id,
+    username: user.username,
+    email: user.email,
+  });
+}
+```
+
+### Replacing the transport
+
+The toolkit does NOT hardcode a message broker. `IEventClient` is a single-method abstract class:
+
+```typescript
+export abstract class IEventClient {
+  abstract publish(
+    pattern: string,
+    payload: Record<string, any>,
+    options?: PublishOptions,
+  ): Promise<void>;
+}
+```
+
+To use Redis Streams, NATS, Kafka, or RabbitMQ instead of HTTP — implement the interface
+and override the DI binding in your `AppModule`:
+
+```typescript
+// redis-event-client.ts — your service, your dependency
+import { Injectable } from '@nestjs/common';
+import { IEventClient, PublishOptions } from 'api-server-toolkit';
+import Redis from 'ioredis';
+
+@Injectable()
+export class RedisEventClient extends IEventClient {
+  private redis: Redis;
+
+  async publish(pattern: string, payload: Record<string, any>, options?: PublishOptions): Promise<void> {
+    await this.redis.xadd(
+      'events',
+      '*',
+      'pattern', pattern,
+      'payload', JSON.stringify(payload),
+      'source', options?.source || '',
+      'priority', options?.priority || 'normal',
+    );
+  }
+}
+
+// app.module.ts
+import { EventClientModule } from 'api-server-toolkit/client';
+
+@Module({
+  imports: [
+    // Import EventClientModule for the IEventClient token, then override
+    EventClientModule,
+  ],
+  providers: [
+    RedisEventClient,
+    { provide: IEventClient, useExisting: RedisEventClient },
+  ],
+})
+export class AppModule {}
+```
+
+On the event-server side, add a consumer that reads from your message queue and calls
+`EventsService.publish()` — the existing ingestion, delivery, circuit breaker, and retry
+machinery stays untouched.
+
+### Why not ship Redis/NATS support built-in?
+
+Every project has different infrastructure. Hardcoding a broker adds a dependency and
+opinion to the toolkit. The abstraction (`IEventClient`) is the value — it lets you
+plug in any transport with ~20 lines of code. The HTTP default works out of the box
+with zero external dependencies.
 
 ---
 
