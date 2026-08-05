@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 115 declaration files.
+Generated from 121 declaration files.
 
 ---
 
@@ -123,6 +123,68 @@ export interface EntityControllerOptions {
 }
 export declare function normalizeAccess(access: OperationAccess | undefined, fallback?: AccessLevel): AccessLevel;
 export declare function getBindPath(access: OperationAccess | undefined, fallback: string): string | undefined;
+```
+
+## dist\common\auth-client\account.strategy.d.ts
+
+```typescript
+import { ConfigService } from '@nestjs/config';
+import { AuthClientService } from './auth-client.service';
+declare const AccountStrategy_base: new (...args: any) => any;
+export declare class AccountStrategy extends AccountStrategy_base {
+    private readonly configService;
+    private readonly authClientService;
+    constructor(configService: ConfigService, authClientService: AuthClientService);
+    validate({ id, type, key }: any): Promise<import("./auth-client.interfaces").AccountInfo>;
+}
+export {};
+```
+
+## dist\common\auth-client\auth-client.interfaces.d.ts
+
+```typescript
+export interface AccountInfo {
+    id: number;
+    username: string;
+    isActivated: boolean;
+    isSuperuser: boolean;
+}
+```
+
+## dist\common\auth-client\auth-client.module.d.ts
+
+```typescript
+import { DynamicModule } from '@nestjs/common';
+export declare class AuthClientModule {
+    static forRoot(): DynamicModule;
+}
+```
+
+## dist\common\auth-client\auth-client.service.d.ts
+
+```typescript
+import { ConfigService } from '@nestjs/config';
+import { AccountInfo } from './auth-client.interfaces';
+export declare class AuthClientService {
+    private readonly configService;
+    private readonly logger;
+    private readonly baseUrl;
+    private readonly internalKey;
+    private cache;
+    private readonly defaultTtl;
+    constructor(configService: ConfigService);
+    getAccountInfo(id: number): Promise<AccountInfo | null>;
+    clearCache(id?: number): void;
+}
+```
+
+## dist\common\auth-client\index.d.ts
+
+```typescript
+export * from './auth-client.interfaces';
+export * from './auth-client.service';
+export * from './account.strategy';
+export * from './auth-client.module';
 ```
 
 ## dist\common\auth.decorator.d.ts
@@ -709,6 +771,7 @@ export interface HttpResponse<T = any> {
     status: number;
     data: T;
     ok: boolean;
+    headers?: Record<string, string>;
 }
 export declare class HttpError extends Error {
     readonly status: number;
@@ -730,6 +793,24 @@ type MappingValue<S, T> = {
 } | keyof S;
 export declare const setIfFilled: <T extends object, S extends object = T>(target: T, source: S, mapping?: Record<keyof T, MappingValue<S, T>> | (keyof T)[] | keyof T) => void;
 export {};
+```
+
+## dist\common\helper\random.helper.d.ts
+
+```typescript
+export declare const randomInt: (min: number, max: number, step?: number) => number;
+export declare const randomString: (min: number, max?: number, charset?: string) => string;
+export declare const randomFromSet: (min: number, max?: number, ...setNames: string[]) => string;
+export declare const randomNum: (min: number, max?: number) => string;
+export declare const randomHex: (min: number, max?: number) => string;
+export declare const randomBin: (min: number, max?: number) => string;
+export declare const randomEmail: (min?: number, max?: number) => string;
+export declare const randomOption: <T>(...args: T[]) => T;
+export declare const shuffleArray: <T>(array: T[]) => T[];
+export declare const randomArray: <T>(n: number, callback?: (i: number) => T) => T[];
+export declare const randomNames: (words?: number) => Array<string | number>;
+export declare const randomEnNames: (words?: number) => Array<string | number>;
+export declare const randomRuNames: (words?: number) => Array<string | number>;
 ```
 
 ## dist\common\helper\scalar.helper.d.ts
@@ -1176,6 +1257,7 @@ export * from './common/helper/http.helper';
 export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
+export * from './common/helper/random.helper';
 export * from './common/interceptor/add-client-ip.interceptor';
 export * from './common/interceptor/remove-private.interceptor';
 export * from './common/pipe/safe_id.pipe';
