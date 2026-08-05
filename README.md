@@ -1005,6 +1005,74 @@ Skips: `node_modules/`, `dist/`, `tests/`, `*.spec.ts`, `*.test.ts`
 
 ---
 
+## AuthClientModule
+
+JWT validation + account info cache for any service that needs to verify tokens
+issued by auth-server.
+
+### Import
+
+```typescript
+import { AuthClientModule } from 'api-server-toolkit/auth-client';
+
+@Module({
+  imports: [AuthClientModule.forRoot()],
+})
+export class AppModule {}
+```
+
+`AuthClientModule.forRoot()` provides:
+- **AccountStrategy** — passport-jwt strategy validating tokens via JWKS
+- **AuthClientService** — fetches + caches account info from auth-server
+- **PassportModule** — registered with session: false
+
+### How it works
+
+```
+Request → Bearer token
+  → passport-jwt verifies signature (JWKS public key, cached)
+  → passport-jwt checks exp claim (if present)
+  → AccountStrategy.validate()
+    → AuthClientService.getAccountInfo(id)
+      → cache hit? → return cached
+      → cache miss? → HTTP GET auth-server /account/internal/info/:id
+        → reads Cache-Control: max-age=N from response header
+        → caches for N seconds (or fallback TTL)
+```
+
+### TTL priority
+
+Account info cache TTL is determined by:
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 | auth-server `Cache-Control: max-age=N` header | `max-age=30` → 30s |
+| 2 | `AUTH_CACHE_TTL` env var on consumer (ms) | `30000` → 30s |
+| 3 | Default | 30000ms (30s) |
+
+auth-server controls TTL via `INTERNAL_INFO_CACHE_TTL` env var (seconds).
+Consumer can set `AUTH_CACHE_TTL` as fallback when header is missing.
+
+### Env vars
+
+| Variable | Side | Default | Description |
+|----------|------|---------|-------------|
+| `AUTH_SERVER_URL` | Consumer | `http://localhost:3001` | Auth-server base URL |
+| `INTERNAL_API_KEY` | Consumer | — | Shared secret for internal calls |
+| `AUTH_CACHE_TTL` | Consumer | 30000 | Fallback cache TTL in ms |
+| `INTERNAL_INFO_CACHE_TTL` | Auth-server | 30 | Cache-Control max-age in seconds |
+
+### Peer dependencies
+
+`passport-jwt` and `jwks-rsa` are required only when importing `auth-client`.
+Services that don't validate JWT (e.g. event-server) don't need them.
+
+```bash
+npm install passport-jwt jwks-rsa
+```
+
+---
+
 ## Event Publishing
 
 The toolkit provides `IEventClient` — a transport-agnostic interface for publishing events.
