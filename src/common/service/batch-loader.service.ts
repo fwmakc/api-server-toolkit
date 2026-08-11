@@ -38,7 +38,7 @@ function placeholders(n: number): string {
 }
 
 async function batchLoadLevel(
-  entities: any[],
+  entities: Record<string, unknown>[],
   tree: RelationTreeNode,
   manager: EntityManager,
 ): Promise<void> {
@@ -46,7 +46,7 @@ async function batchLoadLevel(
     const rel = node.relation;
     const target = rel.inverseEntityMetadata.target;
     const repo = manager.getRepository(target);
-    let loaded: any[] = [];
+    let loaded: Record<string, unknown>[] = [];
 
     if (rel.relationType === 'one-to-many') {
       const invRel = rel.inverseRelation;
@@ -66,7 +66,7 @@ async function batchLoadLevel(
       loaded = result.entities;
 
       const rawFkKey = `t_${fkCol}`;
-      const byParent = new Map<any, any[]>();
+      const byParent = new Map<unknown, Record<string, unknown>[]>();
       for (let i = 0; i < result.entities.length; i++) {
         const fkVal = result.raw[i][rawFkKey];
         if (!byParent.has(fkVal)) byParent.set(fkVal, []);
@@ -85,14 +85,14 @@ async function batchLoadLevel(
       if (!fkCol) continue;
 
       const sourceTable = rel.entityMetadata.tableName;
-      const parentIds = entities.map((e) => e.id);
+      const parentIds = entities.map((e) => (e as Record<string, unknown>).id);
 
       const fkRows = await manager.query(
         `SELECT id, "${fkCol}" AS fk FROM "${sourceTable}" WHERE id IN (${placeholders(parentIds.length)})`,
         parentIds,
       );
 
-      const fkMap = new Map<any, any>();
+      const fkMap = new Map<unknown, Record<string, unknown>>();
       for (const row of fkRows) {
         fkMap.set(row.id, row.fk);
       }
@@ -149,14 +149,14 @@ async function batchLoadLevel(
       });
 
       const childMap = new Map(loaded.map((t) => [t[otherRefProp], t]));
-      const byParent = new Map<any, any[]>();
+      const byParent = new Map<unknown, Record<string, unknown>[]>();
       for (const row of rows) {
         if (!byParent.has(row.pid)) byParent.set(row.pid, []);
         const child = childMap.get(row.cid);
         if (child) byParent.get(row.pid)!.push(child);
       }
       for (const entity of entities) {
-        entity[propName] = byParent.get(entity.id) || [];
+        entity[propName] = byParent.get((entity as Record<string, unknown>).id) || [];
       }
     }
 

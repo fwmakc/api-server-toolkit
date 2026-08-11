@@ -148,9 +148,9 @@ export async function executeFind<Entity extends BaseEntity>(
       ...params,
       select: { id: true } as any,
     });
-    const uniqueIds: any[] = [];
+    const uniqueIds: unknown[] = [];
     const seenIds = new Set();
-    for (const r of idResults as any[]) {
+    for (const r of idResults as Array<Record<string, unknown>>) {
       const rid = String(r.id);
       if (!seenIds.has(rid)) {
         seenIds.add(rid);

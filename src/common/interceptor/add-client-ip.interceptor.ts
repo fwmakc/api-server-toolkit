@@ -11,7 +11,7 @@ import { Observable } from 'rxjs';
 export class AddClientIpInterceptor implements NestInterceptor {
   constructor(private readonly key: string = 'ip') {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     request.body[this.key] = getClientIp(request);
 

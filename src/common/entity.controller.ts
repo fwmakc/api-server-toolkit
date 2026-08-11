@@ -138,7 +138,7 @@ function route(
 
   if (level === AccessLevel.CLOSED && !roleNames) return applyDecorators();
 
-  const decs: any[] = [];
+  const decs: MethodDecorator[] = [];
 
   if (level === AccessLevel.CLOSED && roleNames) {
     decs.push(UseGuards(RolesGuard));
