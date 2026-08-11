@@ -40,6 +40,7 @@ export * from './common/column/varchar.column';
 
 // --- Decorators ---
 export * from './common/decorator/field_access.decorator';
+export * from './common/decorator/field_roles.decorator';
 export * from './common/decorator/roles.decorator';
 export * from './common/decorator/soft-delete.decorator';
 

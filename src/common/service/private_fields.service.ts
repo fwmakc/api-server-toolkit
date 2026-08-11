@@ -3,7 +3,12 @@ import {
   FIELD_ACCESS_METADATA,
   FieldAccessOptions,
 } from '../decorator/field_access.decorator';
+import {
+  FIELD_ROLES_METADATA,
+  FieldRolesOptions,
+} from '../decorator/field_roles.decorator';
 import { OWNER_TABLE } from './owner.service';
+import { isSuperuser } from './admin.service';
 
 function canRead(level: AccessLevel, bind: any, dto: any): boolean {
   if (!bind) return level === 'public';
@@ -67,15 +72,24 @@ function canWrite(level: AccessLevel, bind: any): boolean {
   }
 }
 
+function hasAnyRole(userRoles: string[], requiredRoles: string[]): boolean {
+  if (!requiredRoles?.length) return true;
+  if (!userRoles?.length) return false;
+  return requiredRoles.some((role) => userRoles.includes(role));
+}
+
 export const removePrivateFields = (
   result: any | any[],
   bind: any,
+  account?: any,
 ): any | any[] => {
   const seen = new WeakSet();
+  const userRoles = account?.roles || bind?.roles || [];
+  const bypass = isSuperuser(account);
   if (Array.isArray(result)) {
-    result.forEach((entry) => entry && processDto(entry, bind, seen));
+    result.forEach((entry) => entry && processDto(entry, bind, seen, userRoles, bypass));
   } else if (result && typeof result === 'object') {
-    processDto(result, bind, seen);
+    processDto(result, bind, seen, userRoles, bypass);
   }
   return result;
 };
@@ -89,13 +103,14 @@ function computeNestedBind(bind: any, key: string): any {
   return { ...bind, name: '' };
 }
 
-const metadataCache = new WeakMap<object, Map<string, FieldAccessOptions | undefined>>();
+const fieldAccessCache = new WeakMap<object, Map<string, FieldAccessOptions | undefined>>();
+const fieldRolesCache = new WeakMap<object, Map<string, FieldRolesOptions | undefined>>();
 
 function getCachedFieldAccess(proto: object, key: string): FieldAccessOptions | undefined {
-  let fieldMap = metadataCache.get(proto);
+  let fieldMap = fieldAccessCache.get(proto);
   if (!fieldMap) {
     fieldMap = new Map();
-    metadataCache.set(proto, fieldMap);
+    fieldAccessCache.set(proto, fieldMap);
   }
   if (!fieldMap.has(key)) {
     fieldMap.set(key, Reflect.getMetadata(FIELD_ACCESS_METADATA, proto, key));
@@ -103,7 +118,25 @@ function getCachedFieldAccess(proto: object, key: string): FieldAccessOptions | 
   return fieldMap.get(key);
 }
 
-const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
+function getCachedFieldRoles(proto: object, key: string): FieldRolesOptions | undefined {
+  let fieldMap = fieldRolesCache.get(proto);
+  if (!fieldMap) {
+    fieldMap = new Map();
+    fieldRolesCache.set(proto, fieldMap);
+  }
+  if (!fieldMap.has(key)) {
+    fieldMap.set(key, Reflect.getMetadata(FIELD_ROLES_METADATA, proto, key));
+  }
+  return fieldMap.get(key);
+}
+
+const processDto = (
+  dto: any,
+  bind: any,
+  seen: WeakSet<object>,
+  userRoles: string[],
+  bypass: boolean,
+): void => {
   if (!dto || typeof dto !== 'object' || seen.has(dto)) return;
   seen.add(dto);
 
@@ -114,8 +147,30 @@ const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
       ? getCachedFieldAccess(proto, key)
       : undefined;
 
-    if (fieldAccess?.read && fieldAccess.read !== 'public') {
+    const fieldRoles: FieldRolesOptions | undefined = proto
+      ? getCachedFieldRoles(proto, key)
+      : undefined;
+
+    if (bypass) continue;
+
+    const accessRestricted = fieldAccess?.read && fieldAccess.read !== 'public';
+    const rolesRestricted = fieldRoles?.read?.length > 0;
+
+    if (accessRestricted && !rolesRestricted) {
       if (!canRead(fieldAccess.read, bind, dto)) {
+        delete dto[key];
+        continue;
+      }
+    } else if (accessRestricted && rolesRestricted) {
+      const accessPass = canRead(fieldAccess.read, bind, dto);
+      const rolesPass = hasAnyRole(userRoles, fieldRoles.read);
+
+      if (!accessPass && !rolesPass) {
+        delete dto[key];
+        continue;
+      }
+    } else if (rolesRestricted) {
+      if (!hasAnyRole(userRoles, fieldRoles.read)) {
         delete dto[key];
         continue;
       }
@@ -125,13 +180,13 @@ const processDto = (dto: any, bind: any, seen: WeakSet<object>): void => {
     if (value && typeof value === 'object') {
       const nestedBind = computeNestedBind(bind, key);
       if (Array.isArray(value)) {
-        value.forEach((item) => item && processDto(item, nestedBind, seen));
+        value.forEach((item) => item && processDto(item, nestedBind, seen, userRoles, bypass));
       } else if (
         value.constructor &&
         value.constructor !== Object &&
         value.constructor !== Date
       ) {
-        processDto(value, nestedBind, seen);
+        processDto(value, nestedBind, seen, userRoles, bypass);
       }
     }
   }
@@ -141,6 +196,7 @@ export const stripWriteFields = (
   dto: any,
   entityTarget: any,
   bind: any,
+  account?: any,
 ): void => {
   if (!dto || typeof dto !== 'object') return;
 
@@ -148,10 +204,20 @@ export const stripWriteFields = (
   if (!proto) return;
 
   const bindField = bind?.name ? bind.name.split('.')[0] : undefined;
+  const userRoles = account?.roles || bind?.roles || [];
+  const bypass = isSuperuser(account);
 
   for (const key of Object.keys(dto)) {
+    if (bypass) continue;
+
     const fieldAccess: FieldAccessOptions | undefined = Reflect.getMetadata(
       FIELD_ACCESS_METADATA,
+      proto,
+      key,
+    );
+
+    const fieldRoles: FieldRolesOptions | undefined = Reflect.getMetadata(
+      FIELD_ROLES_METADATA,
       proto,
       key,
     );
@@ -162,10 +228,24 @@ export const stripWriteFields = (
       writeLevel = 'closed';
     }
 
-    if (!writeLevel || writeLevel === 'public') continue;
+    const accessRestricted = writeLevel && writeLevel !== 'public';
+    const rolesRestricted = fieldRoles?.write?.length > 0;
 
-    if (!canWrite(writeLevel, bind)) {
-      delete dto[key];
+    if (accessRestricted && !rolesRestricted) {
+      if (!canWrite(writeLevel, bind)) {
+        delete dto[key];
+      }
+    } else if (accessRestricted && rolesRestricted) {
+      const accessPass = canWrite(writeLevel, bind);
+      const rolesPass = hasAnyRole(userRoles, fieldRoles.write);
+
+      if (!accessPass && !rolesPass) {
+        delete dto[key];
+      }
+    } else if (rolesRestricted) {
+      if (!hasAnyRole(userRoles, fieldRoles.write)) {
+        delete dto[key];
+      }
     }
   }
 };

@@ -43,4 +43,10 @@ export class BindDto {
     description: 'путь связи к таблице тенанта',
   })
   tenantName?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'роли текущего пользователя',
+  })
+  roles?: string[];
 }

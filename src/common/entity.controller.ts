@@ -56,16 +56,17 @@ function resolveBind(
           tenantName: tName,
           tenantKey: tenantField || TENANT_FIELD,
           tenantId: account.tenantId,
+          roles: account?.roles,
         };
       }
     }
     return undefined;
   }
   if (level === 'public') return undefined;
-  if (level === 'superuser') return { allow: true };
+  if (level === 'superuser') return { allow: true, roles: account?.roles };
 
   const allow = isSuperuser(account);
-  const b: BindDto = { allow };
+  const b: BindDto = { allow, roles: account?.roles };
 
   if (level === 'owner') {
     const bindPath = getBindPath(access, accountTable || OWNER_TABLE);

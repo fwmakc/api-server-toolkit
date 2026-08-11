@@ -175,7 +175,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
 
       filterNestedRelations(result, bind);
-      result = removePrivateFields(result, bind);
+      result = removePrivateFields(result, bind, bind);
       return result;
     } catch (e) {
       this.error(e);
@@ -304,7 +304,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     const entity: DeepPartial<any> = { ...dto };
 
-    stripWriteFields(entity, this.repository.metadata.target, bind);
+    stripWriteFields(entity, this.repository.metadata.target, bind, bind);
 
     try {
       let savedId: any;
@@ -448,7 +448,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     const entity: DeepPartial<any> = { ...dto, id };
 
-    stripWriteFields(entity, this.repository.metadata.target, bind);
+    stripWriteFields(entity, this.repository.metadata.target, bind, bind);
 
     try {
       const doUpdate = async (manager: EntityManager) => {
