@@ -8,7 +8,7 @@ export type AccessLevel =
   | 'superuser'
   | 'closed';
 
-export interface AccountLike {
+export interface AccountInfo {
   id: number | string;
   username?: string;
   isActivated?: boolean;

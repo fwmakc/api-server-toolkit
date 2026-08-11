@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
-  AccountLike,
+  AccountInfo,
   normalizeAccess,
   OperationAccess,
 } from './access.type';
@@ -55,6 +55,6 @@ export const Account = (apiType?: string) => {
 
 export const Self = createParamDecorator(
   (_: unknown, context: ExecutionContext) => {
-    return context.switchToHttp().getRequest()?.user as AccountLike;
+    return context.switchToHttp().getRequest()?.user as AccountInfo;
   },
 );

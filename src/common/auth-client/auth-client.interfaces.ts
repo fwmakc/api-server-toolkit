@@ -1,6 +1,1 @@
-export interface AccountInfo {
-  id: number;
-  username: string;
-  isActivated: boolean;
-  isSuperuser: boolean;
-}
+export { AccountInfo } from '../access.type';
