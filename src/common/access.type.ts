@@ -14,6 +14,7 @@ export interface AccountInfo {
   isActivated?: boolean;
   isSuperuser?: boolean;
   tenantId?: number | string;
+  roles?: string[];
 }
 
 export type OperationAccess =
