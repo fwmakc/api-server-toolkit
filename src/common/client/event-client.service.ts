@@ -22,10 +22,10 @@ export class HttpEventClient extends IEventClient {
 
   async publish(
     pattern: string,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
     options?: PublishOptions
   ): Promise<void> {
-    const body: Record<string, any> = {
+    const body: Record<string, unknown> = {
       pattern,
       payload,
       source: options?.source || this.serviceName,

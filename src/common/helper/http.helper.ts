@@ -14,7 +14,7 @@ export interface HttpResponse<T = unknown> {
 export class HttpError extends Error {
   constructor(
     public readonly status: number,
-    public readonly data: any,
+    public readonly data: unknown,
     message?: string,
   ) {
     super(message || `HTTP ${status}`);

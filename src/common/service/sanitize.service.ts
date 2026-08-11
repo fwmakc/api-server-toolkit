@@ -83,7 +83,7 @@ async function sanitizeEntity(
     const isAutoAssignRelation = bind?.name?.split('.')[0] === key;
 
     if (Array.isArray(value)) {
-      const ids: any[] = [];
+      const ids: (number | string)[] = [];
 
       for (const item of value) {
         if (item && typeof item === 'object' && item.id !== undefined && item.id !== null) {
@@ -157,7 +157,7 @@ async function sanitizeRelationItem(
   bind: BindDto | undefined,
   seen: WeakSet<object>,
   manager: EntityManager,
-): Promise<any | null> {
+): Promise<unknown | null> {
   if (!item || typeof item !== 'object') return item;
 
   if (config) {
@@ -173,7 +173,7 @@ async function sanitizeRelationItem(
 
 async function checkOwnership(
   relatedTarget: any,
-  ids: any[],
+  ids: (number | string)[],
   config: OperationConfig | undefined,
   bind: BindDto | undefined,
   manager: EntityManager,

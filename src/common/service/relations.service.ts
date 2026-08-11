@@ -1,7 +1,7 @@
 import { RelationsDto } from '../dto/relations.dto';
 
-const isNumber = (value: any): boolean => {
-  const num = parseFloat(value);
+const isNumber = (value: unknown): boolean => {
+  const num = parseFloat(String(value));
   return !isNaN(num) && isFinite(num);
 };
 

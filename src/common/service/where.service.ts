@@ -135,7 +135,7 @@ const prepareWhereValue = (value: any, modifier: string, key = '') => {
       property = IsNull();
       break;
     case 'number':
-      property = parseFloat(value);
+      property = parseFloat(String(value));
       break;
     case 'search':
       const valuesMap = `${value || ''}`

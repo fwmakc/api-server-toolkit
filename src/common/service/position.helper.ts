@@ -3,6 +3,7 @@ import { And, DeepPartial, EntityManager, EntityMetadata, EntityTarget, LessThan
 import { parseWhereObject } from './where.service';
 import { BindDto } from '../dto/bind.dto';
 import { OWNER_TABLE } from './owner.service';
+import { FindDto } from '../dto/find.dto';
 
 export function validatePositionField(metadata: EntityMetadata, field: string): void {
   if (!field || typeof field !== 'string') {
@@ -25,7 +26,7 @@ export async function executeSortPosition<Entity>(
   entityTarget: EntityTarget<Entity>,
   field: string,
   entries: any[],
-  find: any,
+  find: FindDto,
   bind: BindDto,
   metadata: EntityMetadata,
   manager: EntityManager,

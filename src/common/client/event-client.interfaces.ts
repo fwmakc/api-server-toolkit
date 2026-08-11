@@ -10,7 +10,7 @@ export interface PublishOptions {
 export abstract class IEventClient {
   abstract publish(
     pattern: string,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
     options?: PublishOptions
   ): Promise<void>;
 }

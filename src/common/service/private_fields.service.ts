@@ -80,10 +80,10 @@ function hasAnyRole(userRoles: string[], requiredRoles: string[]): boolean {
 }
 
 export const removePrivateFields = (
-  result: any | any[],
+  result: unknown | unknown[],
   bind: BindDto | undefined,
   account?: any,
-): any | any[] => {
+): unknown | unknown[] => {
   const seen = new WeakSet();
   const userRoles = account?.roles || bind?.roles || [];
   const bypass = isSuperuser(account);
