@@ -11,7 +11,7 @@ export class Cookie {
     });
   }
 
-  setJson(name: string, data: any): void {
+  setJson(name: string, data: unknown): void {
     this.response.cookie(name, JSON.stringify(data), {
       httpOnly: true,
       path: '/',

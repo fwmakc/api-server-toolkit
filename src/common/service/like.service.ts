@@ -8,7 +8,7 @@ export const prepareLike = () => {
   return 'LIKE';
 };
 
-export const prepareLikeOrm = (value) => {
+export const prepareLikeOrm = (value: string) => {
   if (process.env.DB_TYPE === 'postgres') {
     return ILike(value);
   }

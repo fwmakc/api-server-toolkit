@@ -15,8 +15,8 @@ import {
 } from 'typeorm';
 import { prepareLikeOrm } from './like.service';
 
-export const parseWhereObject = (where) => {
-  const parsed = {};
+export const parseWhereObject = (where: Record<string, any>): Record<string, any> => {
+  const parsed: Record<string, any> = {};
   if (!where) {
     return parsed;
   }
@@ -51,7 +51,7 @@ export const parseWhereObject = (where) => {
   return parsed;
 };
 
-const prepareAndOrValues = (values, modifiers) => {
+const prepareAndOrValues = (values: unknown[], modifiers: string[]) => {
   const properties = [];
   values.forEach((value) => {
     let tempProperty = value;
@@ -68,7 +68,7 @@ const prepareAndOrValues = (values, modifiers) => {
   }
 };
 
-const prepareWhereValue = (value, modifier, key = '') => {
+const prepareWhereValue = (value: any, modifier: string, key = '') => {
   let property;
   switch (modifier) {
     case 'any':

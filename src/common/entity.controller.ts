@@ -8,6 +8,7 @@ import {
   Post,
   Patch,
   SetMetadata,
+  Type,
   applyDecorators,
   UseGuards,
 } from '@nestjs/common';
@@ -129,7 +130,7 @@ function route(
   access: OperationAccess,
   method: MethodDecorator,
   docName: string,
-  dto?: any,
+  dto?: Type<CommonDto>,
   roles?: string[],
 ): MethodDecorator {
   const level = normalizeAccess(access);
@@ -208,7 +209,7 @@ export const EntityController = (options: EntityControllerOptions) => {
   const selfRoute = route(readAccess, Get('self'), 'self', dto, readRoles);
   const createRoute = route(createAccess, Post('create'), 'create', dto, createRoles);
   const updateRoute = route(updateAccess, Patch('update/:id'), 'update', dto, updateRoles);
-  const removeRoute = route(deleteAccess, Delete('remove/:id'), 'remove', deleteRoles);
+  const removeRoute = route(deleteAccess, Delete('remove/:id'), 'remove', undefined, deleteRoles);
   const sortRoute = route(
     updateAccess,
     Post('position/sort'),

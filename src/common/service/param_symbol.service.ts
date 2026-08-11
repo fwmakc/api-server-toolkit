@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-export const prepareParams = (object) => {
+export const prepareParams = (object: Record<string, unknown>): Record<string, string> => {
   const dbType = process.env.DB_TYPE;
 
   const result = {};

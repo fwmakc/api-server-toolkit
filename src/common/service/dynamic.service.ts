@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { BaseEntity, DeepPartial, EntityManager, EntityTarget, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, EntityTarget, FindOptionsOrder, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
 import { FindDto } from '../dto/find.dto';
 import { CommonService } from '../common.service';
@@ -119,17 +119,17 @@ export class DynamicService<
     return ` FROM ${tableName}`;
   }
 
-  protected limitToString(limit) {
+  protected limitToString(limit: number | string | undefined): string {
     limit = Number(limit);
     return limit ? ` LIMIT ${limit}` : '';
   }
 
-  protected offsetToString(offset) {
+  protected offsetToString(offset: number | string | undefined): string {
     offset = Number(offset);
     return offset ? ` OFFSET ${offset}` : '';
   }
 
-  protected orderToString(order) {
+  protected orderToString(order: FindOptionsOrder<any> | undefined): string {
     let orderString = '';
 
     if (order && typeof order === 'object' && !Array.isArray(order)) {
@@ -165,7 +165,7 @@ export class DynamicService<
     return `SELECT ${selectString || '*'}`;
   }
 
-  protected whereToString(where) {
+  protected whereToString(where: string[]): string {
     return Array.isArray(where) && where.length > 0
       ? ` WHERE ${where.map((i) => `(${i})`).join(' AND ')}`
       : '';

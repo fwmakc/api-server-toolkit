@@ -27,11 +27,11 @@ export class AccountStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate({ id, type, key }: any) {
+  async validate({ id, type, key }: { id: number | string; type: string; key?: string }) {
     if (!type || type !== 'access') {
       throw new UnauthorizedException('Invalid token or expired!');
     }
-    const account = await this.authClientService.getAccountInfo(id);
+    const account = await this.authClientService.getAccountInfo(Number(id));
     if (!account || (!account.isActivated && !key)) {
       throw new ForbiddenException('You have no rights!');
     }

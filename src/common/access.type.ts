@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+import { CommonDto } from './common.dto';
 
 export enum AccessLevel {
   PUBLIC = 'public',
@@ -70,7 +71,7 @@ export function resolveTenantScope(
 
 export interface EntityControllerOptions {
   name: string;
-  dto: any;
+  dto: Type<CommonDto>;
   entity: Type<unknown>;
   accountTable?: string;
   accountField?: string;

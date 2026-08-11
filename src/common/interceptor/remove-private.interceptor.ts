@@ -10,14 +10,15 @@ import { removePrivateFields } from '../service/private_fields.service';
 import { isSuperuser } from '../service/admin.service';
 import { OWNER_TABLE } from '../service/owner.service';
 import { TENANT_TABLE, TENANT_FIELD } from '../service/tenant.service';
+import { BindDto } from '../dto/bind.dto';
 
 @Injectable()
 export class RemovePrivateFieldsInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    const bind: any = {
+    const bind: BindDto = {
       allow: isSuperuser(user),
       id: user?.id,
       key: 'id',

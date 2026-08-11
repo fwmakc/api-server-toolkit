@@ -1,6 +1,6 @@
 export function treeToFlat(
   data: object | object[],
-): Record<string, any> | Record<string, any>[] {
+): Record<string, unknown> | Record<string, unknown>[] {
   if (Array.isArray(data)) {
     return data.map((item) => flattenObject(item, {}));
   }
@@ -35,7 +35,7 @@ function flattenObject(
 }
 
 export function flatToTree(
-  data: Record<string, any> | Record<string, any>[],
+  data: Record<string, unknown> | Record<string, unknown>[],
 ): object | object[] {
   if (Array.isArray(data)) {
     return data.map((item) => unflattenObject(item));
@@ -43,7 +43,7 @@ export function flatToTree(
   return unflattenObject(data);
 }
 
-function unflattenObject(data: Record<string, any>): Record<string, any> {
+function unflattenObject(data: Record<string, unknown>): Record<string, any> {
   const result: Record<string, any> = {};
 
   for (const key of Object.keys(data)) {
@@ -56,7 +56,7 @@ function unflattenObject(data: Record<string, any>): Record<string, any> {
 function setDeepValue(
   target: Record<string, any>,
   keys: string[],
-  value: any,
+  value: unknown,
 ): void {
   let current = target;
 
