@@ -39,13 +39,13 @@ import { SafeIdPipe } from './pipe/safe_id.pipe';
 import { RolesGuard } from './guard/roles.guard';
 import { ROLES_METADATA } from './guard/roles.guard';
 
-function matchedRoleNames(account: AccountInfo, requiredRoles: string[]): string[] {
+export function matchedRoleNames(account: AccountInfo, requiredRoles: string[]): string[] {
   if (!requiredRoles?.length) return [];
   const userRoles: string[] = account?.roles || [];
   return requiredRoles.filter((r) => userRoles.includes(r));
 }
 
-function resolveTenantScopeFromAccount(
+export function resolveTenantScopeFromAccount(
   account: AccountInfo,
   matchedRoles?: string[],
 ): TenantScope | undefined {
@@ -59,7 +59,7 @@ function resolveTenantScopeFromAccount(
   return undefined;
 }
 
-function resolveBind(
+export function resolveBind(
   access: OperationAccess,
   account: AccountInfo,
   accountTable: string,

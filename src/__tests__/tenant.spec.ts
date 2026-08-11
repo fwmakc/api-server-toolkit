@@ -300,4 +300,43 @@ describe('tenant bind and field access', () => {
       expect(resolveTenantScope([{ role: 'admin', tenant: 'own' }], ['admin'])).toBeUndefined();
     });
   });
+
+  describe('normalizeRoles', () => {
+    const { normalizeRoles } = require('../common/access.type');
+
+    it('extracts role names from string entries', () => {
+      expect(normalizeRoles(['admin', 'editor'])).toEqual(['admin', 'editor']);
+    });
+
+    it('extracts role names from object entries', () => {
+      expect(normalizeRoles([{ role: 'admin', tenant: 'all' }, { role: 'editor' }])).toEqual(['admin', 'editor']);
+    });
+
+    it('handles mixed string and object entries', () => {
+      expect(normalizeRoles(['admin', { role: 'editor', tenant: 'own' }])).toEqual(['admin', 'editor']);
+    });
+
+    it('returns empty array for undefined', () => {
+      expect(normalizeRoles(undefined)).toEqual([]);
+    });
+
+    it('returns empty array for empty array', () => {
+      expect(normalizeRoles([])).toEqual([]);
+    });
+  });
+
+  describe('AccountInfo.roleEntries type', () => {
+    const { AccountInfo } = require('../common/access.type');
+
+    it('accepts roleEntries as optional field', () => {
+      const info: any = { id: 1, roleEntries: [{ role: 'admin', tenant: 'all' }] };
+      expect(info.roleEntries).toEqual([{ role: 'admin', tenant: 'all' }]);
+    });
+
+    it('works without roleEntries (backward compat)', () => {
+      const info: any = { id: 1, roles: ['admin'] };
+      expect(info.roleEntries).toBeUndefined();
+      expect(info.roles).toEqual(['admin']);
+    });
+  });
 });

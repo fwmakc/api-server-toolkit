@@ -8,6 +8,10 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
+  moduleNameMapper: {
+    '^@nestjs/passport$': '<rootDir>/src/__tests__/__mocks__/nestjs-passport.ts',
+    '^passport$': '<rootDir>/src/__tests__/__mocks__/passport.ts',
+  },
   collectCoverageFrom: [
     'src/common/**/*.ts',
     '!src/common/**/*.module.ts',
