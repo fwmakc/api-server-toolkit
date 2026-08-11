@@ -40,6 +40,7 @@ export * from './common/column/varchar.column';
 
 // --- Decorators ---
 export * from './common/decorator/field_access.decorator';
+export * from './common/decorator/roles.decorator';
 export * from './common/decorator/soft-delete.decorator';
 
 // --- DTOs ---
@@ -68,6 +69,7 @@ export * from './common/health/health.controller';
 
 // --- Guards ---
 export * from './common/guard/internal-auth.guard';
+export * from './common/guard/roles.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
