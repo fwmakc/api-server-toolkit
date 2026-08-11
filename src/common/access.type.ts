@@ -23,6 +23,7 @@ export interface AccountInfo {
   isSuperuser?: boolean;
   tenantId?: number | string;
   roles?: string[];
+  roleEntries?: Array<{ role: string; tenant?: string }>;
 }
 
 export type OperationAccess =
