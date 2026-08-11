@@ -35,6 +35,13 @@ export interface EntityPermissionConfig extends OperationConfig {
   tenantField?: string;
 }
 
+export type RoleEntry = string | { role: string; tenant: 'own' | 'all' | string[] };
+
+export function normalizeRoles(roles: RoleEntry[] | undefined): string[] {
+  if (!roles?.length) return [];
+  return roles.map((r) => (typeof r === 'string' ? r : r.role));
+}
+
 export interface EntityControllerOptions {
   name: string;
   dto: any;
@@ -44,6 +51,7 @@ export interface EntityControllerOptions {
   tenantTable?: string;
   tenantField?: string;
   operations?: Partial<OperationConfig>;
+  roles?: Partial<Record<'create' | 'read' | 'update' | 'delete', RoleEntry[]>>;
   relations?: string[];
 }
 
