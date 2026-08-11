@@ -3,14 +3,38 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 121 declaration files.
+Generated from 136 declaration files.
 
 ---
+
+## dist\__tests__\__mocks__\nestjs-passport.d.ts
+
+```typescript
+export declare function AuthGuard(...args: any[]): {
+    new (): {
+        canActivate(): boolean;
+    };
+};
+```
+
+## dist\__tests__\__mocks__\passport.d.ts
+
+```typescript
+export declare const Strategy: {
+    new (): {};
+};
+```
 
 ## dist\__tests__\access.type.spec.d.ts
 
 ```typescript
 export {};
+```
+
+## dist\__tests__\field-roles.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
 ```
 
 ## dist\__tests__\http.helper.spec.d.ts
@@ -35,6 +59,24 @@ export {};
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\resolve-bind.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\roles.decorator.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\roles.guard.spec.d.ts
+
+```typescript
+export {};
 ```
 
 ## dist\__tests__\safe-id.pipe.spec.d.ts
@@ -86,16 +128,33 @@ export * from './common/client/event-client.module';
 
 ```typescript
 import { Type } from '@nestjs/common';
-export type AccessLevel = 'public' | 'account' | 'tenant' | 'owner' | 'superuser' | 'closed';
-export interface AccountLike {
+export declare enum AccessLevel {
+    PUBLIC = "public",
+    ACCOUNT = "account",
+    TENANT = "tenant",
+    OWNER = "owner",
+    SUPERUSER = "superuser",
+    CLOSED = "closed"
+}
+export declare enum TenantScope {
+    OWN = "own",
+    ALL = "all"
+}
+export type RoleName = string;
+export interface AccountInfo {
     id: number | string;
     username?: string;
     isActivated?: boolean;
     isSuperuser?: boolean;
     tenantId?: number | string;
+    roles?: string[];
+    roleEntries?: Array<{
+        role: string;
+        tenant?: string;
+    }>;
 }
 export type OperationAccess = AccessLevel | {
-    level: 'owner';
+    level: AccessLevel.OWNER;
     bindPath?: string;
 };
 export interface OperationConfig {
@@ -110,6 +169,13 @@ export interface EntityPermissionConfig extends OperationConfig {
     tenantTable?: string;
     tenantField?: string;
 }
+export type TenantScopeValue = TenantScope | string | string[];
+export type RoleEntry = RoleName | {
+    role: RoleName;
+    tenant?: TenantScopeValue;
+};
+export declare function normalizeRoles(roles: RoleEntry[] | undefined): RoleName[];
+export declare function resolveTenantScope(roleEntries: RoleEntry[] | undefined, matchedRoles?: string[]): TenantScope | undefined;
 export interface EntityControllerOptions {
     name: string;
     dto: any;
@@ -119,6 +185,7 @@ export interface EntityControllerOptions {
     tenantTable?: string;
     tenantField?: string;
     operations?: Partial<OperationConfig>;
+    roles?: Partial<Record<'create' | 'read' | 'update' | 'delete', RoleEntry[]>>;
     relations?: string[];
 }
 export declare function normalizeAccess(access: OperationAccess | undefined, fallback?: AccessLevel): AccessLevel;
@@ -143,12 +210,7 @@ export {};
 ## dist\common\auth-client\auth-client.interfaces.d.ts
 
 ```typescript
-export interface AccountInfo {
-    id: number;
-    username: string;
-    isActivated: boolean;
-    isSuperuser: boolean;
-}
+export { AccountInfo } from '../access.type';
 ```
 
 ## dist\common\auth-client\auth-client.module.d.ts
@@ -498,22 +560,19 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     countDistinct(field: string, find: FindDto): Promise<number>;
     create(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
-    getUniqueColumns(): Array<string[]>;
-    findUniqueEntry(entity: DeepPartial<any>): Promise<any>;
-    findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
-    upsert(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
     update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getIdType(): string;
-    private resolveBindRelationId;
-    private resolveAutoAssign;
     remove(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
     hardDelete(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
     restore(id: number | string, bind?: BindDto): Promise<boolean>;
+    upsert(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto): Promise<Entity>;
     sortPosition(field: string, find: FindDto, bind?: BindDto): Promise<boolean>;
     movePosition(id: number | string, field: string, position: number, bind?: BindDto): Promise<boolean>;
+    getUniqueColumns(): Array<string[]>;
+    findUniqueEntry(entity: DeepPartial<any>): Promise<any>;
+    findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
     bind(entrie: any, data: any): BindDto;
-    private validatePositionField;
     error(e: any): void;
 }
 ```
@@ -528,6 +587,23 @@ export interface FieldAccessOptions {
 }
 export declare const FIELD_ACCESS_METADATA = "fieldAccess";
 export declare function FieldAccess(options: FieldAccessOptions): (target: any, propertyKey: string) => void;
+```
+
+## dist\common\decorator\field_roles.decorator.d.ts
+
+```typescript
+export interface FieldRolesOptions {
+    read?: string[];
+    write?: string[];
+}
+export declare const FIELD_ROLES_METADATA = "fieldRoles";
+export declare function FieldRoles(options: FieldRolesOptions): (target: any, propertyKey: string) => void;
+```
+
+## dist\common\decorator\roles.decorator.d.ts
+
+```typescript
+export declare const Roles: (...roles: string[]) => import("@nestjs/common").CustomDecorator<string>;
 ```
 
 ## dist\common\decorator\soft-delete.decorator.d.ts
@@ -606,6 +682,7 @@ export declare const UpdateDoc: (classDto: any) => <TFunction extends Function, 
 ## dist\common\dto\bind.dto.d.ts
 
 ```typescript
+import { TenantScope } from '../access.type';
 export declare class BindDto {
     id?: number | string;
     name?: string;
@@ -614,6 +691,8 @@ export declare class BindDto {
     tenantId?: number | string;
     tenantKey?: string;
     tenantName?: string;
+    roles?: string[];
+    tenantScope?: TenantScope;
 }
 ```
 
@@ -669,24 +748,28 @@ import { BaseEntity } from 'typeorm';
 import { RelationsDto } from './dto/relations.dto';
 import { CommonService } from './common.service';
 import { CommonDto } from './common.dto';
-import { AccountLike } from './access.type';
-import { EntityControllerOptions } from './access.type';
+import { AccountInfo } from './access.type';
+import { EntityControllerOptions, OperationAccess, TenantScope } from './access.type';
+import { BindDto } from './dto/bind.dto';
+export declare function matchedRoleNames(account: AccountInfo, requiredRoles: string[]): string[];
+export declare function resolveTenantScopeFromAccount(account: AccountInfo, matchedRoles?: string[]): TenantScope | undefined;
+export declare function resolveBind(access: OperationAccess, account: AccountInfo, accountTable: string, accountField: string, tenantTable?: string, tenantField?: string, hasRoles?: boolean, matchedRoles?: string[]): BindDto | undefined;
 export declare const EntityController: (options: EntityControllerOptions) => {
     new <Dto extends CommonDto, Entity extends BaseEntity, Service extends CommonService<Dto, Entity>>(): {
         readonly service: Service;
-        self(select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
-        find(search: object, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, join: boolean, account: AccountLike): Promise<Entity[]>;
-        findFirst(search: object, select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        findMany(ids: Array<string>, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity[]>;
-        findOne(id: string, select: object, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        count(search: object, where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<number>;
-        create(dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        update(id: string, dto: Dto, relations: Array<RelationsDto>, account: AccountLike): Promise<Entity>;
-        remove(id: string, account: AccountLike): Promise<boolean>;
-        hardDelete(id: string, account: AccountLike): Promise<boolean>;
-        restore(id: string, account: AccountLike): Promise<boolean>;
-        sortPosition(field: string, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountLike): Promise<boolean>;
-        movePosition(id: string, field: string, position: number, account: AccountLike): Promise<boolean>;
+        self(select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity[]>;
+        find(search: object, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, join: boolean, account: AccountInfo): Promise<Entity[]>;
+        findFirst(search: object, select: object, where: object, order: object, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity>;
+        findMany(ids: Array<string>, select: object, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity[]>;
+        findOne(id: string, select: object, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity>;
+        count(search: object, where: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountInfo): Promise<number>;
+        create(dto: Dto, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity>;
+        update(id: string, dto: Dto, relations: Array<RelationsDto>, account: AccountInfo): Promise<Entity>;
+        remove(id: string, account: AccountInfo): Promise<boolean>;
+        hardDelete(id: string, account: AccountInfo): Promise<boolean>;
+        restore(id: string, account: AccountInfo): Promise<boolean>;
+        sortPosition(field: string, select: object, where: object, order: object, limit: number, offset: number, relations: Array<RelationsDto>, account: AccountInfo): Promise<boolean>;
+        movePosition(id: string, field: string, position: number, account: AccountInfo): Promise<boolean>;
     };
 };
 ```
@@ -699,6 +782,19 @@ import { ConfigService } from "@nestjs/config";
 export declare class InternalAuthGuard implements CanActivate {
     private readonly config;
     constructor(config: ConfigService);
+    canActivate(context: ExecutionContext): boolean;
+}
+```
+
+## dist\common\guard\roles.guard.d.ts
+
+```typescript
+import { CanActivate, ExecutionContext } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+export declare const ROLES_METADATA = "roles";
+export declare class RolesGuard implements CanActivate {
+    private readonly reflector;
+    constructor(reflector: Reflector);
     canActivate(context: ExecutionContext): boolean;
 }
 ```
@@ -976,6 +1072,18 @@ export declare function batchLoadRelations(entities: any[], relationPaths: strin
 export declare function buildNestedWhere(name: string, key: string, value: any): Record<string, any>;
 ```
 
+## dist\common\service\bind-resolve.helper.d.ts
+
+```typescript
+import { EntityManager, EntityMetadata } from 'typeorm';
+import { BindDto } from '../dto/bind.dto';
+export declare function resolveBindRelationId(metadata: EntityMetadata, bind: BindDto, manager: EntityManager): Promise<number | string | null>;
+export declare function resolveAutoAssign(metadata: EntityMetadata, bind: BindDto, manager: EntityManager): Promise<{
+    name: string;
+    id: number | string;
+} | null>;
+```
+
 ## dist\common\service\bind.service.d.ts
 
 ```typescript
@@ -1008,6 +1116,15 @@ export declare function encrypt(data: any): Promise<{
 }>;
 export declare function decrypt(encryptedData: any, iv: any): Promise<string>;
 export declare function hash(data: any, type?: string): string;
+```
+
+## dist\common\service\delete.helper.d.ts
+
+```typescript
+import { Repository } from 'typeorm';
+export declare function softRemove<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string): Promise<boolean>;
+export declare function hardRemove<Entity>(repo: Repository<Entity>, id: number | string): Promise<boolean>;
+export declare function restoreDeleted<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string): Promise<boolean>;
 ```
 
 ## dist\common\service\dynamic.save.service.d.ts
@@ -1059,6 +1176,37 @@ export declare const escapeQuotes: (string: any) => string;
 export declare const escapeIdentifier: (string: any) => string;
 ```
 
+## dist\common\service\find.helper.d.ts
+
+```typescript
+import { Repository } from 'typeorm';
+import { BaseEntity } from 'typeorm';
+import { BindDto } from '../dto/bind.dto';
+import { FindDto } from '../dto/find.dto';
+interface FindParams {
+    where: any;
+    relations?: string[];
+    take?: number;
+    skip?: number;
+    select?: any;
+    order?: any;
+}
+export interface BuildFindResult {
+    where: any;
+    relationNames: string[];
+    useJoin: boolean;
+    params: FindParams;
+    isMultiHop: boolean;
+}
+export declare function buildFindWhere(bind: BindDto, find: FindDto, softDeleteCol?: string | null): BuildFindResult;
+export declare function buildCountWhere(bind: BindDto, find: FindDto, softDeleteCol?: string | null): {
+    where: any;
+    relationNames: string[];
+};
+export declare function executeFind<Entity extends BaseEntity>(repository: Repository<Entity>, find: FindDto, bindResult: BuildFindResult, bind: BindDto): Promise<Entity[]>;
+export {};
+```
+
 ## dist\common\service\json.service.d.ts
 
 ```typescript
@@ -1090,11 +1238,21 @@ export declare const OWNER_TABLE: string;
 export declare const prepareParams: (object: any) => {};
 ```
 
+## dist\common\service\position.helper.d.ts
+
+```typescript
+import { EntityManager, EntityMetadata } from 'typeorm';
+import { BindDto } from '../dto/bind.dto';
+export declare function validatePositionField(metadata: EntityMetadata, field: string): void;
+export declare function executeSortPosition<Entity>(entityTarget: any, field: string, entries: any[], find: any, bind: BindDto, metadata: EntityMetadata, manager: EntityManager): Promise<boolean>;
+export declare function executeMovePosition<Entity>(entityTarget: any, id: number | string, field: string, position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
+```
+
 ## dist\common\service\private_fields.service.d.ts
 
 ```typescript
-export declare const removePrivateFields: (result: any | any[], bind: any) => any | any[];
-export declare const stripWriteFields: (dto: any, entityTarget: any, bind: any) => void;
+export declare const removePrivateFields: (result: any | any[], bind: any, account?: any) => any | any[];
+export declare const stripWriteFields: (dto: any, entityTarget: any, bind: any, account?: any) => void;
 ```
 
 ## dist\common\service\quotes.service.d.ts
@@ -1147,10 +1305,30 @@ export declare function treeToFlat(data: object | object[]): Record<string, any>
 export declare function flatToTree(data: Record<string, any> | Record<string, any>[]): object | object[];
 ```
 
+## dist\common\service\unique.helper.d.ts
+
+```typescript
+import { EntityMetadata } from 'typeorm';
+export declare function getUniqueColumns(metadata: EntityMetadata): Array<string[]>;
+export declare function findUniqueEntry<Entity>(repository: {
+    metadata: EntityMetadata;
+    findOne: (options: any) => Promise<any>;
+}, entity: Record<string, any>): Promise<any>;
+```
+
 ## dist\common\service\where.service.d.ts
 
 ```typescript
 export declare const parseWhereObject: (where: any) => {};
+```
+
+## dist\common\service\write.helper.d.ts
+
+```typescript
+import { DeepPartial, EntityManager } from 'typeorm';
+import { BindDto } from '../dto/bind.dto';
+export declare function prepareAndCreate(entity: DeepPartial<any>, entityTarget: any, bind: BindDto, manager: EntityManager): Promise<any>;
+export declare function prepareAndUpdate(entity: DeepPartial<any>, entityTarget: any, bind: BindDto, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\type\api.type.d.ts
@@ -1173,6 +1351,7 @@ export type SearchType = {
 
 ```typescript
 export * from './common/guard/internal-auth.guard';
+export * from './common/guard/roles.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
@@ -1194,6 +1373,7 @@ export * from './common/helper/http.helper';
 ## dist\index.d.ts
 
 ```typescript
+export { AccessLevel, TenantScope } from './common/access.type';
 export * from './common/access.type';
 export * from './common/auth.decorator';
 export * from './common/common.column';
@@ -1229,6 +1409,8 @@ export * from './common/column/text.column';
 export * from './common/column/updated.column';
 export * from './common/column/varchar.column';
 export * from './common/decorator/field_access.decorator';
+export * from './common/decorator/field_roles.decorator';
+export * from './common/decorator/roles.decorator';
 export * from './common/decorator/soft-delete.decorator';
 export * from './common/dto/bind.dto';
 export * from './common/dto/find.dto';
@@ -1249,6 +1431,7 @@ export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
 export * from './common/guard/internal-auth.guard';
+export * from './common/guard/roles.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
