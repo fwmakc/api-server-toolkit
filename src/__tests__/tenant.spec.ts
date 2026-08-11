@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { AccessLevel } from '../common/access.type';
+import { AccessLevel, TenantScope } from '../common/access.type';
 
 describe('tenant bind and field access', () => {
   describe('bind() populates tenant scope', () => {
@@ -244,6 +244,60 @@ describe('tenant bind and field access', () => {
       });
       expect(PermissionRegistry.getTenantTable(EntityB)).toBeUndefined();
       expect(PermissionRegistry.getTenantField(EntityB)).toBeUndefined();
+    });
+  });
+
+  describe('resolveTenantScope', () => {
+    const { resolveTenantScope } = require('../common/access.type');
+
+    it('returns undefined when no roleEntries', () => {
+      expect(resolveTenantScope(undefined, ['admin'])).toBeUndefined();
+      expect(resolveTenantScope([], ['admin'])).toBeUndefined();
+    });
+
+    it('returns undefined when no matchedRoles', () => {
+      expect(resolveTenantScope([{ role: 'admin', tenant: 'all' }], [])).toBeUndefined();
+      expect(resolveTenantScope([{ role: 'admin', tenant: 'all' }], undefined)).toBeUndefined();
+    });
+
+    it('returns undefined for string-only entries (no tenant scope)', () => {
+      expect(resolveTenantScope(['admin'], ['admin'])).toBeUndefined();
+    });
+
+    it('returns undefined when matched role has no tenant property', () => {
+      expect(resolveTenantScope([{ role: 'admin' }], ['admin'])).toBeUndefined();
+    });
+
+    it('returns ALL when matched role has tenant=ALL enum', () => {
+      expect(resolveTenantScope([{ role: 'admin', tenant: TenantScope.ALL }], ['admin'])).toBe(TenantScope.ALL);
+    });
+
+    it('returns ALL when matched role has tenant="all" string', () => {
+      expect(resolveTenantScope([{ role: 'admin', tenant: 'all' }], ['admin'])).toBe(TenantScope.ALL);
+    });
+
+    it('returns undefined when role has tenant="own"', () => {
+      expect(resolveTenantScope([{ role: 'admin', tenant: 'own' }], ['admin'])).toBeUndefined();
+    });
+
+    it('returns ALL when any matched role has tenant=all (even if others have own)', () => {
+      const entries = [
+        { role: 'viewer', tenant: 'own' },
+        { role: 'admin', tenant: 'all' },
+      ];
+      expect(resolveTenantScope(entries, ['viewer', 'admin'])).toBe(TenantScope.ALL);
+    });
+
+    it('ignores entries whose role is not in matchedRoles', () => {
+      const entries = [
+        { role: 'superadmin', tenant: 'all' },
+        { role: 'admin', tenant: 'own' },
+      ];
+      expect(resolveTenantScope(entries, ['admin'])).toBeUndefined();
+    });
+
+    it('returns undefined when matched role entry exists but tenant is not all', () => {
+      expect(resolveTenantScope([{ role: 'admin', tenant: 'own' }], ['admin'])).toBeUndefined();
     });
   });
 });

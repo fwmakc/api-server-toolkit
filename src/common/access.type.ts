@@ -52,6 +52,21 @@ export function normalizeRoles(roles: RoleEntry[] | undefined): RoleName[] {
   return roles.map((r) => (typeof r === 'string' ? r : r.role));
 }
 
+export function resolveTenantScope(
+  roleEntries: RoleEntry[] | undefined,
+  matchedRoles?: string[],
+): TenantScope | undefined {
+  if (!roleEntries?.length || !matchedRoles?.length) return undefined;
+  for (const entry of roleEntries) {
+    if (typeof entry === 'object' && matchedRoles.includes(entry.role)) {
+      if (entry.tenant === TenantScope.ALL || entry.tenant === 'all') {
+        return TenantScope.ALL;
+      }
+    }
+  }
+  return undefined;
+}
+
 export interface EntityControllerOptions {
   name: string;
   dto: any;

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { TenantScope } from '../access.type';
 
 export class BindDto {
   @ApiProperty({
@@ -49,4 +50,11 @@ export class BindDto {
     description: 'роли текущего пользователя',
   })
   roles?: string[];
+
+  @ApiProperty({
+    required: false,
+    enum: ['own', 'all'],
+    description: 'tenant scope: own — фильтровать по tenantId, all — видеть все tenant',
+  })
+  tenantScope?: TenantScope;
 }

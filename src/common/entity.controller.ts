@@ -32,11 +32,19 @@ import {
   normalizeAccess,
   normalizeRoles,
   getBindPath,
+  resolveTenantScope,
+  RoleEntry,
 } from './access.type';
 import { BindDto } from './dto/bind.dto';
 import { SafeIdPipe } from './pipe/safe_id.pipe';
 import { RolesGuard } from './guard/roles.guard';
 import { ROLES_METADATA } from './guard/roles.guard';
+
+function matchedRoleNames(account: AccountInfo, requiredRoles: string[]): string[] {
+  if (!requiredRoles?.length) return [];
+  const userRoles: string[] = account?.roles || [];
+  return requiredRoles.filter((r) => userRoles.includes(r));
+}
 
 function resolveBind(
   access: OperationAccess,
@@ -46,18 +54,22 @@ function resolveBind(
   tenantTable?: string,
   tenantField?: string,
   hasRoles?: boolean,
+  roleEntries?: RoleEntry[],
+  matchedRoles?: string[],
 ): BindDto | undefined {
   const level = normalizeAccess(access);
   if (level === AccessLevel.CLOSED) {
     if (hasRoles && account?.tenantId) {
       const tName = tenantTable || TENANT_TABLE;
       if (tName) {
+        const scope = resolveTenantScope(roleEntries, matchedRoles);
         return {
           allow: isSuperuser(account),
           tenantName: tName,
           tenantKey: tenantField || TENANT_FIELD,
-          tenantId: account.tenantId,
+          tenantId: scope === 'all' ? undefined : account.tenantId,
           roles: account?.roles,
+          tenantScope: scope,
         };
       }
     }
@@ -85,7 +97,15 @@ function resolveBind(
     }
   }
 
-  if (b.id !== undefined || b.tenantId !== undefined) {
+  const scope = resolveTenantScope(roleEntries, matchedRoles);
+  if (scope) {
+    b.tenantScope = scope;
+    if (scope === 'all') {
+      b.tenantId = undefined;
+    }
+  }
+
+  if (b.id !== undefined || b.tenantId !== undefined || b.tenantScope !== undefined) {
     return b;
   }
 
@@ -147,6 +167,11 @@ export const EntityController = (options: EntityControllerOptions) => {
   const createRoles = normalizeRoles(options.roles?.create);
   const updateRoles = normalizeRoles(options.roles?.update);
   const deleteRoles = normalizeRoles(options.roles?.delete);
+
+  const readRoleEntries = options.roles?.read;
+  const createRoleEntries = options.roles?.create;
+  const updateRoleEntries = options.roles?.update;
+  const deleteRoleEntries = options.roles?.delete;
 
   const allowedRelations = options.relations;
 
@@ -240,7 +265,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('join') join: boolean = false,
       @Self() account: AccountInfo,
     ): Promise<Entity[]> {
-      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length, readRoleEntries, matchedRoleNames(account, readRoles));
       return await this.service.find(
         { search, select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations), join },
         b,
@@ -256,7 +281,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<Entity> {
-      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length, readRoleEntries, matchedRoleNames(account, readRoles));
       return await this.service.findFirst(
         { search, select, where, order, relations: filterRelations(relations, allowedRelations) },
         b,
@@ -271,7 +296,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<Entity[]> {
-      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length, readRoleEntries, matchedRoleNames(account, readRoles));
       const result = await this.service.findMany({ ids, select, relations: filterRelations(relations, allowedRelations) }, b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
@@ -286,7 +311,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<Entity> {
-      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length, readRoleEntries, matchedRoleNames(account, readRoles));
       const result = await this.service.findOne(
         { id, select, relations: filterRelations(relations, allowedRelations) },
         b,
@@ -306,7 +331,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<number> {
-      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length);
+      const b = resolveBind(readAccess, account, accountTable, accountField, tenantTable, tenantField, !!readRoles.length, readRoleEntries, matchedRoleNames(account, readRoles));
       return await this.service.count({ search, where, limit, offset, relations: filterRelations(relations, allowedRelations) }, b);
     }
 
@@ -316,7 +341,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Body('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<Entity> {
-      const b = resolveBind(createAccess, account, accountTable, accountField, tenantTable, tenantField, !!createRoles.length);
+      const b = resolveBind(createAccess, account, accountTable, accountField, tenantTable, tenantField, !!createRoles.length, createRoleEntries, matchedRoleNames(account, createRoles));
       return await this.service.create(dto, filterRelations(relations, allowedRelations), b);
     }
 
@@ -327,7 +352,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Body('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<Entity> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length, updateRoleEntries, matchedRoleNames(account, updateRoles));
       const result = await this.service.update(id, dto, filterRelations(relations, allowedRelations), b);
       if (!result) {
         throw new NotFoundException('Entrie not found');
@@ -340,7 +365,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Self() account: AccountInfo,
     ): Promise<boolean> {
-      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length);
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length, deleteRoleEntries, matchedRoleNames(account, deleteRoles));
       return await this.service.remove(id, b);
     }
 
@@ -349,7 +374,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Self() account: AccountInfo,
     ): Promise<boolean> {
-      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length);
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length, deleteRoleEntries, matchedRoleNames(account, deleteRoles));
       return await this.service.hardDelete(id, b);
     }
 
@@ -358,7 +383,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Param('id', SafeIdPipe) id: string,
       @Self() account: AccountInfo,
     ): Promise<boolean> {
-      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length);
+      const b = resolveBind(deleteAccess, account, accountTable, accountField, tenantTable, tenantField, !!deleteRoles.length, deleteRoleEntries, matchedRoleNames(account, deleteRoles));
       return await this.service.restore(id, b);
     }
 
@@ -373,7 +398,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('relations') relations: Array<RelationsDto>,
       @Self() account: AccountInfo,
     ): Promise<boolean> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length, updateRoleEntries, matchedRoleNames(account, updateRoles));
       const result = await this.service.sortPosition(
         field,
         { select, where, order, limit, offset, relations: filterRelations(relations, allowedRelations) },
@@ -392,7 +417,7 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Data('position') position: number = undefined,
       @Self() account: AccountInfo,
     ): Promise<boolean> {
-      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length);
+      const b = resolveBind(updateAccess, account, accountTable, accountField, tenantTable, tenantField, !!updateRoles.length, updateRoleEntries, matchedRoleNames(account, updateRoles));
       const result = await this.service.movePosition(id, field, position, b);
       if (!result) {
         throw new NotFoundException('Entrie position has not been moved');
