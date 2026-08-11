@@ -9,6 +9,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import {
   AccountInfo,
+  AccessLevel,
   normalizeAccess,
   OperationAccess,
 } from './access.type';
@@ -39,8 +40,8 @@ class JwtAdminGuard extends AuthGuard('jwt') {
 
 export function accessGuard(access: OperationAccess) {
   const level = normalizeAccess(access);
-  if (level === 'public') return UseGuards(JwtPublicGuard);
-  if (level === 'superuser') return UseGuards(JwtAdminGuard);
+  if (level === AccessLevel.PUBLIC) return UseGuards(JwtPublicGuard);
+  if (level === AccessLevel.SUPERUSER) return UseGuards(JwtAdminGuard);
   return UseGuards(JwtRequiredGuard);
 }
 

@@ -1,4 +1,5 @@
 // --- Core ---
+export { AccessLevel, TenantScope } from './common/access.type';
 export * from './common/access.type';
 export * from './common/auth.decorator';
 export * from './common/common.column';

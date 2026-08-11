@@ -26,6 +26,7 @@ import { TENANT_TABLE, TENANT_FIELD } from './service/tenant.service';
 import { getSoftDeleteColumn } from './service/soft-delete.service';
 import { PermissionRegistry } from './permission.registry';
 import {
+  AccessLevel,
   EntityControllerOptions,
   OperationAccess,
   normalizeAccess,
@@ -47,7 +48,7 @@ function resolveBind(
   hasRoles?: boolean,
 ): BindDto | undefined {
   const level = normalizeAccess(access);
-  if (level === 'closed') {
+  if (level === AccessLevel.CLOSED) {
     if (hasRoles && account?.tenantId) {
       const tName = tenantTable || TENANT_TABLE;
       if (tName) {
@@ -62,20 +63,20 @@ function resolveBind(
     }
     return undefined;
   }
-  if (level === 'public') return undefined;
-  if (level === 'superuser') return { allow: true, roles: account?.roles };
+  if (level === AccessLevel.PUBLIC) return undefined;
+  if (level === AccessLevel.SUPERUSER) return { allow: true, roles: account?.roles };
 
   const allow = isSuperuser(account);
   const b: BindDto = { allow, roles: account?.roles };
 
-  if (level === 'owner') {
+  if (level === AccessLevel.OWNER) {
     const bindPath = getBindPath(access, accountTable || OWNER_TABLE);
     b.id = account?.['id'];
     b.key = accountField || 'id';
     b.name = bindPath;
   }
 
-  if ((level === 'tenant' || level === 'owner') && !allow) {
+  if ((level === AccessLevel.TENANT || level === AccessLevel.OWNER) && !allow) {
     const tName = tenantTable || TENANT_TABLE;
     if (tName) {
       b.tenantName = tName;
@@ -101,11 +102,11 @@ function route(
   const level = normalizeAccess(access);
   const roleNames = roles?.length ? roles : undefined;
 
-  if (level === 'closed' && !roleNames) return applyDecorators();
+  if (level === AccessLevel.CLOSED && !roleNames) return applyDecorators();
 
   const decs: any[] = [];
 
-  if (level === 'closed' && roleNames) {
+  if (level === AccessLevel.CLOSED && roleNames) {
     decs.push(UseGuards(RolesGuard));
     decs.push(SetMetadata(ROLES_METADATA, roleNames));
   } else {
@@ -137,10 +138,10 @@ export const EntityController = (options: EntityControllerOptions) => {
   const tenantTable = options.tenantTable ?? '';
   const tenantField = options.tenantField ?? '';
 
-  const readAccess = options.operations?.read ?? 'closed';
-  const createAccess = options.operations?.create ?? 'closed';
-  const updateAccess = options.operations?.update ?? 'closed';
-  const deleteAccess = options.operations?.delete ?? 'closed';
+  const readAccess = options.operations?.read ?? AccessLevel.CLOSED;
+  const createAccess = options.operations?.create ?? AccessLevel.CLOSED;
+  const updateAccess = options.operations?.update ?? AccessLevel.CLOSED;
+  const deleteAccess = options.operations?.delete ?? AccessLevel.CLOSED;
 
   const readRoles = normalizeRoles(options.roles?.read);
   const createRoles = normalizeRoles(options.roles?.create);
@@ -198,7 +199,7 @@ export const EntityController = (options: EntityControllerOptions) => {
     ? route(deleteAccess, Patch('restore/:id'), 'restore', undefined, deleteRoles)
     : applyDecorators();
 
-  const hasSelf = normalizeAccess(readAccess) === 'owner';
+  const hasSelf = normalizeAccess(readAccess) === AccessLevel.OWNER;
   const selfDecorator = hasSelf ? selfRoute : applyDecorators();
 
   @ApiTags(name)

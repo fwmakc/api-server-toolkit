@@ -1,23 +1,24 @@
 import { removePrivateFields, stripWriteFields } from '../common/service/private_fields.service';
 import { FieldAccess } from '../common/decorator/field_access.decorator';
+import { AccessLevel } from '../common/access.type';
 import 'reflect-metadata';
 
 class TestEntity {
   name: string;
 
-  @FieldAccess({ read: 'public', write: 'public' })
+  @FieldAccess({ read: AccessLevel.PUBLIC, write: AccessLevel.PUBLIC })
   title: string;
 
-  @FieldAccess({ read: 'superuser', write: 'superuser' })
+  @FieldAccess({ read: AccessLevel.SUPERUSER, write: AccessLevel.SUPERUSER })
   secret: string;
 
-  @FieldAccess({ read: 'owner', write: 'owner' })
+  @FieldAccess({ read: AccessLevel.OWNER, write: AccessLevel.OWNER })
   privateNote: string;
 
-  @FieldAccess({ read: 'closed', write: 'closed' })
+  @FieldAccess({ read: AccessLevel.CLOSED, write: AccessLevel.CLOSED })
   internalId: string;
 
-  @FieldAccess({ write: 'public', read: 'public' })
+  @FieldAccess({ write: AccessLevel.PUBLIC, read: AccessLevel.PUBLIC })
   status: string;
 }
 

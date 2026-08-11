@@ -30,17 +30,17 @@ function getCachedRelations(metadata: EntityMetadata): RelationInfo[] {
 }
 
 function canCreate(level: AccessLevel, bind: any): boolean {
-  if (!bind) return level === 'public';
+  if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
-    case 'public':
+    case AccessLevel.PUBLIC:
       return true;
-    case 'account':
+    case AccessLevel.ACCOUNT:
       return bind?.id !== undefined || bind?.allow === true;
-    case 'owner':
+    case AccessLevel.OWNER:
       return true;
-    case 'superuser':
+    case AccessLevel.SUPERUSER:
       return !!bind?.allow;
-    case 'closed':
+    case AccessLevel.CLOSED:
       return false;
     default:
       return true;
@@ -159,7 +159,7 @@ async function sanitizeRelationItem(
   if (!item || typeof item !== 'object') return item;
 
   if (config) {
-    const createLevel = normalizeAccess(config.create, 'closed');
+     const createLevel = normalizeAccess(config.create, AccessLevel.CLOSED);
     if (canCreate(createLevel, bind)) {
       await sanitizeEntity(item, metadata, bind, seen, manager);
       return item;

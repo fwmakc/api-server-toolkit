@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { AccessLevel } from '../common/access.type';
 
 describe('tenant bind and field access', () => {
   describe('bind() populates tenant scope', () => {
@@ -95,7 +96,7 @@ describe('tenant bind and field access', () => {
 
       Reflect.defineMetadata(
         'fieldAccess',
-        { read: 'tenant' },
+        { read: AccessLevel.TENANT },
         proto,
         'orgNote',
       );
@@ -119,7 +120,7 @@ describe('tenant bind and field access', () => {
       const proto = TestEntity2.prototype;
       Reflect.defineMetadata(
         'fieldAccess',
-        { read: 'tenant' },
+        { read: AccessLevel.TENANT },
         proto,
         'orgNote',
       );
@@ -143,7 +144,7 @@ describe('tenant bind and field access', () => {
       const proto = TestEntity3.prototype;
       Reflect.defineMetadata(
         'fieldAccess',
-        { read: 'tenant' },
+        { read: AccessLevel.TENANT },
         proto,
         'orgNote',
       );
@@ -169,7 +170,7 @@ describe('tenant bind and field access', () => {
       const proto = TestWrite.prototype;
       Reflect.defineMetadata(
         'fieldAccess',
-        { write: 'tenant' },
+        { write: AccessLevel.TENANT },
         proto,
         'orgField',
       );
@@ -189,7 +190,7 @@ describe('tenant bind and field access', () => {
       const proto = TestWrite2.prototype;
       Reflect.defineMetadata(
         'fieldAccess',
-        { write: 'tenant' },
+        { write: AccessLevel.TENANT },
         proto,
         'orgField',
       );
@@ -204,11 +205,11 @@ describe('tenant bind and field access', () => {
     const { normalizeAccess } = require('../common/access.type');
 
     it('normalizes tenant level', () => {
-      expect(normalizeAccess('tenant')).toBe('tenant');
+      expect(normalizeAccess(AccessLevel.TENANT)).toBe(AccessLevel.TENANT);
     });
 
     it('tenant is not treated as closed fallback', () => {
-      expect(normalizeAccess('tenant')).not.toBe('closed');
+      expect(normalizeAccess(AccessLevel.TENANT)).not.toBe(AccessLevel.CLOSED);
     });
   });
 
@@ -222,10 +223,10 @@ describe('tenant bind and field access', () => {
     it('stores and retrieves tenantTable', () => {
       class EntityA {}
       PermissionRegistry.set(EntityA, {
-        create: 'tenant',
-        read: 'tenant',
-        update: 'owner',
-        delete: 'superuser',
+        create: AccessLevel.TENANT,
+        read: AccessLevel.TENANT,
+        update: AccessLevel.OWNER,
+        delete: AccessLevel.SUPERUSER,
         tenantTable: 'organization',
         tenantField: 'id',
       });
@@ -236,10 +237,10 @@ describe('tenant bind and field access', () => {
     it('returns undefined when no tenant config', () => {
       class EntityB {}
       PermissionRegistry.set(EntityB, {
-        create: 'public',
-        read: 'public',
-        update: 'public',
-        delete: 'public',
+        create: AccessLevel.PUBLIC,
+        read: AccessLevel.PUBLIC,
+        update: AccessLevel.PUBLIC,
+        delete: AccessLevel.PUBLIC,
       });
       expect(PermissionRegistry.getTenantTable(EntityB)).toBeUndefined();
       expect(PermissionRegistry.getTenantField(EntityB)).toBeUndefined();

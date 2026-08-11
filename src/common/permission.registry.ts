@@ -1,4 +1,5 @@
 import {
+  AccessLevel,
   EntityPermissionConfig,
   OperationConfig,
   OperationAccess,
@@ -32,19 +33,19 @@ export const PermissionRegistry = {
   },
 
   getCreate(entity: any): OperationAccess {
-    return registry.get(entity)?.create ?? 'closed';
+    return registry.get(entity)?.create ?? AccessLevel.CLOSED;
   },
 
   getRead(entity: any): OperationAccess {
-    return registry.get(entity)?.read ?? 'closed';
+    return registry.get(entity)?.read ?? AccessLevel.CLOSED;
   },
 
   getUpdate(entity: any): OperationAccess {
-    return registry.get(entity)?.update ?? 'closed';
+    return registry.get(entity)?.update ?? AccessLevel.CLOSED;
   },
 
   getDelete(entity: any): OperationAccess {
-    return registry.get(entity)?.delete ?? 'closed';
+    return registry.get(entity)?.delete ?? AccessLevel.CLOSED;
   },
 
   has(entity: any): boolean {

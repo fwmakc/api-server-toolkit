@@ -7,47 +7,47 @@ import {
 
 describe('access.type utilities', () => {
   describe('normalizeAccess', () => {
-    it('returns string access as-is', () => {
-      expect(normalizeAccess('public')).toBe('public');
-      expect(normalizeAccess('superuser')).toBe('superuser');
-      expect(normalizeAccess('owner')).toBe('owner');
-      expect(normalizeAccess('closed')).toBe('closed');
-      expect(normalizeAccess('account')).toBe('account');
+    it('returns enum access as-is', () => {
+      expect(normalizeAccess(AccessLevel.PUBLIC)).toBe(AccessLevel.PUBLIC);
+      expect(normalizeAccess(AccessLevel.SUPERUSER)).toBe(AccessLevel.SUPERUSER);
+      expect(normalizeAccess(AccessLevel.OWNER)).toBe(AccessLevel.OWNER);
+      expect(normalizeAccess(AccessLevel.CLOSED)).toBe(AccessLevel.CLOSED);
+      expect(normalizeAccess(AccessLevel.ACCOUNT)).toBe(AccessLevel.ACCOUNT);
     });
 
     it('extracts level from object form', () => {
-      expect(normalizeAccess({ level: 'owner' })).toBe('owner');
-      expect(normalizeAccess({ level: 'owner', bindPath: 'custom.path' })).toBe('owner');
+      expect(normalizeAccess({ level: AccessLevel.OWNER })).toBe(AccessLevel.OWNER);
+      expect(normalizeAccess({ level: AccessLevel.OWNER, bindPath: 'custom.path' })).toBe(AccessLevel.OWNER);
     });
 
     it('returns fallback when undefined', () => {
-      expect(normalizeAccess(undefined)).toBe('closed');
-      expect(normalizeAccess(undefined, 'public')).toBe('public');
+      expect(normalizeAccess(undefined)).toBe(AccessLevel.CLOSED);
+      expect(normalizeAccess(undefined, AccessLevel.PUBLIC)).toBe(AccessLevel.PUBLIC);
     });
 
     it('default fallback is closed', () => {
-      expect(normalizeAccess(undefined)).toBe('closed');
+      expect(normalizeAccess(undefined)).toBe(AccessLevel.CLOSED);
     });
   });
 
   describe('getBindPath', () => {
     it('returns bindPath from object form when provided', () => {
-      expect(getBindPath({ level: 'owner', bindPath: 'custom.path' }, 'fallback')).toBe('custom.path');
+      expect(getBindPath({ level: AccessLevel.OWNER, bindPath: 'custom.path' }, 'fallback')).toBe('custom.path');
     });
 
-    it('returns fallback for plain "owner" string', () => {
-      expect(getBindPath('owner', 'fallback')).toBe('fallback');
+    it('returns fallback for plain OWNER enum', () => {
+      expect(getBindPath(AccessLevel.OWNER, 'fallback')).toBe('fallback');
     });
 
-    it('returns fallback for { level: "owner" } without bindPath', () => {
-      expect(getBindPath({ level: 'owner' }, 'fallback')).toBe('fallback');
+    it('returns fallback for { level: OWNER } without bindPath', () => {
+      expect(getBindPath({ level: AccessLevel.OWNER }, 'fallback')).toBe('fallback');
     });
 
     it('returns undefined for non-owner access levels', () => {
-      expect(getBindPath('public', 'fallback')).toBeUndefined();
-      expect(getBindPath('superuser', 'fallback')).toBeUndefined();
-      expect(getBindPath('account', 'fallback')).toBeUndefined();
-      expect(getBindPath('closed', 'fallback')).toBeUndefined();
+      expect(getBindPath(AccessLevel.PUBLIC, 'fallback')).toBeUndefined();
+      expect(getBindPath(AccessLevel.SUPERUSER, 'fallback')).toBeUndefined();
+      expect(getBindPath(AccessLevel.ACCOUNT, 'fallback')).toBeUndefined();
+      expect(getBindPath(AccessLevel.CLOSED, 'fallback')).toBeUndefined();
     });
 
     it('returns undefined for undefined access', () => {

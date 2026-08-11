@@ -1,4 +1,5 @@
 import { PermissionRegistry } from '../common/permission.registry';
+import { AccessLevel } from '../common/access.type';
 
 class EntityA {}
 class EntityB {}
@@ -22,10 +23,10 @@ describe('PermissionRegistry', () => {
 
   it('set() then get() returns config', () => {
     const config = {
-      create: 'superuser' as const,
-      read: 'public' as const,
-      update: 'owner' as const,
-      delete: 'closed' as const,
+      create: AccessLevel.SUPERUSER as const,
+      read: AccessLevel.PUBLIC as const,
+      update: AccessLevel.OWNER as const,
+      delete: AccessLevel.CLOSED as const,
       accountTable: 'accounts',
       accountField: 'accountId',
     };
@@ -35,40 +36,40 @@ describe('PermissionRegistry', () => {
   });
 
   it('getCreate defaults to closed', () => {
-    expect(PermissionRegistry.getCreate(EntityA)).toBe('closed');
+    expect(PermissionRegistry.getCreate(EntityA)).toBe(AccessLevel.CLOSED);
   });
 
   it('getRead defaults to closed', () => {
-    expect(PermissionRegistry.getRead(EntityA)).toBe('closed');
+    expect(PermissionRegistry.getRead(EntityA)).toBe(AccessLevel.CLOSED);
   });
 
   it('getUpdate defaults to closed', () => {
-    expect(PermissionRegistry.getUpdate(EntityA)).toBe('closed');
+    expect(PermissionRegistry.getUpdate(EntityA)).toBe(AccessLevel.CLOSED);
   });
 
   it('getDelete defaults to closed', () => {
-    expect(PermissionRegistry.getDelete(EntityA)).toBe('closed');
+    expect(PermissionRegistry.getDelete(EntityA)).toBe(AccessLevel.CLOSED);
   });
 
   it('getCreate returns registered value', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'superuser',
-      read: 'public',
-      update: 'owner',
-      delete: 'closed',
+      create: AccessLevel.SUPERUSER,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.OWNER,
+      delete: AccessLevel.CLOSED,
     });
-    expect(PermissionRegistry.getCreate(EntityA)).toBe('superuser');
-    expect(PermissionRegistry.getRead(EntityA)).toBe('public');
-    expect(PermissionRegistry.getUpdate(EntityA)).toBe('owner');
-    expect(PermissionRegistry.getDelete(EntityA)).toBe('closed');
+    expect(PermissionRegistry.getCreate(EntityA)).toBe(AccessLevel.SUPERUSER);
+    expect(PermissionRegistry.getRead(EntityA)).toBe(AccessLevel.PUBLIC);
+    expect(PermissionRegistry.getUpdate(EntityA)).toBe(AccessLevel.OWNER);
+    expect(PermissionRegistry.getDelete(EntityA)).toBe(AccessLevel.CLOSED);
   });
 
   it('getAccountTable returns registered value', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
       accountTable: 'users',
     });
     expect(PermissionRegistry.getAccountTable(EntityA)).toBe('users');
@@ -76,10 +77,10 @@ describe('PermissionRegistry', () => {
 
   it('getAccountField returns registered value', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
       accountField: 'ownerId',
     });
     expect(PermissionRegistry.getAccountField(EntityA)).toBe('ownerId');
@@ -91,10 +92,10 @@ describe('PermissionRegistry', () => {
 
   it('delete() removes entity and returns true', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
     });
     expect(PermissionRegistry.delete(EntityA)).toBe(true);
     expect(PermissionRegistry.has(EntityA)).toBe(false);
@@ -106,16 +107,16 @@ describe('PermissionRegistry', () => {
 
   it('clear() removes all entities', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
     });
     PermissionRegistry.set(EntityB, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
     });
     PermissionRegistry.clear();
     expect(PermissionRegistry.has(EntityA)).toBe(false);
@@ -124,18 +125,18 @@ describe('PermissionRegistry', () => {
 
   it('isolates configs between different entities', () => {
     PermissionRegistry.set(EntityA, {
-      create: 'superuser',
-      read: 'superuser',
-      update: 'superuser',
-      delete: 'superuser',
+      create: AccessLevel.SUPERUSER,
+      read: AccessLevel.SUPERUSER,
+      update: AccessLevel.SUPERUSER,
+      delete: AccessLevel.SUPERUSER,
     });
     PermissionRegistry.set(EntityB, {
-      create: 'public',
-      read: 'public',
-      update: 'public',
-      delete: 'public',
+      create: AccessLevel.PUBLIC,
+      read: AccessLevel.PUBLIC,
+      update: AccessLevel.PUBLIC,
+      delete: AccessLevel.PUBLIC,
     });
-    expect(PermissionRegistry.getCreate(EntityA)).toBe('superuser');
-    expect(PermissionRegistry.getCreate(EntityB)).toBe('public');
+    expect(PermissionRegistry.getCreate(EntityA)).toBe(AccessLevel.SUPERUSER);
+    expect(PermissionRegistry.getCreate(EntityB)).toBe(AccessLevel.PUBLIC);
   });
 });

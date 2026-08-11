@@ -11,15 +11,15 @@ import { OWNER_TABLE } from './owner.service';
 import { isSuperuser } from './admin.service';
 
 function canRead(level: AccessLevel, bind: any, dto: any): boolean {
-  if (!bind) return level === 'public';
+  if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
-    case 'public':
+    case AccessLevel.PUBLIC:
       return true;
-    case 'account':
+    case AccessLevel.ACCOUNT:
       return bind.id !== undefined || bind.allow === true;
-    case 'tenant':
+    case AccessLevel.TENANT:
       return bind.tenantId !== undefined || bind.allow === true;
-    case 'owner':
+    case AccessLevel.OWNER:
       if (bind.allow) return true;
       if (bind.id === undefined) return false;
       {
@@ -43,9 +43,9 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
           String(ownerIdFallback) === String(id)
         );
       }
-    case 'superuser':
+    case AccessLevel.SUPERUSER:
       return !!bind.allow;
-    case 'closed':
+    case AccessLevel.CLOSED:
       return false;
     default:
       return true;
@@ -53,19 +53,19 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
 }
 
 function canWrite(level: AccessLevel, bind: any): boolean {
-  if (!bind) return level === 'public';
+  if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
-    case 'public':
+    case AccessLevel.PUBLIC:
       return true;
-    case 'account':
+    case AccessLevel.ACCOUNT:
       return bind?.id !== undefined || bind?.allow === true;
-    case 'tenant':
+    case AccessLevel.TENANT:
       return bind?.tenantId !== undefined || bind?.allow === true;
-    case 'owner':
+    case AccessLevel.OWNER:
       return true;
-    case 'superuser':
+    case AccessLevel.SUPERUSER:
       return !!bind?.allow;
-    case 'closed':
+    case AccessLevel.CLOSED:
       return false;
     default:
       return true;
@@ -153,7 +153,7 @@ const processDto = (
 
     if (bypass) continue;
 
-    const accessRestricted = fieldAccess?.read && fieldAccess.read !== 'public';
+    const accessRestricted = fieldAccess?.read && fieldAccess.read !== AccessLevel.PUBLIC;
     const rolesRestricted = fieldRoles?.read?.length > 0;
 
     if (accessRestricted && !rolesRestricted) {
@@ -225,10 +225,10 @@ export const stripWriteFields = (
     let writeLevel: AccessLevel | undefined = fieldAccess?.write;
 
     if (!writeLevel && bindField && key === bindField) {
-      writeLevel = 'closed';
+      writeLevel = AccessLevel.CLOSED;
     }
 
-    const accessRestricted = writeLevel && writeLevel !== 'public';
+    const accessRestricted = writeLevel && writeLevel !== AccessLevel.PUBLIC;
     const rolesRestricted = fieldRoles?.write?.length > 0;
 
     if (accessRestricted && !rolesRestricted) {

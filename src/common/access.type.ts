@@ -1,12 +1,20 @@
 import { Type } from '@nestjs/common';
 
-export type AccessLevel =
-  | 'public'
-  | 'account'
-  | 'tenant'
-  | 'owner'
-  | 'superuser'
-  | 'closed';
+export enum AccessLevel {
+  PUBLIC = 'public',
+  ACCOUNT = 'account',
+  TENANT = 'tenant',
+  OWNER = 'owner',
+  SUPERUSER = 'superuser',
+  CLOSED = 'closed',
+}
+
+export enum TenantScope {
+  OWN = 'own',
+  ALL = 'all',
+}
+
+export type RoleName = string;
 
 export interface AccountInfo {
   id: number | string;
@@ -19,7 +27,7 @@ export interface AccountInfo {
 
 export type OperationAccess =
   | AccessLevel
-  | { level: 'owner'; bindPath?: string };
+  | { level: AccessLevel.OWNER; bindPath?: string };
 
 export interface OperationConfig {
   create: OperationAccess;
@@ -35,9 +43,11 @@ export interface EntityPermissionConfig extends OperationConfig {
   tenantField?: string;
 }
 
-export type RoleEntry = string | { role: string; tenant: 'own' | 'all' | string[] };
+export type TenantScopeValue = TenantScope | string | string[];
 
-export function normalizeRoles(roles: RoleEntry[] | undefined): string[] {
+export type RoleEntry = RoleName | { role: RoleName; tenant?: TenantScopeValue };
+
+export function normalizeRoles(roles: RoleEntry[] | undefined): RoleName[] {
   if (!roles?.length) return [];
   return roles.map((r) => (typeof r === 'string' ? r : r.role));
 }
@@ -57,7 +67,7 @@ export interface EntityControllerOptions {
 
 export function normalizeAccess(
   access: OperationAccess | undefined,
-  fallback: AccessLevel = 'closed',
+  fallback: AccessLevel = AccessLevel.CLOSED,
 ): AccessLevel {
   if (access === undefined) return fallback;
   if (typeof access === 'string') return access;
@@ -72,8 +82,8 @@ export function getBindPath(
     return access.bindPath;
   }
   if (
-    access === 'owner' ||
-    (typeof access === 'object' && access?.level === 'owner')
+    access === AccessLevel.OWNER ||
+    (typeof access === 'object' && access?.level === AccessLevel.OWNER)
   ) {
     return fallback;
   }
