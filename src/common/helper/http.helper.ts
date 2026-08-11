@@ -4,7 +4,7 @@ export interface HttpOptions {
   raw?: boolean;
 }
 
-export interface HttpResponse<T = any> {
+export interface HttpResponse<T = unknown> {
   status: number;
   data: T;
   ok: boolean;
@@ -41,7 +41,7 @@ async function request(
     });
 
     const text = await response.text();
-    let data: any = text;
+    let data: unknown = text;
     if (text) {
       try {
         data = JSON.parse(text);

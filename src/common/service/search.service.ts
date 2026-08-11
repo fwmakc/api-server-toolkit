@@ -7,8 +7,8 @@ export const buildSearchWhere = (
   const { fields, terms, method } = search;
   const isOr = `${method || ''}`.toLowerCase() === 'or';
 
-  const buildNested = (path: string[], value: any): any => {
-    if (path.length === 0) return value;
+  const buildNested = (path: string[], value: unknown): Record<string, unknown> => {
+    if (path.length === 0) return value as Record<string, unknown>;
     return { [path[0]]: buildNested(path.slice(1), value) };
   };
 
@@ -21,9 +21,9 @@ export const buildSearchWhere = (
   }
 
   const fieldParts = fields.map((f) => f.split('.'));
-  let combinations: any[] = [{}];
+  let combinations: Record<string, unknown>[] = [{} as Record<string, unknown>];
   for (const term of terms) {
-    const next: any[] = [];
+    const next: Record<string, unknown>[] = [];
     for (const combo of combinations) {
       for (const parts of fieldParts) {
         const cond = buildNested(parts, ILike(`%${term.toLowerCase()}%`));

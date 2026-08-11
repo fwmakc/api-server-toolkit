@@ -1,4 +1,5 @@
 import { PermissionRegistry } from '../permission.registry';
+import { BindDto } from '../dto/bind.dto';
 
 function isOwnedBy(
   entity: any,
@@ -17,7 +18,7 @@ function isOwnedBy(
 
 export function filterNestedRelations(
   result: any[],
-  bind: any,
+  bind: BindDto | undefined,
 ): void {
   if (!result || !Array.isArray(result)) return;
   if (!bind || bind.id === undefined || bind.allow) return;

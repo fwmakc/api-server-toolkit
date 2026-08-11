@@ -25,7 +25,7 @@ export const only = <T extends object, K extends keyof T>(
 type MappingValue<S, T> =
   | {
       sourceKey: keyof S;
-      transform?: (value: any) => any;
+      transform?: (value: unknown) => unknown;
     }
   | keyof S;
 
@@ -48,7 +48,7 @@ export const setIfFilled = <T extends object, S extends object = T>(
   } else if (typeof mapping === 'object' && !Array.isArray(mapping)) {
     Object.entries(mapping).forEach(([targetKey, mappingValue]) => {
       let sourceKey: keyof S;
-      let transform: ((value: any) => any) | undefined;
+      let transform: ((value: unknown) => unknown) | undefined;
 
       if (
         typeof mappingValue === 'object' &&
@@ -57,7 +57,7 @@ export const setIfFilled = <T extends object, S extends object = T>(
       ) {
         const mappingObj = mappingValue as {
           sourceKey: keyof S;
-          transform?: (value: any) => any;
+          transform?: (value: unknown) => unknown;
         };
         sourceKey = mappingObj.sourceKey;
         transform = mappingObj.transform;
@@ -68,7 +68,7 @@ export const setIfFilled = <T extends object, S extends object = T>(
       let value = source[sourceKey];
 
       if (transform) {
-        value = transform(value);
+        value = transform(value) as S[keyof S];
       }
 
       if (isFilled(value)) {

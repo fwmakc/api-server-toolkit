@@ -1,3 +1,3 @@
-export const isFilled = (value: any) => {
+export const isFilled = (value: unknown) => {
   return value !== '' && value !== null && value !== undefined;
 };

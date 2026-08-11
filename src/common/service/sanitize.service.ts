@@ -6,6 +6,8 @@ import {
   normalizeAccess,
 } from '../access.type';
 
+import { BindDto } from '../dto/bind.dto';
+
 interface RelationInfo {
   propertyName: string;
   inverseMetadata: EntityMetadata;
@@ -29,7 +31,7 @@ function getCachedRelations(metadata: EntityMetadata): RelationInfo[] {
   return cached;
 }
 
-function canCreate(level: AccessLevel, bind: any): boolean {
+function canCreate(level: AccessLevel, bind: BindDto | undefined): boolean {
   if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
     case AccessLevel.PUBLIC:
@@ -50,7 +52,7 @@ function canCreate(level: AccessLevel, bind: any): boolean {
 export async function sanitizeForSave(
   entity: any,
   metadata: EntityMetadata,
-  bind: any,
+  bind: BindDto | undefined,
   manager: EntityManager,
 ): Promise<void> {
   const seen = new WeakSet();
@@ -60,7 +62,7 @@ export async function sanitizeForSave(
 async function sanitizeEntity(
   entity: any,
   metadata: EntityMetadata,
-  bind: any,
+  bind: BindDto | undefined,
   seen: WeakSet<object>,
   manager: EntityManager,
 ): Promise<void> {
@@ -152,7 +154,7 @@ async function sanitizeRelationItem(
   item: any,
   metadata: EntityMetadata,
   config: OperationConfig | undefined,
-  bind: any,
+  bind: BindDto | undefined,
   seen: WeakSet<object>,
   manager: EntityManager,
 ): Promise<any | null> {
@@ -173,9 +175,9 @@ async function checkOwnership(
   relatedTarget: any,
   ids: any[],
   config: OperationConfig | undefined,
-  bind: any,
+  bind: BindDto | undefined,
   manager: EntityManager,
-): Promise<Set<any>> {
+): Promise<Set<unknown>> {
   if (ids.length === 0) return new Set();
 
   if (bind?.allow === true) {

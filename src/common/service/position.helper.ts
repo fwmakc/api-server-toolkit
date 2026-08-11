@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { And, DeepPartial, EntityManager, EntityMetadata, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
+import { And, DeepPartial, EntityManager, EntityMetadata, EntityTarget, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
 import { parseWhereObject } from './where.service';
 import { BindDto } from '../dto/bind.dto';
 import { OWNER_TABLE } from './owner.service';
@@ -22,7 +22,7 @@ export function validatePositionField(metadata: EntityMetadata, field: string): 
 }
 
 export async function executeSortPosition<Entity>(
-  entityTarget: any,
+  entityTarget: EntityTarget<Entity>,
   field: string,
   entries: any[],
   find: any,
@@ -30,7 +30,7 @@ export async function executeSortPosition<Entity>(
   metadata: EntityMetadata,
   manager: EntityManager,
 ): Promise<boolean> {
-  let resetWhere: any = {};
+  let resetWhere: Record<string, unknown> = {};
   if (find.where) {
     resetWhere = parseWhereObject(find.where);
   }
@@ -72,7 +72,7 @@ export async function executeSortPosition<Entity>(
 }
 
 export async function executeMovePosition<Entity>(
-  entityTarget: any,
+  entityTarget: EntityTarget<Entity>,
   id: number | string,
   field: string,
   position: number,

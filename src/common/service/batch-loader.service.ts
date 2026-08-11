@@ -1,4 +1,4 @@
-import { EntityManager, In } from 'typeorm';
+import { EntityManager, EntityMetadata, In } from 'typeorm';
 
 interface RelationTreeNode {
   [key: string]: {
@@ -9,7 +9,7 @@ interface RelationTreeNode {
 
 function buildRelationTree(
   paths: string[],
-  metadata: any,
+  metadata: EntityMetadata,
 ): RelationTreeNode {
   const root: RelationTreeNode = {};
 
@@ -21,7 +21,7 @@ function buildRelationTree(
     for (const seg of segments) {
       if (!currentLevel[seg]) {
         const rel = currentMeta.relations.find(
-          (r: any) => r.propertyName === seg,
+          (r) => r.propertyName === seg,
         );
         if (!rel) break;
         currentLevel[seg] = { relation: rel, children: {} };
@@ -173,7 +173,7 @@ async function batchLoadLevel(
 export async function batchLoadRelations(
   entities: any[],
   relationPaths: string[],
-  metadata: any,
+  metadata: EntityMetadata,
   manager: EntityManager,
 ): Promise<void> {
   if (entities.length === 0 || relationPaths.length === 0) return;

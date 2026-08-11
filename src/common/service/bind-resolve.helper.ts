@@ -62,7 +62,7 @@ export async function resolveAutoAssign(
   }
 
   const key = bind.key || 'id';
-  let nestedWhere: any = { [key]: bind.id };
+  let nestedWhere: Record<string, unknown> = { [key]: bind.id };
   for (let i = segments.length - 1; i > 0; i--) {
     nestedWhere = { [segments[i]]: nestedWhere };
   }

@@ -34,11 +34,12 @@ const SAFE_MESSAGES: Record<string, string> = {
 
 const logger = new Logger('Database');
 
-export function throwDbError(e: any): never {
-  const pgCode = e?.code;
-  const detail = e?.detail || e?.message || '';
+export function throwDbError(e: unknown): never {
+  const err = e as Record<string, unknown>;
+  const pgCode = err?.code as string | undefined;
+  const detail = (err?.detail || err?.message || '') as string;
 
-  logger.error(`DB error [${pgCode || 'unknown'}]: ${detail}`, e?.stack);
+  logger.error(`DB error [${pgCode || 'unknown'}]: ${detail}`, (e as Error)?.stack);
 
   if (pgCode && PG_ERROR_MAP[pgCode]) {
     const ExceptionClass = PG_ERROR_MAP[pgCode];
@@ -54,7 +55,7 @@ export function throwDbError(e: any): never {
     throw e;
   }
 
-  if (e?.message && typeof e.message === 'string') {
+  if (err?.message && typeof err.message === 'string') {
     throw new InternalServerErrorException('Internal server error');
   }
 

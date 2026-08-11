@@ -9,8 +9,9 @@ import {
 } from '../decorator/field_roles.decorator';
 import { OWNER_TABLE } from './owner.service';
 import { isSuperuser } from './admin.service';
+import { BindDto } from '../dto/bind.dto';
 
-function canRead(level: AccessLevel, bind: any, dto: any): boolean {
+function canRead(level: AccessLevel, bind: BindDto | undefined, dto: Record<string, unknown>): boolean {
   if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
     case AccessLevel.PUBLIC:
@@ -30,7 +31,7 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
         } else if (name.includes('.')) {
           ownerEntity = name
             .split('.')
-            .reduce((acc: any, segment: string) => acc?.[segment], dto);
+            .reduce((acc: unknown, segment: string) => (acc as Record<string, unknown>)?.[segment], dto);
           if (!ownerEntity) return false;
         } else {
           ownerEntity = dto?.[name];
@@ -52,7 +53,7 @@ function canRead(level: AccessLevel, bind: any, dto: any): boolean {
   }
 }
 
-function canWrite(level: AccessLevel, bind: any): boolean {
+function canWrite(level: AccessLevel, bind: BindDto | undefined): boolean {
   if (!bind) return level === AccessLevel.PUBLIC;
   switch (level) {
     case AccessLevel.PUBLIC:
@@ -80,7 +81,7 @@ function hasAnyRole(userRoles: string[], requiredRoles: string[]): boolean {
 
 export const removePrivateFields = (
   result: any | any[],
-  bind: any,
+  bind: BindDto | undefined,
   account?: any,
 ): any | any[] => {
   const seen = new WeakSet();
@@ -94,7 +95,7 @@ export const removePrivateFields = (
   return result;
 };
 
-function computeNestedBind(bind: any, key: string): any {
+function computeNestedBind(bind: BindDto | undefined, key: string): BindDto | undefined {
   if (!bind) return bind;
   const name = bind.name || '';
   if (name.startsWith(key + '.')) {
@@ -132,7 +133,7 @@ function getCachedFieldRoles(proto: object, key: string): FieldRolesOptions | un
 
 const processDto = (
   dto: any,
-  bind: any,
+  bind: BindDto | undefined,
   seen: WeakSet<object>,
   userRoles: string[],
   bypass: boolean,
@@ -194,13 +195,13 @@ const processDto = (
 
 export const stripWriteFields = (
   dto: any,
-  entityTarget: any,
-  bind: any,
+  entityTarget: Function | string,
+  bind: BindDto | undefined,
   account?: any,
 ): void => {
   if (!dto || typeof dto !== 'object') return;
 
-  const proto = entityTarget?.prototype;
+  const proto = typeof entityTarget === 'function' ? entityTarget.prototype : undefined;
   if (!proto) return;
 
   const bindField = bind?.name ? bind.name.split('.')[0] : undefined;

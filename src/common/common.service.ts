@@ -107,7 +107,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     stripWriteFields(entity, this.repository.metadata.target, bind, bind);
 
     try {
-      let savedId: any;
+      let savedId: number | string | undefined;
       const doCreate = async (manager: EntityManager) => {
         const saved = await prepareAndCreate(entity, this.repository.target, bind, manager);
         savedId = saved?.id;
