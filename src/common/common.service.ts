@@ -8,6 +8,8 @@ import {
   In,
   Repository,
 } from 'typeorm';
+import { getTenantStrategy } from './service/tenant-strategy';
+import { TenantContext } from './service/tenant-context';
 import { RelationsDto } from './dto/relations.dto';
 import { CommonDto } from './common.dto';
 import { FindDto } from './dto/find.dto';
@@ -32,6 +34,19 @@ const findUniqueEntrie = findUniqueEntry;
 export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   protected readonly repository: Repository<Entity>;
 
+  protected getRepository(): Repository<Entity> {
+    const strategy = getTenantStrategy();
+    if (strategy === 'schema') {
+      const qr = TenantContext.getQueryRunner();
+      if (qr) return qr.manager.getRepository(this.repository.target);
+    }
+    if (strategy === 'database') {
+      const ds = TenantContext.getDataSource();
+      if (ds) return ds.getRepository(this.repository.target);
+    }
+    return this.repository;
+  }
+
   async find(
     find: FindDto = {},
     bind: BindDto = { allow: true },
@@ -39,7 +54,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
     const findResult = buildFindWhere(bind, find, softDeleteCol);
     try {
-      return await executeFind(this.repository, find, findResult, bind);
+      return await executeFind(this.getRepository(), find, findResult, bind);
     } catch (e) {
       this.error(e);
     }
@@ -75,7 +90,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   async count(find: FindDto, bind: BindDto = { allow: true }): Promise<number> {
     const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
     const { where, relationNames } = buildCountWhere(bind, find, softDeleteCol);
-    return await this.repository.count({
+    return await this.getRepository().count({
       where,
       ...(relationNames.length > 0 ? { relations: relationNames } : {}),
     });
@@ -89,7 +104,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (!columnNames.includes(field)) {
       throw new BadRequestException(`Unknown field: ${field}`);
     }
-    const qb = this.repository.createQueryBuilder('t');
+    const qb = this.getRepository().createQueryBuilder('t');
     const where = (find as any).where;
     if (where) qb.where(where);
     const result = await qb.select(`COUNT(DISTINCT t.${field})`, 'count').getRawOne();
@@ -115,7 +130,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       if (externalManager) {
         await doCreate(externalManager);
       } else {
-        await this.repository.manager.transaction(doCreate);
+        await this.getRepository().manager.transaction(doCreate);
       }
       return await this.findOne({ id: savedId, relations }, bind);
     } catch (e) {
@@ -124,7 +139,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
-    const repo = manager ? manager.getRepository(this.repository.target) : this.repository;
+    const repo = manager ? manager.getRepository(this.repository.target) : this.getRepository();
     return await repo.save(entity);
   }
 
@@ -149,7 +164,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       if (externalManager) {
         await doUpdate(externalManager);
       } else {
-        await this.repository.manager.transaction(doUpdate);
+        await this.getRepository().manager.transaction(doUpdate);
       }
       return await this.findOne({ id, relations }, bind);
     } catch (e) {
@@ -160,7 +175,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
     const idType = this.getIdType();
     entity.id = idType === 'bigint' ? `${entity.id}` : +entity.id;
-    const repo = manager ? manager.getRepository(this.repository.target) : this.repository;
+    const repo = manager ? manager.getRepository(this.repository.target) : this.getRepository();
     return await repo.save(entity);
   }
 
@@ -177,7 +192,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       if (!find) return false;
     }
     try {
-      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
       const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
       if (softDeleteCol) {
         return await softRemove(repo, id, softDeleteCol);
@@ -194,7 +209,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       if (!find) return false;
     }
     try {
-      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.repository;
+      const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
       return await hardRemove(repo, id);
     } catch (e) {
       this.error(e);
@@ -209,7 +224,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       if (!find) return false;
     }
     try {
-      return await restoreDeleted(this.repository, id, col);
+      return await restoreDeleted(this.getRepository(), id, col);
     } catch (e) {
       this.error(e);
     }
@@ -227,7 +242,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       const autoAssign = await resolveAutoAssign(
         this.repository.metadata,
         bind,
-        this.repository.manager,
+        this.getRepository().manager,
       );
       if (autoAssign) {
         entity[autoAssign.name] = { id: autoAssign.id };
@@ -274,7 +289,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     }
 
     try {
-      await this.repository.manager.transaction(async (manager) => {
+      await this.getRepository().manager.transaction(async (manager) => {
         await executeSortPosition(
           this.repository.target,
           field,
@@ -321,7 +336,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       const newPosition = +position || 0;
       if (oldPosition === newPosition) return false;
 
-      await this.repository.manager.transaction(async (manager) => {
+      await this.getRepository().manager.transaction(async (manager) => {
         await executeMovePosition(
           this.repository.target,
           id,
@@ -343,7 +358,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async findUniqueEntry(entity: DeepPartial<any>): Promise<any> {
-    return findUniqueEntry(this.repository, entity);
+    return findUniqueEntry(this.getRepository(), entity);
   }
 
   async findUniqueEntrie(entity: DeepPartial<any>): Promise<any> {

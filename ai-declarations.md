@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 175 declaration files.
+Generated from 185 declaration files.
 
 ---
 
@@ -231,6 +231,36 @@ import 'reflect-metadata';
 ```
 
 ## dist\__tests__\string.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\tenant-connection.manager.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\tenant-context.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\tenant-module.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\tenant-strategy.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\tenant.middleware.spec.d.ts
 
 ```typescript
 export {};
@@ -842,6 +872,7 @@ import { FindOneDto } from './dto/find_one.dto';
 import { BindDto } from './dto/bind.dto';
 export declare class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     protected readonly repository: Repository<Entity>;
+    protected getRepository(): Repository<Entity>;
     find(find?: FindDto, bind?: BindDto): Promise<Entity[]>;
     findFirst(find: FindDto, bind?: BindDto): Promise<Entity>;
     findMany(findMany: FindManyDto, bind?: BindDto): Promise<Entity[]>;
@@ -1587,6 +1618,87 @@ export declare const searchService: (result: any, search: SearchType) => boolean
 export declare function getSoftDeleteColumn(entityTarget: any): string | undefined;
 ```
 
+## dist\common\service\tenant-connection.manager.d.ts
+
+```typescript
+import { DataSource, DataSourceOptions } from 'typeorm';
+export interface TenantConnectionManagerOptions {
+    createConnection: (tenantId: string) => DataSourceOptions;
+    maxPoolPerTenant?: number;
+    maxTotalConnections?: number;
+}
+export declare class TenantConnectionManager {
+    private static pool;
+    private static options;
+    private static accessOrder;
+    static init(options: TenantConnectionManagerOptions): void;
+    static get(tenantId: string): Promise<DataSource>;
+    static close(tenantId: string): Promise<void>;
+    static closeAll(): Promise<void>;
+    static getSize(): number;
+    private static touchAccess;
+    private static evictOldest;
+}
+```
+
+## dist\common\service\tenant-context.d.ts
+
+```typescript
+import { DataSource, QueryRunner } from 'typeorm';
+export declare class TenantContext {
+    private static storage;
+    static run<T>(tenantId: string, fn: () => T): T;
+    static getTenantId(): string | undefined;
+    static setQueryRunner(qr: QueryRunner): void;
+    static getQueryRunner(): QueryRunner | undefined;
+    static setDataSource(ds: DataSource): void;
+    static getDataSource(): DataSource | undefined;
+}
+```
+
+## dist\common\service\tenant-strategy.d.ts
+
+```typescript
+export type TenantStrategy = 'where' | 'schema' | 'database';
+export declare function getTenantStrategy(): TenantStrategy;
+```
+
+## dist\common\service\tenant.middleware.d.ts
+
+```typescript
+import { NestMiddleware } from '@nestjs/common';
+import { Response, NextFunction } from 'express';
+import { DataSource } from 'typeorm';
+export interface TenantMiddlewareOptions {
+    strategy: 'schema' | 'database';
+    schemaPrefix?: string;
+}
+export declare class TenantMiddleware implements NestMiddleware {
+    private dataSource?;
+    private options;
+    constructor(options: TenantMiddlewareOptions, dataSource?: DataSource);
+    use(req: any, _res: Response, next: NextFunction): void;
+    private handleSchema;
+    private handleDatabase;
+}
+```
+
+## dist\common\service\tenant.module.d.ts
+
+```typescript
+import { DynamicModule } from '@nestjs/common';
+export interface TenantModuleOptions {
+    strategy?: 'where' | 'schema' | 'database';
+    schemaPrefix?: string;
+    maxPoolPerTenant?: number;
+    maxTotalConnections?: number;
+    createConnection?: (tenantId: string) => any;
+}
+export declare class TenantModule {
+    static forRoot(options?: TenantModuleOptions): DynamicModule;
+}
+```
+
 ## dist\common\service\tenant.service.d.ts
 
 ```typescript
@@ -1747,6 +1859,11 @@ export * from './common/queue/queue.service';
 export * from './common/service/admin.service';
 export * from './common/service/owner.service';
 export * from './common/service/tenant.service';
+export * from './common/service/tenant-strategy';
+export * from './common/service/tenant-context';
+export * from './common/service/tenant-connection.manager';
+export * from './common/service/tenant.middleware';
+export * from './common/service/tenant.module';
 export * from './common/service/bind.service';
 export * from './common/service/cookie.service';
 export * from './common/service/crypt.service';
