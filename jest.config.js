@@ -11,6 +11,9 @@ module.exports = {
   moduleNameMapper: {
     '^@nestjs/passport$': '<rootDir>/src/__tests__/__mocks__/nestjs-passport.ts',
     '^passport$': '<rootDir>/src/__tests__/__mocks__/passport.ts',
+    '^morgan$': '<rootDir>/src/__tests__/__mocks__/morgan.ts',
+    '^cookie-parser$': '<rootDir>/src/__tests__/__mocks__/cookie-parser.ts',
+    '^@sentry/nestjs$': '<rootDir>/src/__tests__/__mocks__/sentry-nestjs.ts',
   },
   collectCoverageFrom: [
     'src/common/**/*.ts',

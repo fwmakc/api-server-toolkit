@@ -1,6 +1,6 @@
 {
   "name": "api-server-toolkit",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "license": "MIT",
   "repository": {
@@ -50,6 +50,10 @@
       "types": "./dist/bootstrap.d.ts",
       "default": "./dist/bootstrap.js"
     },
+    "./bootstrap/setup": {
+      "types": "./dist/bootstrap/setup/index.d.ts",
+      "default": "./dist/bootstrap/setup/index.js"
+    },
     "./auth-client": {
       "types": "./dist/common/auth-client/index.d.ts",
       "default": "./dist/common/auth-client/index.js"
@@ -71,6 +75,9 @@
       ],
       "bootstrap": [
         "dist/bootstrap.d.ts"
+      ],
+      "bootstrap/setup": [
+        "dist/bootstrap/setup/index.d.ts"
       ],
       "auth-client": [
         "dist/common/auth-client/index.d.ts"

@@ -22,6 +22,19 @@ export class HttpError extends Error {
   }
 }
 
+function getTraceHeaders(): Record<string, string> {
+  try {
+    const { propagation, context, trace } = require('@opentelemetry/api');
+    const span = trace.getSpan(context.active());
+    if (span) {
+      const headers: Record<string, string> = {};
+      propagation.inject(context.active(), headers);
+      return headers;
+    }
+  } catch {}
+  return {};
+}
+
 async function request(
   method: string,
   url: string,
@@ -35,7 +48,7 @@ async function request(
   try {
     const response = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: { 'Content-Type': 'application/json', ...getTraceHeaders(), ...options?.headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });

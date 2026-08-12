@@ -168,4 +168,25 @@ describe('http.helper', () => {
       expect(err.message).toBe('Forbidden resource');
     });
   });
+
+  describe('trace headers', () => {
+    it('does not add trace headers when @opentelemetry/api is not available', async () => {
+      mockFetch({ status: 200, body: '{}' });
+      await httpPost('http://example.com/api', {});
+      const callHeaders = (global.fetch as jest.Mock).mock.calls[0][1].headers;
+      expect(callHeaders['traceparent']).toBeUndefined();
+      expect(callHeaders['tracestate']).toBeUndefined();
+    });
+
+    it('preserves custom headers alongside potential trace headers', async () => {
+      mockFetch({ status: 200, body: '{}' });
+      await httpPost('http://example.com/api', {}, {
+        headers: { 'X-Custom': 'test' },
+      });
+      const callHeaders = (global.fetch as jest.Mock).mock.calls[0][1].headers;
+      expect(callHeaders['Content-Type']).toBe('application/json');
+      expect(callHeaders['X-Custom']).toBe('test');
+      expect(callHeaders['traceparent']).toBeUndefined();
+    });
+  });
 });

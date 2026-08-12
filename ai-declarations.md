@@ -3,9 +3,21 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 136 declaration files.
+Generated from 175 declaration files.
 
 ---
+
+## dist\__tests__\__mocks__\cookie-parser.d.ts
+
+```typescript
+
+```
+
+## dist\__tests__\__mocks__\morgan.d.ts
+
+```typescript
+
+```
 
 ## dist\__tests__\__mocks__\nestjs-passport.d.ts
 
@@ -23,6 +35,13 @@ export declare function AuthGuard(...args: any[]): {
 export declare const Strategy: {
     new (): {};
 };
+export declare const initialize: () => jest.Mock<any, any, any>;
+```
+
+## dist\__tests__\__mocks__\sentry-nestjs.d.ts
+
+```typescript
+
 ```
 
 ## dist\__tests__\access.type.spec.d.ts
@@ -31,7 +50,73 @@ export declare const Strategy: {
 export {};
 ```
 
+## dist\__tests__\add-client-ip.interceptor.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\array.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\bind-path.service.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\bind-resolve.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\bootstrap.setup.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\bootstrap.thin.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\cookie.service.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\delete.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\field-roles.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\find.helper.executeFind.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\find.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\health.controller.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
@@ -49,13 +134,37 @@ export {};
 export {};
 ```
 
+## dist\__tests__\nested_filter.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\object.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
 ## dist\__tests__\permission.registry.spec.d.ts
 
 ```typescript
 export {};
 ```
 
+## dist\__tests__\position.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\private-fields.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\remove-private.interceptor.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
@@ -85,16 +194,46 @@ export {};
 export {};
 ```
 
+## dist\__tests__\sanitize.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\scalar.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
 ## dist\__tests__\search.service.spec.d.ts
 
 ```typescript
 export {};
 ```
 
+## dist\__tests__\secure.guard.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\simple.secure.guard.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\soft-delete.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\string.helper.spec.d.ts
+
+```typescript
+export {};
 ```
 
 ## dist\__tests__\tenant.spec.d.ts
@@ -109,10 +248,33 @@ import 'reflect-metadata';
 export {};
 ```
 
+## dist\__tests__\tree.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\unique.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\where.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\write.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\bootstrap.d.ts
 
 ```typescript
-export * from './common/bootstrap/bootstrap.type';
 export * from './common/bootstrap/bootstrap.service';
 ```
 
@@ -128,6 +290,7 @@ export * from './common/client/event-client.module';
 
 ```typescript
 import { Type } from '@nestjs/common';
+import { CommonDto } from './common.dto';
 export declare enum AccessLevel {
     PUBLIC = "public",
     ACCOUNT = "account",
@@ -178,7 +341,7 @@ export declare function normalizeRoles(roles: RoleEntry[] | undefined): RoleName
 export declare function resolveTenantScope(roleEntries: RoleEntry[] | undefined, matchedRoles?: string[]): TenantScope | undefined;
 export interface EntityControllerOptions {
     name: string;
-    dto: any;
+    dto: Type<CommonDto>;
     entity: Type<unknown>;
     accountTable?: string;
     accountField?: string;
@@ -202,7 +365,11 @@ export declare class AccountStrategy extends AccountStrategy_base {
     private readonly configService;
     private readonly authClientService;
     constructor(configService: ConfigService, authClientService: AuthClientService);
-    validate({ id, type, key }: any): Promise<import("./auth-client.interfaces").AccountInfo>;
+    validate({ id, type, key }: {
+        id: number | string;
+        type: string;
+        key?: string;
+    }): Promise<import("./auth-client.interfaces").AccountInfo>;
 }
 export {};
 ```
@@ -261,8 +428,12 @@ export declare const Self: (...dataOrPipes: unknown[]) => ParameterDecorator;
 ## dist\common\bootstrap\bootstrap.service.d.ts
 
 ```typescript
-import { BootstrapOptions } from './bootstrap.type';
-export declare function bootstrap(options: BootstrapOptions): Promise<void>;
+import { NestExpressApplication } from '@nestjs/platform-express';
+export interface BootstrapOptions {
+    port?: number | string;
+    ip?: string;
+}
+export declare function bootstrap(app: NestExpressApplication, options?: BootstrapOptions): Promise<void>;
 ```
 
 ## dist\common\bootstrap\bootstrap.type.d.ts
@@ -285,6 +456,125 @@ export interface BootstrapOptions {
 }
 ```
 
+## dist\common\bootstrap\setup\cookie-parser.d.ts
+
+```typescript
+export declare const CookieParser: {
+    setup(app: any): void;
+};
+```
+
+## dist\common\bootstrap\setup\cors.d.ts
+
+```typescript
+export declare const Cors: {
+    setup(app: any, opts?: boolean | Record<string, any>): void;
+};
+```
+
+## dist\common\bootstrap\setup\helmet.d.ts
+
+```typescript
+export declare const Helmet: {
+    setup(app: any, opts?: Record<string, any>): void;
+};
+```
+
+## dist\common\bootstrap\setup\index.d.ts
+
+```typescript
+export { Sentry } from './sentry';
+export { Helmet } from './helmet';
+export { Morgan } from './morgan';
+export { Cors } from './cors';
+export { CookieParser } from './cookie-parser';
+export { Passport } from './passport';
+export { Swagger } from './swagger';
+export { ValidationPipe } from './validation-pipe';
+export { Log } from './log';
+export { Prefix } from './prefix';
+export { Telemetry } from './telemetry';
+```
+
+## dist\common\bootstrap\setup\log.d.ts
+
+```typescript
+export declare const Log: {
+    setup(app: any, opts?: {
+        serviceName?: string;
+    }): void;
+};
+```
+
+## dist\common\bootstrap\setup\morgan.d.ts
+
+```typescript
+export declare const Morgan: {
+    setup(app: any, opts?: {
+        format?: string;
+    }): void;
+};
+```
+
+## dist\common\bootstrap\setup\passport.d.ts
+
+```typescript
+export declare const Passport: {
+    setup(app: any): void;
+};
+```
+
+## dist\common\bootstrap\setup\prefix.d.ts
+
+```typescript
+export declare const Prefix: {
+    setup(app: any): void;
+};
+```
+
+## dist\common\bootstrap\setup\sentry.d.ts
+
+```typescript
+export declare const Sentry: {
+    setup(app: any, opts?: {
+        dsn?: string;
+        environment?: string;
+    }): void;
+};
+```
+
+## dist\common\bootstrap\setup\swagger.d.ts
+
+```typescript
+export declare const Swagger: {
+    setup(app: any): void;
+};
+```
+
+## dist\common\bootstrap\setup\telemetry.d.ts
+
+```typescript
+export interface TelemetryOptions {
+    serviceName: string;
+    otlpEndpoint?: string;
+}
+export declare const Telemetry: {
+    setup(app: any, opts: TelemetryOptions): void;
+};
+```
+
+## dist\common\bootstrap\setup\validation-pipe.d.ts
+
+```typescript
+export declare const ValidationPipe: {
+    setup(app: any, opts?: {
+        transform?: boolean;
+        whitelist?: boolean;
+        forbidNonWhitelisted?: boolean;
+    }): void;
+};
+```
+
 ## dist\common\client\event-client.interfaces.d.ts
 
 ```typescript
@@ -297,7 +587,7 @@ export interface PublishOptions {
     ttl?: number;
 }
 export declare abstract class IEventClient {
-    abstract publish(pattern: string, payload: Record<string, any>, options?: PublishOptions): Promise<void>;
+    abstract publish(pattern: string, payload: Record<string, unknown>, options?: PublishOptions): Promise<void>;
 }
 ```
 
@@ -320,7 +610,7 @@ export declare class HttpEventClient extends IEventClient {
     private readonly apiKey;
     private readonly serviceName;
     constructor(config: ConfigService);
-    publish(pattern: string, payload: Record<string, any>, options?: PublishOptions): Promise<void>;
+    publish(pattern: string, payload: Record<string, unknown>, options?: PublishOptions): Promise<void>;
 }
 ```
 
@@ -863,7 +1153,7 @@ export interface HttpOptions {
     timeout?: number;
     raw?: boolean;
 }
-export interface HttpResponse<T = any> {
+export interface HttpResponse<T = unknown> {
     status: number;
     data: T;
     ok: boolean;
@@ -871,8 +1161,8 @@ export interface HttpResponse<T = any> {
 }
 export declare class HttpError extends Error {
     readonly status: number;
-    readonly data: any;
-    constructor(status: number, data: any, message?: string);
+    readonly data: unknown;
+    constructor(status: number, data: unknown, message?: string);
 }
 export declare function httpPost(url: string, body?: unknown, options?: HttpOptions): Promise<HttpResponse>;
 export declare function httpGet(url: string, options?: HttpOptions): Promise<HttpResponse>;
@@ -885,7 +1175,7 @@ export declare const except: <T extends object, K extends keyof T>(obj: T, keys:
 export declare const only: <T extends object, K extends keyof T>(obj: T, keys: K[] | K) => Pick<T, K>;
 type MappingValue<S, T> = {
     sourceKey: keyof S;
-    transform?: (value: any) => any;
+    transform?: (value: unknown) => unknown;
 } | keyof S;
 export declare const setIfFilled: <T extends object, S extends object = T>(target: T, source: S, mapping?: Record<keyof T, MappingValue<S, T>> | (keyof T)[] | keyof T) => void;
 export {};
@@ -912,7 +1202,7 @@ export declare const randomRuNames: (words?: number) => Array<string | number>;
 ## dist\common\helper\scalar.helper.d.ts
 
 ```typescript
-export declare const isFilled: (value: any) => boolean;
+export declare const isFilled: (value: unknown) => boolean;
 ```
 
 ## dist\common\helper\string.helper.d.ts
@@ -929,7 +1219,7 @@ import { Observable } from 'rxjs';
 export declare class AddClientIpInterceptor implements NestInterceptor {
     private readonly key;
     constructor(key?: string);
-    intercept(context: ExecutionContext, next: CallHandler): Observable<any>;
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown>;
 }
 ```
 
@@ -939,7 +1229,7 @@ export declare class AddClientIpInterceptor implements NestInterceptor {
 import { NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 export declare class RemovePrivateFieldsInterceptor implements NestInterceptor {
-    intercept(context: ExecutionContext, next: CallHandler): Observable<any>;
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown>;
 }
 ```
 
@@ -948,18 +1238,18 @@ export declare class RemovePrivateFieldsInterceptor implements NestInterceptor {
 ```typescript
 import { EntityPermissionConfig, OperationAccess } from './access.type';
 export declare const PermissionRegistry: {
-    set(entity: any, config: EntityPermissionConfig): void;
-    get(entity: any): EntityPermissionConfig | undefined;
-    getAccountTable(entity: any): string | undefined;
-    getAccountField(entity: any): string | undefined;
-    getTenantTable(entity: any): string | undefined;
-    getTenantField(entity: any): string | undefined;
-    getCreate(entity: any): OperationAccess;
-    getRead(entity: any): OperationAccess;
-    getUpdate(entity: any): OperationAccess;
-    getDelete(entity: any): OperationAccess;
-    has(entity: any): boolean;
-    delete(entity: any): boolean;
+    set(entity: Function, config: EntityPermissionConfig): void;
+    get(entity: Function): EntityPermissionConfig | undefined;
+    getAccountTable(entity: Function): string | undefined;
+    getAccountField(entity: Function): string | undefined;
+    getTenantTable(entity: Function): string | undefined;
+    getTenantField(entity: Function): string | undefined;
+    getCreate(entity: Function): OperationAccess;
+    getRead(entity: Function): OperationAccess;
+    getUpdate(entity: Function): OperationAccess;
+    getDelete(entity: Function): OperationAccess;
+    has(entity: Function): boolean;
+    delete(entity: Function): boolean;
     clear(): void;
 };
 ```
@@ -1056,14 +1346,16 @@ export declare abstract class QueueService<TJob extends QueueJobEntity> {
 ## dist\common\service\admin.service.d.ts
 
 ```typescript
-export declare function isSuperuser(user: any): boolean;
+export declare function isSuperuser(user: {
+    isSuperuser?: boolean;
+} | undefined | null): boolean;
 ```
 
 ## dist\common\service\batch-loader.service.d.ts
 
 ```typescript
-import { EntityManager } from 'typeorm';
-export declare function batchLoadRelations(entities: any[], relationPaths: string[], metadata: any, manager: EntityManager): Promise<void>;
+import { EntityManager, EntityMetadata } from 'typeorm';
+export declare function batchLoadRelations(entities: any[], relationPaths: string[], metadata: EntityMetadata, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\service\bind-path.service.d.ts
@@ -1100,7 +1392,7 @@ export declare class Cookie {
     private response;
     constructor(request: Request, response: Response);
     set(name: string, data: string | number): void;
-    setJson(name: string, data: any): void;
+    setJson(name: string, data: unknown): void;
     get(name: string): any;
     getJson(name: string): any;
     reset(name: string): void;
@@ -1136,7 +1428,7 @@ export declare const parseDynamicSaveObject: (entity: any) => {};
 ## dist\common\service\dynamic.service.d.ts
 
 ```typescript
-import { BaseEntity, DeepPartial, EntityManager, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, FindOptionsOrder, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
 import { FindDto } from '../dto/find.dto';
 import { CommonService } from '../common.service';
@@ -1148,11 +1440,11 @@ export declare class DynamicService<Dto extends CommonDto, Entity extends BaseEn
     find(find: FindDto, bind?: BindDto): Promise<Entity[]>;
     protected getTableName(): string;
     protected fromToString(): string;
-    protected limitToString(limit: any): string;
-    protected offsetToString(offset: any): string;
-    protected orderToString(order: any): string;
+    protected limitToString(limit: number | string | undefined): string;
+    protected offsetToString(offset: number | string | undefined): string;
+    protected orderToString(order: FindOptionsOrder<any> | undefined): string;
     protected selectToString(select: any): string;
-    protected whereToString(where: any): string;
+    protected whereToString(where: string[]): string;
     error(e: any): void;
 }
 ```
@@ -1166,7 +1458,7 @@ export declare const parseDynamicWhereObject: (where: any) => any[];
 ## dist\common\service\error.service.d.ts
 
 ```typescript
-export declare function throwDbError(e: any): never;
+export declare function throwDbError(e: unknown): never;
 ```
 
 ## dist\common\service\escape.service.d.ts
@@ -1217,13 +1509,14 @@ export declare const prepareJsonOrm: (value: any) => import("typeorm").FindOpera
 
 ```typescript
 export declare const prepareLike: () => "ILIKE" | "LIKE";
-export declare const prepareLikeOrm: (value: any) => import("typeorm").FindOperator<any>;
+export declare const prepareLikeOrm: (value: string) => import("typeorm").FindOperator<string>;
 ```
 
 ## dist\common\service\nested_filter.service.d.ts
 
 ```typescript
-export declare function filterNestedRelations(result: any[], bind: any): void;
+import { BindDto } from '../dto/bind.dto';
+export declare function filterNestedRelations(result: any[], bind: BindDto | undefined): void;
 ```
 
 ## dist\common\service\owner.service.d.ts
@@ -1235,24 +1528,26 @@ export declare const OWNER_TABLE: string;
 ## dist\common\service\param_symbol.service.d.ts
 
 ```typescript
-export declare const prepareParams: (object: any) => {};
+export declare const prepareParams: (object: Record<string, unknown>) => Record<string, string>;
 ```
 
 ## dist\common\service\position.helper.d.ts
 
 ```typescript
-import { EntityManager, EntityMetadata } from 'typeorm';
+import { EntityManager, EntityMetadata, EntityTarget } from 'typeorm';
 import { BindDto } from '../dto/bind.dto';
+import { FindDto } from '../dto/find.dto';
 export declare function validatePositionField(metadata: EntityMetadata, field: string): void;
-export declare function executeSortPosition<Entity>(entityTarget: any, field: string, entries: any[], find: any, bind: BindDto, metadata: EntityMetadata, manager: EntityManager): Promise<boolean>;
-export declare function executeMovePosition<Entity>(entityTarget: any, id: number | string, field: string, position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
+export declare function executeSortPosition<Entity>(entityTarget: EntityTarget<Entity>, field: string, entries: any[], find: FindDto, bind: BindDto, metadata: EntityMetadata, manager: EntityManager): Promise<boolean>;
+export declare function executeMovePosition<Entity>(entityTarget: EntityTarget<Entity>, id: number | string, field: string, position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\service\private_fields.service.d.ts
 
 ```typescript
-export declare const removePrivateFields: (result: any | any[], bind: any, account?: any) => any | any[];
-export declare const stripWriteFields: (dto: any, entityTarget: any, bind: any, account?: any) => void;
+import { BindDto } from '../dto/bind.dto';
+export declare const removePrivateFields: (result: unknown | unknown[], bind: BindDto | undefined, account?: any) => unknown | unknown[];
+export declare const stripWriteFields: (dto: any, entityTarget: Function | string, bind: BindDto | undefined, account?: any) => void;
 ```
 
 ## dist\common\service\quotes.service.d.ts
@@ -1272,7 +1567,8 @@ export declare const relationsOrder: (result: any, relations: Array<RelationsDto
 
 ```typescript
 import { EntityManager, EntityMetadata } from 'typeorm';
-export declare function sanitizeForSave(entity: any, metadata: EntityMetadata, bind: any, manager: EntityManager): Promise<void>;
+import { BindDto } from '../dto/bind.dto';
+export declare function sanitizeForSave(entity: any, metadata: EntityMetadata, bind: BindDto | undefined, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\service\search.service.d.ts
@@ -1301,8 +1597,8 @@ export declare const TENANT_FIELD: string;
 ## dist\common\service\tree.service.d.ts
 
 ```typescript
-export declare function treeToFlat(data: object | object[]): Record<string, any> | Record<string, any>[];
-export declare function flatToTree(data: Record<string, any> | Record<string, any>[]): object | object[];
+export declare function treeToFlat(data: object | object[]): Record<string, unknown> | Record<string, unknown>[];
+export declare function flatToTree(data: Record<string, unknown> | Record<string, unknown>[]): object | object[];
 ```
 
 ## dist\common\service\unique.helper.d.ts
@@ -1319,7 +1615,7 @@ export declare function findUniqueEntry<Entity>(repository: {
 ## dist\common\service\where.service.d.ts
 
 ```typescript
-export declare const parseWhereObject: (where: any) => {};
+export declare const parseWhereObject: (where: Record<string, any>) => Record<string, any>;
 ```
 
 ## dist\common\service\write.helper.d.ts
