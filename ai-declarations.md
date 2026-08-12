@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 185 declaration files.
+Generated from 189 declaration files.
 
 ---
 
@@ -62,6 +62,12 @@ import 'reflect-metadata';
 export {};
 ```
 
+## dist\__tests__\batch-loader.service.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\bind-path.service.spec.d.ts
 
 ```typescript
@@ -86,6 +92,12 @@ import 'reflect-metadata';
 import 'reflect-metadata';
 ```
 
+## dist\__tests__\column.factories.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\cookie.service.spec.d.ts
 
 ```typescript
@@ -93,6 +105,12 @@ export {};
 ```
 
 ## dist\__tests__\delete.helper.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\dto.column.validators.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
@@ -162,6 +180,12 @@ import 'reflect-metadata';
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\relations.service.spec.d.ts
+
+```typescript
+export {};
 ```
 
 ## dist\__tests__\remove-private.interceptor.spec.d.ts

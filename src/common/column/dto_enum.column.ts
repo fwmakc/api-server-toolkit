@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { DeepPartial } from 'typeorm';
 
 export function DtoEnumColumn(
@@ -22,6 +22,7 @@ export function DtoEnumColumn(
     }
 
     ApiProperty(properties)(object, propertyName);
+    IsOptional()(object, propertyName);
     IsEnum(value)(object, propertyName);
   };
 }
