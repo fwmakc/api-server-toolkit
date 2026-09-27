@@ -1,5 +1,5 @@
 import { Module, DynamicModule } from '@nestjs/common';
-import { TenantConnectionManager, TenantConnectionManagerOptions } from './tenant-connection.manager';
+import { TenantConnectionManager } from './tenant-connection.manager';
 
 export interface TenantModuleOptions {
   strategy?: 'where' | 'schema' | 'database';

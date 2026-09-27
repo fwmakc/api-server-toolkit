@@ -1,6 +1,4 @@
-import { NestMiddleware, MiddlewareConsumer } from '@nestjs/common';
-import { Module } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
+import { NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { DataSource } from 'typeorm';
 import { TenantContext } from './tenant-context';

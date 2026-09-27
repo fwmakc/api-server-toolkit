@@ -1,11 +1,11 @@
 import { EntityManager, EntityMetadata } from 'typeorm';
 import { PermissionRegistry } from '../permission.registry';
 import {
-  AccessLevel,
-  OperationConfig,
-  normalizeAccess,
-} from '../access.type';
-
+  AccessRule,
+  normalizeRuleNames,
+  parseAccessPath,
+  PUBLIC_ROLE,
+} from '../access.rules';
 import { BindDto } from '../dto/bind.dto';
 
 interface RelationInfo {
@@ -31,22 +31,14 @@ function getCachedRelations(metadata: EntityMetadata): RelationInfo[] {
   return cached;
 }
 
-function canCreate(level: AccessLevel, bind: BindDto | undefined): boolean {
-  if (!bind) return level === AccessLevel.PUBLIC;
-  switch (level) {
-    case AccessLevel.PUBLIC:
-      return true;
-    case AccessLevel.ACCOUNT:
-      return bind?.id !== undefined || bind?.allow === true;
-    case AccessLevel.OWNER:
-      return true;
-    case AccessLevel.SUPERUSER:
-      return !!bind?.allow;
-    case AccessLevel.CLOSED:
-      return false;
-    default:
-      return true;
-  }
+/** Разрешено ли создавать вложенную сущность: create-правила её контроллера. */
+function canCreate(rules: AccessRule[] | undefined, bind: BindDto | undefined): boolean {
+  if (!rules?.length) return false;
+  if (bind?.allow === true) return true;
+  const roles = bind?.roles || [PUBLIC_ROLE];
+  return rules.some((rule) =>
+    normalizeRuleNames(rule.who).some((r) => roles.includes(r)),
+  );
 }
 
 export async function sanitizeForSave(
@@ -93,7 +85,7 @@ async function sanitizeEntity(
 
       const ownedSet = isAutoAssignRelation
         ? new Set(ids)
-        : await checkOwnership(relatedTarget, ids, config, bind, manager);
+        : await checkOwnership(relatedTarget, ids, bind, manager);
 
       const slots: any[] = [];
 
@@ -125,7 +117,7 @@ async function sanitizeEntity(
       if (value.id !== undefined && value.id !== null) {
         const ownedSet = isAutoAssignRelation
           ? new Set([value.id])
-          : await checkOwnership(relatedTarget, [value.id], config, bind, manager);
+          : await checkOwnership(relatedTarget, [value.id], bind, manager);
         if (ownedSet.has(value.id)) {
           entity[key] = { id: value.id };
         } else {
@@ -153,7 +145,7 @@ async function sanitizeEntity(
 async function sanitizeRelationItem(
   item: any,
   metadata: EntityMetadata,
-  config: OperationConfig | undefined,
+  config: { operations?: { create?: AccessRule[] } } | undefined,
   bind: BindDto | undefined,
   seen: WeakSet<object>,
   manager: EntityManager,
@@ -161,8 +153,7 @@ async function sanitizeRelationItem(
   if (!item || typeof item !== 'object') return item;
 
   if (config) {
-     const createLevel = normalizeAccess(config.create, AccessLevel.CLOSED);
-    if (canCreate(createLevel, bind)) {
+    if (canCreate(config.operations?.create, bind)) {
       await sanitizeEntity(item, metadata, bind, seen, manager);
       return item;
     }
@@ -171,10 +162,14 @@ async function sanitizeRelationItem(
   return null;
 }
 
+/**
+ * Проверяет, что прицепляемые id связанной сущности принадлежат вызывающему:
+ * берём owner-путь из read-правил связанной сущности и джойним его к фильтру по bind.id.
+ * Нет owner-пути у связанной сущности — считаем все id доступными (как раньше без accountTable).
+ */
 async function checkOwnership(
   relatedTarget: any,
   ids: (number | string)[],
-  config: OperationConfig | undefined,
   bind: BindDto | undefined,
   manager: EntityManager,
 ): Promise<Set<unknown>> {
@@ -184,17 +179,19 @@ async function checkOwnership(
     return new Set(ids);
   }
 
+  const config = PermissionRegistry.get(relatedTarget);
   if (!config) {
+    // Связанная сущность без конфига доступа — прицеплять нельзя (secure by default).
     return new Set();
   }
 
-  const accountRelation = PermissionRegistry.getAccountTable(relatedTarget);
-  if (!accountRelation) {
+  const ownerPath = PermissionRegistry.getOwnerPath(relatedTarget);
+  if (!ownerPath) {
     return new Set(ids);
   }
 
-  const accountField = PermissionRegistry.getAccountField(relatedTarget) || 'id';
-  const segments = accountRelation.split('.');
+  const { name, key } = parseAccessPath(ownerPath);
+  const segments = name ? name.split('.') : [];
 
   const repo = manager.getRepository(relatedTarget);
   const qb = repo
@@ -210,7 +207,10 @@ async function checkOwnership(
     alias = nextAlias;
   }
 
-  qb.andWhere(`${alias}.${accountField} = :accountId`, { accountId: bind?.id });
+  qb.andWhere(
+    segments.length ? `${alias}.${key} = :accountId` : `e.${key} = :accountId`,
+    { accountId: bind?.id },
+  );
 
   const owned = await qb.getMany();
   return new Set(owned.map((r: any) => r.id));

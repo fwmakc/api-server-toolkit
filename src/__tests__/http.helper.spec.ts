@@ -1,4 +1,4 @@
-import { httpGet, httpPost, HttpError, HttpResponse } from '../common/helper/http.helper';
+import { httpGet, httpPost, HttpError } from '../common/helper/http.helper';
 
 describe('http.helper', () => {
   const originalFetch = global.fetch;

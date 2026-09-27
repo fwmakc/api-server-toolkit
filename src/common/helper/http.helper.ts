@@ -35,12 +35,12 @@ function getTraceHeaders(): Record<string, string> {
   return {};
 }
 
-async function request(
+async function request<T = unknown>(
   method: string,
   url: string,
   body: unknown,
   options?: HttpOptions,
-): Promise<HttpResponse> {
+): Promise<HttpResponse<T>> {
   const controller = new AbortController();
   const timeout = options?.timeout ?? 30000;
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -70,23 +70,23 @@ async function request(
       headers[key] = value;
     });
 
-    return { status: response.status, data, ok: response.ok, headers };
+    return { status: response.status, data: data as T, ok: response.ok, headers };
   } finally {
     clearTimeout(timer);
   }
 }
 
-export function httpPost(
+export function httpPost<T = unknown>(
   url: string,
   body?: unknown,
   options?: HttpOptions,
-): Promise<HttpResponse> {
-  return request('POST', url, body, options);
+): Promise<HttpResponse<T>> {
+  return request<T>('POST', url, body, options);
 }
 
-export function httpGet(
+export function httpGet<T = unknown>(
   url: string,
   options?: HttpOptions,
-): Promise<HttpResponse> {
-  return request('GET', url, undefined, options);
+): Promise<HttpResponse<T>> {
+  return request<T>('GET', url, undefined, options);
 }

@@ -116,7 +116,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
     });
   }
 
-  protected loadRelations(qb: import('typeorm').SelectQueryBuilder<TJob>): void {
+  protected loadRelations(_qb: import('typeorm').SelectQueryBuilder<TJob>): void {
     // subclasses override to add leftJoinAndSelect for eager relations
   }
 

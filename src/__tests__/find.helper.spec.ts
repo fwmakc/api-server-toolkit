@@ -18,7 +18,7 @@ jest.mock('../common/service/where.service', () => ({
 }));
 
 jest.mock('../common/service/search.service', () => ({
-  buildSearchWhere: jest.fn((search) => ({ _search: true })),
+  buildSearchWhere: jest.fn((_search) => ({ _search: true })),
   mergeSearchWhere: jest.fn((base, search) => ({ ...base, ...search })),
 }));
 
@@ -79,7 +79,7 @@ describe('find.helper', () => {
     it('skips bind filter when allow is true', () => {
       const bind = createBind({ id: 5, name: 'user', allow: true });
       const find = createFind({});
-      const result = buildFindWhere(bind, find);
+      buildFindWhere(bind, find);
       expect(buildNestedWhere).not.toHaveBeenCalled();
     });
 
@@ -218,7 +218,7 @@ describe('find.helper', () => {
     it('skips bind filter when allow is true', () => {
       const bind = createBind({ id: 5, name: 'user', allow: true });
       const find = createFind({});
-      const result = buildCountWhere(bind, find);
+      buildCountWhere(bind, find);
       expect(buildNestedWhere).not.toHaveBeenCalled();
     });
   });

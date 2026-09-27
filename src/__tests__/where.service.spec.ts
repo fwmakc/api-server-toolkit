@@ -1,19 +1,8 @@
 import 'reflect-metadata';
 import { parseWhereObject } from '../common/service/where.service';
 import {
-  And,
-  Any,
-  Between,
   FindOperator,
   In,
-  IsNull,
-  LessThan,
-  LessThanOrEqual,
-  MoreThan,
-  MoreThanOrEqual,
-  Not,
-  Or,
-  Raw,
 } from 'typeorm';
 
 jest.mock('../common/service/like.service', () => ({
@@ -93,7 +82,7 @@ describe('where.service', () => {
     });
 
     it('applies .like modifier', () => {
-      const result = parseWhereObject({ 'name.like': '%test%' });
+      parseWhereObject({ 'name.like': '%test%' });
       expect(prepareLikeOrm).toHaveBeenCalledWith('%test%');
     });
 

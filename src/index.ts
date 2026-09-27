@@ -1,6 +1,9 @@
 // --- Core ---
-export { AccessLevel, TenantScope } from './common/access.type';
+export { TenantScope } from './common/access.type';
 export * from './common/access.type';
+export * from './common/access.rules';
+export * from './common/access.validator';
+export * from './common/access.module';
 export * from './common/auth.decorator';
 export * from './common/common.column';
 export * from './common/common.decorator';
@@ -40,9 +43,7 @@ export * from './common/column/updated.column';
 export * from './common/column/varchar.column';
 
 // --- Decorators ---
-export * from './common/decorator/field_access.decorator';
-export * from './common/decorator/field_roles.decorator';
-export * from './common/decorator/roles.decorator';
+export * from './common/decorator/access.decorator';
 export * from './common/decorator/soft-delete.decorator';
 
 // --- DTOs ---
@@ -71,7 +72,7 @@ export * from './common/health/health.controller';
 
 // --- Guards ---
 export * from './common/guard/internal-auth.guard';
-export * from './common/guard/roles.guard';
+export * from './common/guard/access.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';

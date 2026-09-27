@@ -16,20 +16,16 @@ import { FindDto } from './dto/find.dto';
 import { FindManyDto } from './dto/find_many.dto';
 import { FindOneDto } from './dto/find_one.dto';
 import {
-  removePrivateFields,
   stripWriteFields,
 } from './service/private_fields.service';
 import { bind } from './service/bind.service';
 import { BindDto } from './dto/bind.dto';
 import { buildFindWhere, buildCountWhere, executeFind } from './service/find.helper';
-import { resolveAutoAssign, resolveBindRelationId } from './service/bind-resolve.helper';
+import { resolveAutoAssign } from './service/bind-resolve.helper';
 import { prepareAndCreate, prepareAndUpdate } from './service/write.helper';
 import { softRemove, hardRemove, restoreDeleted } from './service/delete.helper';
 import { validatePositionField, executeSortPosition, executeMovePosition } from './service/position.helper';
 import { getUniqueColumns, findUniqueEntry } from './service/unique.helper';
-
-// keep backward compat alias
-const findUniqueEntrie = findUniqueEntry;
 
 export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   protected readonly repository: Repository<Entity>;
@@ -111,6 +107,23 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return Number(result?.count || 0);
   }
 
+  /** Точка переопределения записи (DynamicService пишет raw SQL). */
+  protected async persistCreate(
+    entity: DeepPartial<any>,
+    bind: BindDto,
+    manager: EntityManager,
+  ): Promise<any> {
+    return prepareAndCreate(entity, this.repository.target, bind, manager);
+  }
+
+  protected async persistUpdate(
+    entity: DeepPartial<any>,
+    bind: BindDto,
+    manager: EntityManager,
+  ): Promise<any> {
+    return prepareAndUpdate(entity, this.repository.target, bind, manager);
+  }
+
   async create(
     dto: Dto,
     relations: Array<RelationsDto> = undefined,
@@ -124,7 +137,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     try {
       let savedId: number | string | undefined;
       const doCreate = async (manager: EntityManager) => {
-        const saved = await prepareAndCreate(entity, this.repository.target, bind, manager);
+        const saved = await this.persistCreate(entity, bind, manager);
         savedId = saved?.id;
       };
       if (externalManager) {
@@ -143,6 +156,15 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return await repo.save(entity);
   }
 
+  /**
+   * PK bigint в TypeORM сравнивается со строками (compareEntities — strict ===):
+   * числовой id из маршрута/клиента приводит к INSERT вместо UPDATE при save().
+   */
+  normalizeId(id: number | string): any {
+    if (this.getIdType() === 'bigint') return `${id}`;
+    return typeof id === 'string' && /^\d+$/.test(id) ? +id : id;
+  }
+
   async update(
     id: number | string,
     dto: Dto,
@@ -151,6 +173,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     externalManager?: EntityManager,
   ): Promise<Entity> {
     if (id === undefined) return;
+    id = this.normalizeId(id);
     const exists = await this.findOne({ id, select: { id: true } }, bind);
     if (!exists) return;
 
@@ -159,7 +182,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
 
     try {
       const doUpdate = async (manager: EntityManager) => {
-        await prepareAndUpdate(entity, this.repository.target, bind, manager);
+        await this.persistUpdate(entity, bind, manager);
       };
       if (externalManager) {
         await doUpdate(externalManager);
@@ -173,8 +196,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
-    const idType = this.getIdType();
-    entity.id = idType === 'bigint' ? `${entity.id}` : +entity.id;
+    entity.id = this.normalizeId(entity.id);
     const repo = manager ? manager.getRepository(this.repository.target) : this.getRepository();
     return await repo.save(entity);
   }

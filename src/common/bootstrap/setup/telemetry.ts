@@ -31,7 +31,7 @@ export const Telemetry = {
         return previousEmit(event, ...args);
       };
 
-      app.use((req, res, next) => {
+      app.use((req, _res, next) => {
         const span = trace.getSpan(context.active());
         if (span) {
           const headers: Record<string, string> = {};

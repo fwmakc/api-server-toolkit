@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 189 declaration files.
+Generated from 197 declaration files.
 
 ---
 
@@ -22,7 +22,7 @@ Generated from 189 declaration files.
 ## dist\__tests__\__mocks__\nestjs-passport.d.ts
 
 ```typescript
-export declare function AuthGuard(...args: any[]): {
+export declare function AuthGuard(..._args: any[]): {
     new (): {
         canActivate(): boolean;
     };
@@ -44,10 +44,28 @@ export declare const initialize: () => jest.Mock<any, any, any>;
 
 ```
 
+## dist\__tests__\access.guard.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\access.rules.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
 ## dist\__tests__\access.type.spec.d.ts
 
 ```typescript
 export {};
+```
+
+## dist\__tests__\access.validator.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
 ```
 
 ## dist\__tests__\add-client-ip.interceptor.spec.d.ts
@@ -340,24 +358,82 @@ export * from './common/client/event-client.service';
 export * from './common/client/event-client.module';
 ```
 
+## dist\common\access.module.d.ts
+
+```typescript
+import { DynamicModule, OnModuleInit } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+export declare class AccessValidationService implements OnModuleInit {
+    private readonly dataSource;
+    constructor(dataSource: DataSource);
+    onModuleInit(): void;
+}
+export declare class AccessModule {
+    static forRoot(): DynamicModule;
+}
+```
+
+## dist\common\access.rules.d.ts
+
+```typescript
+import { AccountInfo, RoleName } from './access.type';
+import { BindDto } from './dto/bind.dto';
+export declare const PUBLIC_ROLE = "public";
+export declare const AUTHENTICATED_ROLE = "authenticated";
+export declare const SUPERUSER_ROLE = "superuser";
+export type OperationName = 'read' | 'create' | 'update' | 'delete';
+export type AccessScope = 'all' | {
+    tenant: string;
+} | {
+    owner: string;
+};
+export interface AccessRule {
+    who?: RoleName[];
+    scope?: AccessScope;
+    filter?: Record<string, unknown>;
+}
+export interface FieldRule {
+    response?: AccessRule[];
+    request?: AccessRule[];
+}
+export interface EntityAccessConfig {
+    operations?: Partial<Record<OperationName, AccessRule[]>>;
+    fields?: Record<string, FieldRule>;
+}
+export declare function normalizeRuleNames(who: RoleName[] | undefined): RoleName[];
+export declare function normalizeAccount(account: AccountInfo | undefined | null): AccountInfo | undefined;
+export declare function anonymousAccount(): AccountInfo;
+export interface MatchedRule {
+    rule: AccessRule;
+    roles: RoleName[];
+    scope: AccessScope;
+}
+export declare function rolesOf(account: Partial<AccountInfo> | undefined | null): string[];
+export declare function matchRule(rules: AccessRule[] | undefined, account: AccountInfo | undefined | null): MatchedRule | undefined;
+export declare function matchWho(rules: AccessRule[] | undefined, account: Partial<AccountInfo> | undefined | null): boolean;
+export declare function matchRoles(rules: AccessRule[] | undefined, roles: string[]): boolean;
+export declare function parseAccessPath(path: string): {
+    name: string;
+    key: string;
+};
+export declare function compileRuleToBind(matched: MatchedRule | undefined, account: AccountInfo | undefined | null): BindDto | undefined;
+export declare function accessBind(rules: AccessRule[] | undefined, account: AccountInfo | undefined | null): BindDto | undefined;
+export declare function isPublicRules(rules: AccessRule[] | undefined): boolean;
+```
+
 ## dist\common\access.type.d.ts
 
 ```typescript
-import { Type } from '@nestjs/common';
-import { CommonDto } from './common.dto';
-export declare enum AccessLevel {
-    PUBLIC = "public",
-    ACCOUNT = "account",
-    TENANT = "tenant",
-    OWNER = "owner",
-    SUPERUSER = "superuser",
-    CLOSED = "closed"
-}
 export declare enum TenantScope {
     OWN = "own",
     ALL = "all"
 }
 export type RoleName = string;
+export type TenantScopeValue = TenantScope | string | string[];
+export interface RoleEntry {
+    role: RoleName;
+    tenant?: TenantScopeValue;
+}
 export interface AccountInfo {
     id: number | string;
     username?: string;
@@ -370,43 +446,15 @@ export interface AccountInfo {
         tenant?: string;
     }>;
 }
-export type OperationAccess = AccessLevel | {
-    level: AccessLevel.OWNER;
-    bindPath?: string;
-};
-export interface OperationConfig {
-    create: OperationAccess;
-    read: OperationAccess;
-    update: OperationAccess;
-    delete: OperationAccess;
-}
-export interface EntityPermissionConfig extends OperationConfig {
-    accountTable?: string;
-    accountField?: string;
-    tenantTable?: string;
-    tenantField?: string;
-}
-export type TenantScopeValue = TenantScope | string | string[];
-export type RoleEntry = RoleName | {
-    role: RoleName;
-    tenant?: TenantScopeValue;
-};
-export declare function normalizeRoles(roles: RoleEntry[] | undefined): RoleName[];
-export declare function resolveTenantScope(roleEntries: RoleEntry[] | undefined, matchedRoles?: string[]): TenantScope | undefined;
-export interface EntityControllerOptions {
-    name: string;
-    dto: Type<CommonDto>;
-    entity: Type<unknown>;
-    accountTable?: string;
-    accountField?: string;
-    tenantTable?: string;
-    tenantField?: string;
-    operations?: Partial<OperationConfig>;
-    roles?: Partial<Record<'create' | 'read' | 'update' | 'delete', RoleEntry[]>>;
-    relations?: string[];
-}
-export declare function normalizeAccess(access: OperationAccess | undefined, fallback?: AccessLevel): AccessLevel;
-export declare function getBindPath(access: OperationAccess | undefined, fallback: string): string | undefined;
+```
+
+## dist\common\access.validator.d.ts
+
+```typescript
+import { DataSource, EntityMetadata } from 'typeorm';
+import { EntityAccessConfig } from './access.rules';
+export declare function validateAccessRegistry(dataSource: DataSource): void;
+export declare function validateEntityAccess(metadata: EntityMetadata, config: EntityAccessConfig): string[];
 ```
 
 ## dist\common\auth-client\account.strategy.d.ts
@@ -416,7 +464,6 @@ import { ConfigService } from '@nestjs/config';
 import { AuthClientService } from './auth-client.service';
 declare const AccountStrategy_base: new (...args: any) => any;
 export declare class AccountStrategy extends AccountStrategy_base {
-    private readonly configService;
     private readonly authClientService;
     constructor(configService: ConfigService, authClientService: AuthClientService);
     validate({ id, type, key }: {
@@ -473,10 +520,21 @@ export * from './auth-client.module';
 ## dist\common\auth.decorator.d.ts
 
 ```typescript
-import { OperationAccess } from './access.type';
-export declare function accessGuard(access: OperationAccess): MethodDecorator & ClassDecorator;
+declare const JwtPublicGuard_base: import("@nestjs/passport").Type<import("@nestjs/passport").IAuthGuard>;
+export declare class JwtPublicGuard extends JwtPublicGuard_base {
+    handleRequest(_: any, user: any): any;
+}
+declare const JwtRequiredGuard_base: import("@nestjs/passport").Type<import("@nestjs/passport").IAuthGuard>;
+export declare class JwtRequiredGuard extends JwtRequiredGuard_base {
+    handleRequest(err: any, user: any): any;
+}
+declare const JwtAdminGuard_base: import("@nestjs/passport").Type<import("@nestjs/passport").IAuthGuard>;
+export declare class JwtAdminGuard extends JwtAdminGuard_base {
+    handleRequest(err: any, user: any): any;
+}
 export declare const Account: (apiType?: string) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 export declare const Self: (...dataOrPipes: unknown[]) => ParameterDecorator;
+export {};
 ```
 
 ## dist\common\bootstrap\bootstrap.service.d.ts
@@ -590,7 +648,7 @@ export declare const Prefix: {
 
 ```typescript
 export declare const Sentry: {
-    setup(app: any, opts?: {
+    setup(_app: any, opts?: {
         dsn?: string;
         environment?: string;
     }): void;
@@ -903,8 +961,11 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     findOne(findOne: FindOneDto, bind?: BindDto): Promise<Entity>;
     count(find: FindDto, bind?: BindDto): Promise<number>;
     countDistinct(field: string, find: FindDto): Promise<number>;
+    protected persistCreate(entity: DeepPartial<any>, bind: BindDto, manager: EntityManager): Promise<any>;
+    protected persistUpdate(entity: DeepPartial<any>, bind: BindDto, manager: EntityManager): Promise<any>;
     create(dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
+    normalizeId(id: number | string): any;
     update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getIdType(): string;
@@ -920,6 +981,14 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     bind(entrie: any, data: any): BindDto;
     error(e: any): void;
 }
+```
+
+## dist\common\decorator\access.decorator.d.ts
+
+```typescript
+import { AccessRule } from '../access.rules';
+export declare function accessDecorators(rules: AccessRule[]): MethodDecorator[];
+export declare const Access: (rules: AccessRule[]) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\decorator\field_access.decorator.d.ts
@@ -1027,7 +1096,6 @@ export declare const UpdateDoc: (classDto: any) => <TFunction extends Function, 
 ## dist\common\dto\bind.dto.d.ts
 
 ```typescript
-import { TenantScope } from '../access.type';
 export declare class BindDto {
     id?: number | string;
     name?: string;
@@ -1037,7 +1105,7 @@ export declare class BindDto {
     tenantKey?: string;
     tenantName?: string;
     roles?: string[];
-    tenantScope?: TenantScope;
+    filter?: Record<string, unknown>;
 }
 ```
 
@@ -1089,16 +1157,21 @@ export declare class RelationsDto {
 ## dist\common\entity.controller.d.ts
 
 ```typescript
+import { Type } from '@nestjs/common';
 import { BaseEntity } from 'typeorm';
 import { RelationsDto } from './dto/relations.dto';
 import { CommonService } from './common.service';
 import { CommonDto } from './common.dto';
 import { AccountInfo } from './access.type';
-import { EntityControllerOptions, OperationAccess, TenantScope } from './access.type';
-import { BindDto } from './dto/bind.dto';
-export declare function matchedRoleNames(account: AccountInfo, requiredRoles: string[]): string[];
-export declare function resolveTenantScopeFromAccount(account: AccountInfo, matchedRoles?: string[]): TenantScope | undefined;
-export declare function resolveBind(access: OperationAccess, account: AccountInfo, accountTable: string, accountField: string, tenantTable?: string, tenantField?: string, hasRoles?: boolean, matchedRoles?: string[]): BindDto | undefined;
+import { AccessRule, FieldRule, OperationName } from './access.rules';
+export interface EntityControllerOptions {
+    name: string;
+    dto: Type<CommonDto>;
+    entity: Type<unknown>;
+    relations?: string[];
+    operations?: Partial<Record<OperationName, AccessRule[]>>;
+    fields?: Record<string, FieldRule>;
+}
 export declare const EntityController: (options: EntityControllerOptions) => {
     new <Dto extends CommonDto, Entity extends BaseEntity, Service extends CommonService<Dto, Entity>>(): {
         readonly service: Service;
@@ -1117,6 +1190,19 @@ export declare const EntityController: (options: EntityControllerOptions) => {
         movePosition(id: string, field: string, position: number, account: AccountInfo): Promise<boolean>;
     };
 };
+```
+
+## dist\common\guard\access.guard.d.ts
+
+```typescript
+import { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+export declare const ACCESS_RULES_METADATA = "access-rules";
+export declare class AccessGuard implements CanActivate {
+    private readonly reflector;
+    constructor(reflector: Reflector);
+    canActivate(context: ExecutionContext): boolean;
+}
 ```
 
 ## dist\common\guard\internal-auth.guard.d.ts
@@ -1219,8 +1305,8 @@ export declare class HttpError extends Error {
     readonly data: unknown;
     constructor(status: number, data: unknown, message?: string);
 }
-export declare function httpPost(url: string, body?: unknown, options?: HttpOptions): Promise<HttpResponse>;
-export declare function httpGet(url: string, options?: HttpOptions): Promise<HttpResponse>;
+export declare function httpPost<T = unknown>(url: string, body?: unknown, options?: HttpOptions): Promise<HttpResponse<T>>;
+export declare function httpGet<T = unknown>(url: string, options?: HttpOptions): Promise<HttpResponse<T>>;
 ```
 
 ## dist\common\helper\object.helper.d.ts
@@ -1228,7 +1314,7 @@ export declare function httpGet(url: string, options?: HttpOptions): Promise<Htt
 ```typescript
 export declare const except: <T extends object, K extends keyof T>(obj: T, keys: K[] | K) => Omit<T, K>;
 export declare const only: <T extends object, K extends keyof T>(obj: T, keys: K[] | K) => Pick<T, K>;
-type MappingValue<S, T> = {
+type MappingValue<S, _T> = {
     sourceKey: keyof S;
     transform?: (value: unknown) => unknown;
 } | keyof S;
@@ -1291,21 +1377,15 @@ export declare class RemovePrivateFieldsInterceptor implements NestInterceptor {
 ## dist\common\permission.registry.d.ts
 
 ```typescript
-import { EntityPermissionConfig, OperationAccess } from './access.type';
+import { EntityAccessConfig } from './access.rules';
 export declare const PermissionRegistry: {
-    set(entity: Function, config: EntityPermissionConfig): void;
-    get(entity: Function): EntityPermissionConfig | undefined;
-    getAccountTable(entity: Function): string | undefined;
-    getAccountField(entity: Function): string | undefined;
-    getTenantTable(entity: Function): string | undefined;
-    getTenantField(entity: Function): string | undefined;
-    getCreate(entity: Function): OperationAccess;
-    getRead(entity: Function): OperationAccess;
-    getUpdate(entity: Function): OperationAccess;
-    getDelete(entity: Function): OperationAccess;
+    set(entity: Function, config: EntityAccessConfig): void;
+    get(entity: Function): EntityAccessConfig | undefined;
+    getOwnerPath(entity: Function): string | undefined;
     has(entity: Function): boolean;
     delete(entity: Function): boolean;
     clear(): void;
+    entries(): IterableIterator<[Function, EntityAccessConfig]>;
 };
 ```
 
@@ -1357,7 +1437,7 @@ export declare abstract class QueueWorker<TJob extends QueueJobEntity> implement
     private scheduleNextCycle;
     private runCycle;
     private claimJobs;
-    protected loadRelations(qb: import('typeorm').SelectQueryBuilder<TJob>): void;
+    protected loadRelations(_qb: import('typeorm').SelectQueryBuilder<TJob>): void;
     private processJob;
     private handleFailure;
     protected formatError(error: Error): string;
@@ -1490,6 +1570,8 @@ import { CommonService } from '../common.service';
 import { BindDto } from '../dto/bind.dto';
 export declare class DynamicService<Dto extends CommonDto, Entity extends BaseEntity> extends CommonService<Dto, Entity> {
     protected readonly repository: Repository<any>;
+    protected persistCreate(entity: DeepPartial<any>, _bind: BindDto, manager: EntityManager): Promise<any>;
+    protected persistUpdate(entity: DeepPartial<any>, _bind: BindDto, manager: EntityManager): Promise<any>;
     createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     find(find: FindDto, bind?: BindDto): Promise<Entity[]>;
@@ -1594,15 +1676,19 @@ import { BindDto } from '../dto/bind.dto';
 import { FindDto } from '../dto/find.dto';
 export declare function validatePositionField(metadata: EntityMetadata, field: string): void;
 export declare function executeSortPosition<Entity>(entityTarget: EntityTarget<Entity>, field: string, entries: any[], find: FindDto, bind: BindDto, metadata: EntityMetadata, manager: EntityManager): Promise<boolean>;
-export declare function executeMovePosition<Entity>(entityTarget: EntityTarget<Entity>, id: number | string, field: string, position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
+export declare function executeMovePosition<Entity>(entityTarget: EntityTarget<Entity>, id: number | string, field: string, _position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
 ```
 
 ## dist\common\service\private_fields.service.d.ts
 
 ```typescript
 import { BindDto } from '../dto/bind.dto';
-export declare const removePrivateFields: (result: unknown | unknown[], bind: BindDto | undefined, account?: any) => unknown | unknown[];
-export declare const stripWriteFields: (dto: any, entityTarget: Function | string, bind: BindDto | undefined, account?: any) => void;
+export type FieldAccount = {
+    roles?: string[];
+    isSuperuser?: boolean;
+} | BindDto | undefined | null;
+export declare const removePrivateFields: (result: unknown | unknown[], account?: FieldAccount) => unknown | unknown[];
+export declare const stripWriteFields: (dto: any, entityTarget: Function | string, bind?: BindDto, account?: FieldAccount) => void;
 ```
 
 ## dist\common\service\quotes.service.d.ts
@@ -1742,7 +1828,7 @@ export declare function flatToTree(data: Record<string, unknown> | Record<string
 ```typescript
 import { EntityMetadata } from 'typeorm';
 export declare function getUniqueColumns(metadata: EntityMetadata): Array<string[]>;
-export declare function findUniqueEntry<Entity>(repository: {
+export declare function findUniqueEntry<_Entity>(repository: {
     metadata: EntityMetadata;
     findOne: (options: any) => Promise<any>;
 }, entity: Record<string, any>): Promise<any>;
@@ -1783,7 +1869,7 @@ export type SearchType = {
 
 ```typescript
 export * from './common/guard/internal-auth.guard';
-export * from './common/guard/roles.guard';
+export * from './common/guard/access.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';
@@ -1805,8 +1891,11 @@ export * from './common/helper/http.helper';
 ## dist\index.d.ts
 
 ```typescript
-export { AccessLevel, TenantScope } from './common/access.type';
+export { TenantScope } from './common/access.type';
 export * from './common/access.type';
+export * from './common/access.rules';
+export * from './common/access.validator';
+export * from './common/access.module';
 export * from './common/auth.decorator';
 export * from './common/common.column';
 export * from './common/common.decorator';
@@ -1840,9 +1929,7 @@ export * from './common/column/smallint.column';
 export * from './common/column/text.column';
 export * from './common/column/updated.column';
 export * from './common/column/varchar.column';
-export * from './common/decorator/field_access.decorator';
-export * from './common/decorator/field_roles.decorator';
-export * from './common/decorator/roles.decorator';
+export * from './common/decorator/access.decorator';
 export * from './common/decorator/soft-delete.decorator';
 export * from './common/dto/bind.dto';
 export * from './common/dto/find.dto';
@@ -1863,7 +1950,7 @@ export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
 export * from './common/guard/internal-auth.guard';
-export * from './common/guard/roles.guard';
+export * from './common/guard/access.guard';
 export * from './common/guard/secure.guard.service';
 export * from './common/guard/secure.guard';
 export * from './common/guard/simple.secure.guard';

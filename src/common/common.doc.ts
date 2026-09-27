@@ -6,7 +6,6 @@ import {
   ApiQuery,
   getSchemaPath,
   ApiResponse,
-  ApiTags,
   ApiExtraModels,
 } from '@nestjs/swagger';
 import { RelationsDto } from './dto/relations.dto';

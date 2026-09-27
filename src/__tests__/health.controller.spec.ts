@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { HealthController, HEALTH_SERVICE_NAME } from '../common/health/health.controller';
+import { HealthController } from '../common/health/health.controller';
 
 describe('HealthController', () => {
   let controller: HealthController;

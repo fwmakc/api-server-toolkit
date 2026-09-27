@@ -6,7 +6,6 @@ import {
   FindOptionsWhere,
 } from 'typeorm';
 import { RelationsDto } from '../dto/relations.dto';
-import { SearchType } from '../type/search.type';
 
 export class FindDto {
   @ApiProperty({

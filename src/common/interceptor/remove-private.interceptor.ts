@@ -7,29 +7,15 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs';
 import { removePrivateFields } from '../service/private_fields.service';
-import { isSuperuser } from '../service/admin.service';
-import { OWNER_TABLE } from '../service/owner.service';
-import { TENANT_TABLE, TENANT_FIELD } from '../service/tenant.service';
-import { BindDto } from '../dto/bind.dto';
 
+/**
+ * Глобальный интерсептор: вырезает поля ответа, не прошедшие
+ * fields[].response правила (PermissionRegistry по классу сущности).
+ */
 @Injectable()
 export class RemovePrivateFieldsInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    const bind: BindDto = {
-      allow: isSuperuser(user),
-      id: user?.id,
-      key: 'id',
-      name: OWNER_TABLE,
-    };
-
-    if (TENANT_TABLE) {
-      bind.tenantId = user?.tenantId;
-      bind.tenantKey = TENANT_FIELD;
-      bind.tenantName = TENANT_TABLE;
-    }
+    const account = context.switchToHttp().getRequest()?.user;
 
     return next
       .handle()
@@ -37,7 +23,7 @@ export class RemovePrivateFieldsInterceptor implements NestInterceptor {
         if (result === null || result === undefined || typeof result !== 'object') {
           return result;
         }
-        return removePrivateFields(result, bind, user);
+        return removePrivateFields(result, account);
       }));
   }
 }

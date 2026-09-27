@@ -1,51 +1,37 @@
-import {
-  AccessLevel,
-  EntityPermissionConfig,
-  OperationConfig,
-  OperationAccess,
-} from './access.type';
+import { EntityAccessConfig } from './access.rules';
 
-const registry = new Map<Function, EntityPermissionConfig>();
+const registry = new Map<Function, EntityAccessConfig>();
 
 export const PermissionRegistry = {
-  set(entity: Function, config: EntityPermissionConfig): void {
-    registry.set(entity, config);
+  /**
+   * Регистрирует конфиг сущности, дополняя предыдущий (поля и операции
+   * из более ранней регистрации сохраняются, если новая их не задаёт).
+   */
+  set(entity: Function, config: EntityAccessConfig): void {
+    const prev = registry.get(entity);
+    const defined = Object.fromEntries(
+      Object.entries(config).filter(([, v]) => v !== undefined),
+    );
+    registry.set(entity, { ...prev, ...defined });
   },
 
-  get(entity: Function): EntityPermissionConfig | undefined {
+  get(entity: Function): EntityAccessConfig | undefined {
     return registry.get(entity);
   },
 
-  getAccountTable(entity: Function): string | undefined {
-    return registry.get(entity)?.accountTable;
-  },
-
-  getAccountField(entity: Function): string | undefined {
-    return registry.get(entity)?.accountField;
-  },
-
-  getTenantTable(entity: Function): string | undefined {
-    return registry.get(entity)?.tenantTable;
-  },
-
-  getTenantField(entity: Function): string | undefined {
-    return registry.get(entity)?.tenantField;
-  },
-
-  getCreate(entity: Function): OperationAccess {
-    return registry.get(entity)?.create ?? AccessLevel.CLOSED;
-  },
-
-  getRead(entity: Function): OperationAccess {
-    return registry.get(entity)?.read ?? AccessLevel.CLOSED;
-  },
-
-  getUpdate(entity: Function): OperationAccess {
-    return registry.get(entity)?.update ?? AccessLevel.CLOSED;
-  },
-
-  getDelete(entity: Function): OperationAccess {
-    return registry.get(entity)?.delete ?? AccessLevel.CLOSED;
+  /**
+   * Путь владельца сущности: первый scope.owner из read-правил.
+   * Используется для проверки прицепляемых связей (sanitize)
+   * и фильтрации вложенных отношений (nested_filter).
+   */
+  getOwnerPath(entity: Function): string | undefined {
+    const read = registry.get(entity)?.operations?.read || [];
+    for (const rule of read) {
+      if (rule.scope && typeof rule.scope === 'object' && 'owner' in rule.scope) {
+        return rule.scope.owner;
+      }
+    }
+    return undefined;
   },
 
   has(entity: Function): boolean {
@@ -58,5 +44,9 @@ export const PermissionRegistry = {
 
   clear(): void {
     registry.clear();
+  },
+
+  entries(): IterableIterator<[Function, EntityAccessConfig]> {
+    return registry.entries();
   },
 };

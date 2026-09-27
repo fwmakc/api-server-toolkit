@@ -42,7 +42,7 @@ export function buildFindWhere(
   }
 
   if (id !== undefined && !allow) {
-    where = { ...where, ...buildNestedWhere(name, key, id) };
+    where = { ...where, ...(name ? buildNestedWhere(name, key, id) : { id }) };
   }
 
   if (tenantId !== undefined && tenantName && !allow) {
@@ -50,7 +50,7 @@ export function buildFindWhere(
   }
 
   const relationNames = relations?.map((i) => i.name) || [];
-  if (id !== undefined && !name.includes('.') && !relationNames.includes(name)) {
+  if (id !== undefined && name && !name.includes('.') && !relationNames.includes(name)) {
     relationNames.push(name);
   }
   if (tenantId !== undefined && tenantName && !tenantName.includes('.') && !relationNames.includes(tenantName)) {
@@ -68,6 +68,10 @@ export function buildFindWhere(
         }
       }
     }
+  }
+
+  if (bind.filter && Object.keys(bind.filter).length > 0) {
+    where = { ...where, ...bind.filter };
   }
 
   const useJoin = join && relationNames.length > 0;
@@ -102,7 +106,7 @@ export function buildCountWhere(
   const relationNames: string[] = [];
 
   if (id !== undefined && !allow) {
-    where = { ...where, ...buildNestedWhere(name, key, id) };
+    where = { ...where, ...(name ? buildNestedWhere(name, key, id) : { id }) };
     if (name.includes('.')) relationNames.push(name.split('.')[0]);
   }
 
@@ -126,6 +130,10 @@ export function buildCountWhere(
     }
   }
 
+  if (bind.filter && Object.keys(bind.filter).length > 0) {
+    where = { ...where, ...bind.filter };
+  }
+
   return { where, relationNames };
 }
 
@@ -144,8 +152,11 @@ export async function executeFind<Entity extends BaseEntity>(
   const hasPagination = !!(take || skip);
 
   if (isMultiHop && hasPagination) {
+    // take/skip из params ломают страницу: OFFSET считался бы по дублям JOIN,
+    // а финальный запрос делал бы skip уже по подготовленному списку id.
+    const { take: _take, skip: _skip, ...idParams } = params as any;
     const idResults = await repository.find({
-      ...params,
+      ...idParams,
       select: { id: true } as any,
     });
     const uniqueIds: unknown[] = [];
@@ -164,9 +175,10 @@ export async function executeFind<Entity extends BaseEntity>(
       result = [];
     } else {
       result = await repository.find({
-        ...params,
+        ...idParams,
         relations: useJoin ? relationNames : undefined,
         where: { id: In(paginatedIds) } as any,
+        take: limitNum,
       });
     }
   } else {
@@ -189,6 +201,12 @@ export async function executeFind<Entity extends BaseEntity>(
   }
 
   filterNestedRelations(result, bind);
-  result = removePrivateFields(result, bind, bind) as Entity[];
+  // allow-bind — доверенный сервисный вызов (байпас); bind с ролями — стрип по ролям;
+  // bind без ролей — пользовательский контекст (id/email заданы) → неявный 'authenticated'.
+  const stripAccount =
+    bind?.allow === true
+      ? { isSuperuser: true }
+      : { roles: bind?.roles?.length ? [...bind.roles] : ['authenticated'] };
+  result = removePrivateFields(result, stripAccount) as Entity[];
   return result;
 }

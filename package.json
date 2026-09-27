@@ -51,8 +51,8 @@
       "default": "./dist/bootstrap.js"
     },
     "./bootstrap/setup": {
-      "types": "./dist/bootstrap/setup/index.d.ts",
-      "default": "./dist/bootstrap/setup/index.js"
+      "types": "./dist/common/bootstrap/setup/index.d.ts",
+      "default": "./dist/common/bootstrap/setup/index.js"
     },
     "./auth-client": {
       "types": "./dist/common/auth-client/index.d.ts",
@@ -77,7 +77,7 @@
         "dist/bootstrap.d.ts"
       ],
       "bootstrap/setup": [
-        "dist/bootstrap/setup/index.d.ts"
+        "dist/common/bootstrap/setup/index.d.ts"
       ],
       "auth-client": [
         "dist/common/auth-client/index.d.ts"

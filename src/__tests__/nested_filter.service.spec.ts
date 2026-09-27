@@ -2,9 +2,14 @@ import 'reflect-metadata';
 import { filterNestedRelations } from '../common/service/nested_filter.service';
 import { BindDto } from '../common/dto/bind.dto';
 import { PermissionRegistry } from '../common/permission.registry';
+import { EntityAccessConfig } from '../common/access.rules';
 
 class UserEntity { account = { id: 1 }; }
 class PostEntity { user = { account: { id: 1 } }; title = 'test'; }
+
+const readOwned = (path: string): EntityAccessConfig => ({
+  operations: { read: [{ who: ['authenticated'], scope: { owner: path } }] },
+});
 
 describe('nested_filter.service', () => {
   beforeEach(() => {
@@ -44,7 +49,7 @@ describe('nested_filter.service', () => {
   });
 
   it('filters nested array relations by ownership', () => {
-    PermissionRegistry.set(UserEntity, { accountTable: 'account', accountField: 'id', create: 'PUBLIC' } as any);
+    PermissionRegistry.set(UserEntity, readOwned('account.id'));
 
     const ownedUser = new UserEntity();
     ownedUser.account = { id: 42 };
@@ -60,7 +65,7 @@ describe('nested_filter.service', () => {
   });
 
   it('filters nested single relation by ownership', () => {
-    PermissionRegistry.set(UserEntity, { accountTable: 'account', accountField: 'id', create: 'PUBLIC' } as any);
+    PermissionRegistry.set(UserEntity, readOwned('account.id'));
 
     const ownedUser = new UserEntity();
     ownedUser.account = { id: 42 };
@@ -72,7 +77,7 @@ describe('nested_filter.service', () => {
   });
 
   it('deletes nested single relation when not owned', () => {
-    PermissionRegistry.set(UserEntity, { accountTable: 'account', accountField: 'id', create: 'PUBLIC' } as any);
+    PermissionRegistry.set(UserEntity, readOwned('account.id'));
 
     const otherUser = new UserEntity();
     otherUser.account = { id: 99 };
@@ -83,8 +88,8 @@ describe('nested_filter.service', () => {
     expect(result[0].user).toBeUndefined();
   });
 
-  it('handles nested account path with dot notation', () => {
-    PermissionRegistry.set(PostEntity, { accountTable: 'user.account', accountField: 'id', create: 'PUBLIC' } as any);
+  it('handles nested owner path with dot notation', () => {
+    PermissionRegistry.set(PostEntity, readOwned('user.account.id'));
 
     const ownedPost = new PostEntity();
     ownedPost.user = { account: { id: 42 } };
@@ -99,7 +104,7 @@ describe('nested_filter.service', () => {
     expect(result[0].posts[0].user.account.id).toBe(42);
   });
 
-  it('skips entities without accountTable config', () => {
+  it('skips entities without access config', () => {
     const result: any[] = [{ items: [{ id: 1 }, { id: 2 }] }];
     filterNestedRelations(result, createBind({ id: 1, name: 'account' }));
     expect(result[0].items).toHaveLength(2);
@@ -112,7 +117,7 @@ describe('nested_filter.service', () => {
   });
 
   it('handles empty relation arrays', () => {
-    PermissionRegistry.set(UserEntity, { accountTable: 'account', accountField: 'id', create: 'PUBLIC' } as any);
+    PermissionRegistry.set(UserEntity, readOwned('account.id'));
 
     const result: any[] = [{ users: [] }];
     filterNestedRelations(result, createBind({ id: 42, name: 'account', key: 'id' }));
@@ -120,7 +125,7 @@ describe('nested_filter.service', () => {
   });
 
   it('handles multiple results', () => {
-    PermissionRegistry.set(UserEntity, { accountTable: 'account', accountField: 'id', create: 'PUBLIC' } as any);
+    PermissionRegistry.set(UserEntity, readOwned('account.id'));
 
     const owned1 = new UserEntity();
     owned1.account = { id: 42 };

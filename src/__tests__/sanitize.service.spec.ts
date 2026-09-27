@@ -2,13 +2,21 @@ import 'reflect-metadata';
 import { sanitizeForSave } from '../common/service/sanitize.service';
 import { BindDto } from '../common/dto/bind.dto';
 import { PermissionRegistry } from '../common/permission.registry';
-import { AccessLevel } from '../common/access.type';
+import { EntityAccessConfig } from '../common/access.rules';
 import { EntityMetadata, EntityManager } from 'typeorm';
 
-class UserEntity {
+class TagEntity {
   id?: number;
-  account?: any;
+  author?: any;
 }
+
+// read-правило с owner-скопом — путь владельца для проверки прицепляемых id
+const tagConfig: EntityAccessConfig = {
+  operations: {
+    read: [{ who: ['authenticated'], scope: { owner: 'author.id' } }],
+    create: [{ who: ['public'] }],
+  },
+};
 
 const createBind = (props: Partial<BindDto>): BindDto => Object.assign(new BindDto(), props);
 
@@ -41,7 +49,7 @@ function createMockManager(ownedIds: any[] = []): EntityManager {
   return { getRepository: jest.fn().mockReturnValue(repo) } as unknown as EntityManager;
 }
 
-describe('sanitize.service', () => {
+describe('sanitize.service (AccessRule model)', () => {
   beforeEach(() => {
     PermissionRegistry.clear();
   });
@@ -56,85 +64,85 @@ describe('sanitize.service', () => {
     });
 
     it('strips relation with id when not owned', async () => {
-      PermissionRegistry.set(UserEntity, {
-        accountTable: 'account',
-        accountField: 'id',
-        create: AccessLevel.PUBLIC,
-      } as any);
+      PermissionRegistry.set(TagEntity, tagConfig);
 
-      const entity: any = { title: 'test', user: { id: 99 } };
-      const metadata = createMockMetadata([{ name: 'user', target: UserEntity }]);
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
       const manager = createMockManager([]);
 
       await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
 
-      expect(entity.user).toBeUndefined();
+      expect(entity.tag).toBeUndefined();
     });
 
     it('keeps relation with id when owned', async () => {
-      PermissionRegistry.set(UserEntity, {
-        accountTable: 'account',
-        accountField: 'id',
-        create: AccessLevel.PUBLIC,
-      } as any);
+      PermissionRegistry.set(TagEntity, tagConfig);
 
-      const entity: any = { title: 'test', user: { id: 99 } };
-      const metadata = createMockMetadata([{ name: 'user', target: UserEntity }]);
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
       const manager = createMockManager([99]);
 
       await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
 
-      expect(entity.user).toEqual({ id: 99 });
+      expect(entity.tag).toEqual({ id: 99 });
     });
 
     it('keeps all relations when bind.allow is true', async () => {
-      PermissionRegistry.set(UserEntity, {
-        accountTable: 'account',
-        accountField: 'id',
-        create: AccessLevel.PUBLIC,
-      } as any);
+      PermissionRegistry.set(TagEntity, tagConfig);
 
-      const entity: any = { title: 'test', user: { id: 99 } };
-      const metadata = createMockMetadata([{ name: 'user', target: UserEntity }]);
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
       const manager = createMockManager([]);
 
       await sanitizeForSave(entity, metadata, createBind({ id: 1, allow: true }), manager);
 
-      expect(entity.user).toEqual({ id: 99 });
+      expect(entity.tag).toEqual({ id: 99 });
     });
 
     it('keeps auto-assign relation without ownership check', async () => {
-      PermissionRegistry.set(UserEntity, {
-        accountTable: 'account',
-        accountField: 'id',
-        create: AccessLevel.PUBLIC,
-      } as any);
+      PermissionRegistry.set(TagEntity, tagConfig);
 
-      const entity: any = { title: 'test', user: { id: 99 } };
-      const metadata = createMockMetadata([{ name: 'user', target: UserEntity }]);
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
       const manager = createMockManager([]);
 
-      await sanitizeForSave(entity, metadata, createBind({ id: 1, name: 'user' }), manager);
+      await sanitizeForSave(entity, metadata, createBind({ id: 1, name: 'tag' }), manager);
 
-      expect(entity.user).toEqual({ id: 99 });
+      expect(entity.tag).toEqual({ id: 99 });
+    });
+
+    it('strips relation when related entity has no access config (secure by default)', async () => {
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
+      const manager = createMockManager([99]);
+
+      await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
+
+      expect(entity.tag).toBeUndefined();
+    });
+
+    it('keeps relation when related config exists but has no owner scope', async () => {
+      PermissionRegistry.set(TagEntity, {
+        operations: { read: [{ who: ['authenticated'], scope: { tenant: 'tenant.id' } }] },
+      });
+
+      const entity: any = { title: 'test', tag: { id: 99 } };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
+      const manager = createMockManager([]);
+
+      await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
+
+      expect(entity.tag).toEqual({ id: 99 });
     });
 
     it('filters array relations by ownership', async () => {
-      PermissionRegistry.set(UserEntity, {
-        accountTable: 'account',
-        accountField: 'id',
-        create: AccessLevel.PUBLIC,
-      } as any);
+      PermissionRegistry.set(TagEntity, tagConfig);
 
       const entity: any = {
         title: 'test',
-        tags: [
-          { id: 1 },
-          { id: 2 },
-          { id: 3 },
-        ],
+        tags: [{ id: 1 }, { id: 2 }, { id: 3 }],
       };
-      const metadata = createMockMetadata([{ name: 'tags', target: UserEntity }]);
+      const metadata = createMockMetadata([{ name: 'tags', target: TagEntity }]);
       const manager = createMockManager([1, 3]);
 
       await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
@@ -142,28 +150,50 @@ describe('sanitize.service', () => {
       expect(entity.tags).toEqual([{ id: 1 }, { id: 3 }]);
     });
 
+    it('allows nested create when create rules match roles', async () => {
+      PermissionRegistry.set(TagEntity, tagConfig);
+
+      const entity: any = {
+        title: 'test',
+        tag: { title: 'new tag' },
+      };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
+      const manager = createMockManager([]);
+
+      await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
+
+      expect(entity.tag).toEqual({ title: 'new tag' });
+    });
+
+    it('strips nested create when create rules do not match roles', async () => {
+      PermissionRegistry.set(TagEntity, {
+        operations: { create: [{ who: ['moderator'] }] },
+      });
+
+      const entity: any = {
+        title: 'test',
+        tag: { title: 'new tag' },
+      };
+      const metadata = createMockMetadata([{ name: 'tag', target: TagEntity }]);
+      const manager = createMockManager([]);
+
+      await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
+
+      expect(entity.tag).toBeUndefined();
+    });
+
     it('handles null/undefined relation values', async () => {
-      const entity: any = { title: 'test', user: null, tags: undefined };
+      const entity: any = { title: 'test', tag: null, tags: undefined };
       const metadata = createMockMetadata([
-        { name: 'user', target: UserEntity },
-        { name: 'tags', target: UserEntity },
+        { name: 'tag', target: TagEntity },
+        { name: 'tags', target: TagEntity },
       ]);
       const manager = createMockManager();
 
       await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
 
-      expect(entity.user).toBeNull();
+      expect(entity.tag).toBeNull();
       expect(entity.tags).toBeUndefined();
-    });
-
-    it('strips relation when no config for target and no allow', async () => {
-      const entity: any = { title: 'test', user: { id: 99 } };
-      const metadata = createMockMetadata([{ name: 'user', target: UserEntity }]);
-      const manager = createMockManager([]);
-
-      await sanitizeForSave(entity, metadata, createBind({ id: 1 }), manager);
-
-      expect(entity.user).toBeUndefined();
     });
 
     it('does nothing for undefined entity', async () => {

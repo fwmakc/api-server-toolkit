@@ -12,7 +12,7 @@ import { AuthClientService } from './auth-client.service';
 @Injectable()
 export class AccountStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private readonly configService: ConfigService,
+    configService: ConfigService,
     private readonly authClientService: AuthClientService,
   ) {
     super({

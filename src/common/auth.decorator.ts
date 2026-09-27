@@ -9,40 +9,34 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import {
   AccountInfo,
-  AccessLevel,
-  normalizeAccess,
-  OperationAccess,
 } from './access.type';
+import { anonymousAccount, normalizeAccount } from './access.rules';
 import { isSuperuser } from './service/admin.service';
 
-class JwtPublicGuard extends AuthGuard('jwt') {
-  handleRequest(_: any, user: any) {
-    return user;
+/** Публичный маршрут: JWT валидируется, если предъявлен; аноним получает {roles:['public']}. */
+export class JwtPublicGuard extends AuthGuard('jwt') {
+  handleRequest(_: any, user: any): any {
+    return user ? normalizeAccount(user) : anonymousAccount();
   }
 }
 
-class JwtRequiredGuard extends AuthGuard('jwt') {
-  handleRequest(err: any, user: any) {
+/** JWT обязателен; вошедшему добавляется псевдо-роль 'authenticated'. */
+export class JwtRequiredGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any): any {
     if (err || !user) throw err || new UnauthorizedException();
-    return user;
+    return normalizeAccount(user);
   }
 }
 
-class JwtAdminGuard extends AuthGuard('jwt') {
-  handleRequest(err: any, user: any) {
+/** Только суперюзер. */
+export class JwtAdminGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any): any {
     if (err || !user) throw err || new UnauthorizedException();
     if (!isSuperuser(user)) {
       throw new ForbiddenException('You have no rights!');
     }
-    return user;
+    return normalizeAccount(user);
   }
-}
-
-export function accessGuard(access: OperationAccess) {
-  const level = normalizeAccess(access);
-  if (level === AccessLevel.PUBLIC) return UseGuards(JwtPublicGuard);
-  if (level === AccessLevel.SUPERUSER) return UseGuards(JwtAdminGuard);
-  return UseGuards(JwtRequiredGuard);
 }
 
 class JwtAccountGuard extends AuthGuard('jwt') {}

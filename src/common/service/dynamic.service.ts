@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { BaseEntity, DeepPartial, EntityManager, EntityTarget, FindOptionsOrder, Repository } from 'typeorm';
+import { BaseEntity, DeepPartial, EntityManager, FindOptionsOrder, Repository } from 'typeorm';
 import { CommonDto } from '../common.dto';
 import { FindDto } from '../dto/find.dto';
 import { CommonService } from '../common.service';
@@ -28,7 +28,15 @@ export class DynamicService<
 > extends CommonService<Dto, Entity> {
   protected readonly repository: Repository<any>;
 
-  async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
+  /**
+   * Динамические колонки не входят в метаданные entity — TypeORM save()
+   * их теряет, поэтому create/update пишутся raw SQL через persist-хуки.
+   */
+  protected async persistCreate(
+    entity: DeepPartial<any>,
+    _bind: BindDto,
+    manager: EntityManager,
+  ): Promise<any> {
     const quotes = prepareQuotes();
     const tableName = this.getTableName();
 
@@ -54,7 +62,11 @@ export class DynamicService<
     }
   }
 
-  async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
+  protected async persistUpdate(
+    entity: DeepPartial<any>,
+    _bind: BindDto,
+    manager: EntityManager,
+  ): Promise<any> {
     const { id } = entity;
 
     const quotes = prepareQuotes();
@@ -77,6 +89,14 @@ export class DynamicService<
     } catch (e) {
       this.error(e);
     }
+  }
+
+  async createEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
+    return this.persistCreate(entity, { allow: true }, manager);
+  }
+
+  async updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any> {
+    return this.persistUpdate(entity, { allow: true }, manager);
   }
 
   async find(

@@ -22,7 +22,7 @@ export const only = <T extends object, K extends keyof T>(
   ) as Pick<T, K>;
 };
 
-type MappingValue<S, T> =
+type MappingValue<S, _T> =
   | {
       sourceKey: keyof S;
       transform?: (value: unknown) => unknown;

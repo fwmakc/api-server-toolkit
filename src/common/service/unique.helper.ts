@@ -15,7 +15,7 @@ export function getUniqueColumns(metadata: EntityMetadata): Array<string[]> {
   return uniques;
 }
 
-export async function findUniqueEntry<Entity>(
+export async function findUniqueEntry<_Entity>(
   repository: { metadata: EntityMetadata; findOne: (options: any) => Promise<any> },
   entity: Record<string, any>,
 ): Promise<any> {

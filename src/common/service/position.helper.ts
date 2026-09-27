@@ -76,7 +76,7 @@ export async function executeMovePosition<Entity>(
   entityTarget: EntityTarget<Entity>,
   id: number | string,
   field: string,
-  position: number,
+  _position: number,
   oldPosition: number,
   newPosition: number,
   manager: EntityManager,

@@ -1,166 +1,143 @@
 import { removePrivateFields, stripWriteFields } from '../common/service/private_fields.service';
-import { FieldAccess } from '../common/decorator/field_access.decorator';
-import { AccessLevel } from '../common/access.type';
+import { PermissionRegistry } from '../common/permission.registry';
+import { EntityAccessConfig } from '../common/access.rules';
+import { BindDto } from '../common/dto/bind.dto';
 import 'reflect-metadata';
 
-class TestEntity {
-  name: string;
-
-  @FieldAccess({ read: AccessLevel.PUBLIC, write: AccessLevel.PUBLIC })
-  title: string;
-
-  @FieldAccess({ read: AccessLevel.SUPERUSER, write: AccessLevel.SUPERUSER })
-  secret: string;
-
-  @FieldAccess({ read: AccessLevel.OWNER, write: AccessLevel.OWNER })
-  privateNote: string;
-
-  @FieldAccess({ read: AccessLevel.CLOSED, write: AccessLevel.CLOSED })
-  internalId: string;
-
-  @FieldAccess({ write: AccessLevel.PUBLIC, read: AccessLevel.PUBLIC })
-  status: string;
+class Enroll {
+  student?: number;
+  price?: number;
+  internalNote?: string;
 }
 
-function makeEntity(overrides: Partial<TestEntity> = {}): TestEntity {
-  const e = new TestEntity();
-  e.name = 'Alice';
-  e.title = 'Hello';
-  e.secret = 'top-secret';
-  e.privateNote = 'my note';
-  e.internalId = 'INT-001';
-  e.status = 'active';
-  Object.assign(e, overrides);
-  return e;
-}
+const config: EntityAccessConfig = {
+  fields: {
+    price: { response: [{ who: ['accountant'] }], request: [{ who: ['accountant'] }] },
+    internalNote: { response: [{ who: ['moderator'] }] },
+  },
+};
 
-describe('removePrivateFields', () => {
-  it('removes admin-level fields for non-admin user', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.secret).toBeUndefined();
+const createBind = (props: Partial<BindDto>): BindDto => Object.assign(new BindDto(), props);
+
+describe('private_fields.service (AccessRule model)', () => {
+  beforeEach(() => {
+    PermissionRegistry.clear();
+    PermissionRegistry.set(Enroll, config);
   });
 
-  it('keeps admin-level fields for admin user (allow=true)', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: true };
-    removePrivateFields(entity, bind);
-    expect(entity.secret).toBe('top-secret');
-  });
+  describe('removePrivateFields (read)', () => {
+    it('keeps field without rules', () => {
+      const entity: any = new Enroll();
+      entity.student = 5;
+      removePrivateFields(entity, { roles: ['student'] });
+      expect(entity.student).toBe(5);
+    });
 
-  it('removes closed-level fields for all non-admin', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.internalId).toBeUndefined();
-  });
+    it('keeps field when role matches', () => {
+      const entity: any = Object.assign(new Enroll(), { price: 100 });
+      removePrivateFields(entity, { roles: ['accountant'] });
+      expect(entity.price).toBe(100);
+    });
 
-  it('removes closed-level fields even for admin', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: true };
-    removePrivateFields(entity, bind);
-    expect(entity.internalId).toBeUndefined();
-  });
+    it('strips field when role does not match', () => {
+      const entity: any = Object.assign(new Enroll(), { price: 100 });
+      removePrivateFields(entity, { roles: ['student'] });
+      expect(entity.price).toBeUndefined();
+    });
 
-  it('keeps public fields for all users', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.title).toBe('Hello');
-  });
+    it('strips field for anonymous without matching role', () => {
+      const entity: any = Object.assign(new Enroll(), { price: 100 });
+      removePrivateFields(entity, { roles: ['public'] });
+      expect(entity.price).toBeUndefined();
+    });
 
-  it('keeps owner-level fields when bind.id matches owner', () => {
-    const entity = makeEntity();
-    entity['account'] = { id: 42 };
-    const bind = { id: 42, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.privateNote).toBe('my note');
-  });
+    it('bypasses with isSuperuser', () => {
+      const entity: any = Object.assign(new Enroll(), { price: 100, internalNote: 'note' });
+      removePrivateFields(entity, { roles: [], isSuperuser: true });
+      expect(entity.price).toBe(100);
+      expect(entity.internalNote).toBe('note');
+    });
 
-  it('removes owner-level fields when bind.id does NOT match', () => {
-    const entity = makeEntity();
-    entity['account'] = { id: 99 };
-    const bind = { id: 42, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.privateNote).toBeUndefined();
-  });
+    it('does not bypass with bind allow — read visibility by roles only', () => {
+      const entity: any = Object.assign(new Enroll(), { price: 100 });
+      removePrivateFields(entity, createBind({ allow: true }));
+      expect(entity.price).toBeUndefined();
+    });
 
-  it('removes owner-level fields when owner entity is missing', () => {
-    const entity = makeEntity();
-    const bind = { id: 42, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.privateNote).toBeUndefined();
-  });
+    it('strips in arrays', () => {
+      const entities = [
+        Object.assign(new Enroll(), { price: 1 }),
+        Object.assign(new Enroll(), { price: 2 }),
+      ];
+      removePrivateFields(entities, { roles: ['student'] });
+      expect(entities[0].price).toBeUndefined();
+      expect(entities[1].price).toBeUndefined();
+    });
 
-  it('handles arrays', () => {
-    const entities = [makeEntity(), makeEntity()];
-    const bind = { id: 1, name: 'account', allow: false };
-    removePrivateFields(entities, bind);
-    entities.forEach((e) => {
-      expect(e.secret).toBeUndefined();
-      expect(e.title).toBe('Hello');
+    it('strips nested entity fields by nested config', () => {
+      class Course {
+        price?: number;
+      }
+      PermissionRegistry.set(Course, {
+        fields: { price: { response: [{ who: ['accountant'] }] } },
+      });
+
+      const entity: any = Object.assign(new Enroll(), { course: Object.assign(new Course(), { price: 9 }) });
+      removePrivateFields(entity, { roles: ['student'] });
+      expect(entity.course.price).toBeUndefined();
+    });
+
+    it('keeps unruled field when account is undefined', () => {
+      const entity: any = new Enroll();
+      entity.student = 5;
+      removePrivateFields(entity, undefined);
+      expect(entity.student).toBe(5);
     });
   });
 
-  it('handles null/undefined gracefully', () => {
-    expect(() => removePrivateFields(null as any, {})).not.toThrow();
-    expect(() => removePrivateFields(undefined as any, {})).not.toThrow();
-  });
+  describe('stripWriteFields (write)', () => {
+    it('strips field when role does not match', () => {
+      const dto: any = { price: 100 };
+      stripWriteFields(dto, Enroll, createBind({}), { roles: ['student'] });
+      expect(dto.price).toBeUndefined();
+    });
 
-  it('handles fields without FieldAccess metadata (treats as public)', () => {
-    const entity = makeEntity();
-    const bind = { id: 1, name: 'account', allow: false };
-    removePrivateFields(entity, bind);
-    expect(entity.name).toBe('Alice');
-  });
-});
+    it('keeps field when role matches', () => {
+      const dto: any = { price: 100 };
+      stripWriteFields(dto, Enroll, createBind({}), { roles: ['accountant'] });
+      expect(dto.price).toBe(100);
+    });
 
-describe('stripWriteFields', () => {
-  it('removes admin write fields for non-admin', () => {
-    const dto: any = { title: 'X', secret: 'Y', status: 'Z' };
-    stripWriteFields(dto, TestEntity, { id: 1, allow: false });
-    expect(dto.secret).toBeUndefined();
-  });
+    it('always strips owner relation field (server stamps it)', () => {
+      const dto: any = { student: { id: 99 } };
+      stripWriteFields(dto, Enroll, createBind({ name: 'student', id: 1 }), { roles: ['student'] });
+      expect(dto.student).toBeUndefined();
+    });
 
-  it('keeps admin write fields for admin (allow=true)', () => {
-    const dto: any = { title: 'X', secret: 'Y', status: 'Z' };
-    stripWriteFields(dto, TestEntity, { id: 1, allow: true });
-    expect(dto.secret).toBe('Y');
-  });
+    it('strips only bindField without config rules', () => {
+      const dto: any = { price: 1, student: { id: 99 } };
+      stripWriteFields(dto, Enroll, createBind({ name: 'student' }), { roles: ['accountant'] });
+      expect(dto.price).toBe(1);
+      expect(dto.student).toBeUndefined();
+    });
 
-  it('removes closed write fields even for admin', () => {
-    const dto: any = { title: 'X', internalId: 'Y' };
-    stripWriteFields(dto, TestEntity, { id: 1, allow: true });
-    expect(dto.internalId).toBeUndefined();
-  });
+    it('bypasses for superuser', () => {
+      const dto: any = { price: 100 };
+      stripWriteFields(dto, Enroll, createBind({}), { roles: [], isSuperuser: true });
+      expect(dto.price).toBe(100);
+    });
 
-  it('keeps public write fields for all users', () => {
-    const dto: any = { title: 'X', status: 'Y' };
-    stripWriteFields(dto, TestEntity, { id: 1, allow: false });
-    expect(dto.title).toBe('X');
-    expect(dto.status).toBe('Y');
-  });
+    it('bypasses when bind.allow', () => {
+      const dto: any = { price: 100 };
+      stripWriteFields(dto, Enroll, createBind({ allow: true }), undefined);
+      expect(dto.price).toBe(100);
+    });
 
-  it('keeps owner write fields (owner can always write)', () => {
-    const dto: any = { privateNote: 'note' };
-    stripWriteFields(dto, TestEntity, { id: 1, allow: false });
-    expect(dto.privateNote).toBe('note');
-  });
-
-  it('force-closes the bind field (user cannot write their own account)', () => {
-    const dto: any = { account: 5, title: 'X' };
-    stripWriteFields(dto, TestEntity, { id: 1, name: 'account', allow: false });
-    expect(dto.account).toBeUndefined();
-  });
-
-  it('handles null dto gracefully', () => {
-    expect(() => stripWriteFields(null, TestEntity, {})).not.toThrow();
-  });
-
-  it('handles entity without prototype', () => {
-    const dto: any = { x: 1 };
-    expect(() => stripWriteFields(dto, null as any, {})).not.toThrow();
-    expect(dto.x).toBe(1);
+    it('handles string entityTarget (no config, only bindField strip)', () => {
+      const dto: any = { student: { id: 99 }, title: 'x' };
+      stripWriteFields(dto, 'enrolls', createBind({ name: 'student' }), { roles: ['student'] });
+      expect(dto.student).toBeUndefined();
+      expect(dto.title).toBe('x');
+    });
   });
 });

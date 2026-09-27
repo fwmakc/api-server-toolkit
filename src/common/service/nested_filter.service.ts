@@ -1,21 +1,29 @@
 import { PermissionRegistry } from '../permission.registry';
 import { BindDto } from '../dto/bind.dto';
+import { parseAccessPath } from '../access.rules';
 
 function isOwnedBy(
   entity: any,
-  accountTable: string,
+  ownerPath: string,
   callerId: number | string,
-  accountField: string,
+  key: string,
 ): boolean {
-  const segments = accountTable.split('.');
+  if (!ownerPath) {
+    return String(entity?.[key]) === String(callerId);
+  }
   let current = entity;
-  for (const segment of segments) {
+  for (const segment of ownerPath.split('.')) {
     current = current?.[segment];
     if (!current) return false;
   }
-  return String(current?.[accountField]) === String(callerId);
+  return String(current?.[key]) === String(callerId);
 }
 
+/**
+ * Фильтрует вложенные отношения по владельцу, когда основная выборка
+ * ограничена owner-скопом (multi-hop). Путь берётся из read-правил
+ * вложенной сущности (первый scope.owner в PermissionRegistry).
+ */
 export function filterNestedRelations(
   result: any[],
   bind: BindDto | undefined,
@@ -25,7 +33,6 @@ export function filterNestedRelations(
 
   const seen = new WeakSet();
   const callerId = bind.id;
-  const accountField = bind.key || 'id';
 
   const walkObject = (obj: any) => {
     if (!obj || typeof obj !== 'object' || seen.has(obj)) return;
@@ -39,15 +46,11 @@ export function filterNestedRelations(
           (v: any) => v && typeof v === 'object' && v.constructor,
         );
         if (firstEntity?.constructor) {
-          const config = PermissionRegistry.get(firstEntity.constructor);
-          if (config?.accountTable) {
+          const ownerPath = PermissionRegistry.getOwnerPath(firstEntity.constructor);
+          if (ownerPath !== undefined) {
+            const { name: ownerName, key: ownerKey } = parseAccessPath(ownerPath);
             filtered = value.filter((nested: any) =>
-              isOwnedBy(
-                nested,
-                config.accountTable,
-                callerId,
-                accountField,
-              ),
+              isOwnedBy(nested, ownerName, callerId, ownerKey),
             );
             obj[key] = filtered;
           }
@@ -60,11 +63,10 @@ export function filterNestedRelations(
         value.constructor !== Object &&
         value.constructor !== Date
       ) {
-        const config = PermissionRegistry.get(value.constructor);
-        if (config?.accountTable) {
-          if (
-            !isOwnedBy(value, config.accountTable, callerId, accountField)
-          ) {
+        const ownerPath = PermissionRegistry.getOwnerPath(value.constructor);
+        if (ownerPath !== undefined) {
+          const { name: ownerName, key: ownerKey } = parseAccessPath(ownerPath);
+          if (!isOwnedBy(value, ownerName, callerId, ownerKey)) {
             delete obj[key];
             continue;
           }

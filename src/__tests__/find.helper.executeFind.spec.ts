@@ -1,6 +1,5 @@
 import 'reflect-metadata';
-import { executeFind } from '../common/service/find.helper';
-import { buildFindWhere, BuildFindResult } from '../common/service/find.helper';
+import { executeFind, BuildFindResult } from '../common/service/find.helper';
 import { BindDto } from '../common/dto/bind.dto';
 import { FindDto } from '../common/dto/find.dto';
 import { Repository } from 'typeorm';
@@ -32,7 +31,7 @@ const createFind = (props: Partial<FindDto>): FindDto => Object.assign(new FindD
 function createMockRepository(findResults: any[][]): Repository<any> {
   let callIndex = 0;
   return {
-    find: jest.fn().mockImplementation((options) => {
+    find: jest.fn().mockImplementation((_options) => {
       return findResults[callIndex++] || [];
     }),
     metadata: { columns: [], relations: [], indices: [] },

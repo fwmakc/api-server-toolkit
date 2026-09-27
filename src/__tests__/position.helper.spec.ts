@@ -4,16 +4,6 @@ import { BindDto } from '../common/dto/bind.dto';
 import { FindDto } from '../common/dto/find.dto';
 import { EntityMetadata, EntityManager } from 'typeorm';
 
-jest.mock('../common/service/bind-resolve.helper', () => ({
-  resolveBindRelationId: jest.fn().mockResolvedValue(1),
-}));
-
-jest.mock('../common/service/where.service', () => ({
-  parseWhereObject: jest.fn((where) => where || {}),
-}));
-
-import { resolveBindRelationId } from '../common/service/bind-resolve.helper';
-
 const createBind = (props: Partial<BindDto>): BindDto => Object.assign(new BindDto(), props);
 const createFind = (props: Partial<FindDto>): FindDto => Object.assign(new FindDto(), props);
 

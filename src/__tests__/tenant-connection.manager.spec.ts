@@ -93,7 +93,7 @@ describe('TenantConnectionManager', () => {
       maxTotalConnections: 2,
     });
     const ds1 = await TenantConnectionManager.get('t1');
-    const ds2 = await TenantConnectionManager.get('t2');
+    await TenantConnectionManager.get('t2');
     expect(TenantConnectionManager.getSize()).toBe(2);
     const ds3 = await TenantConnectionManager.get('t3');
     expect(ds1.destroy).toHaveBeenCalled();

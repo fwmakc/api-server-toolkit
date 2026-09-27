@@ -1,16 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TenantScope } from '../access.type';
 
+/**
+ * Внутренний мост между моделью доступа (AccessRule) и query-хелперами.
+ * Строится compileRuleToBind из совпавшего правила.
+ */
 export class BindDto {
   @ApiProperty({
     required: false,
-    description: 'ID связанной записи',
+    description: 'ID связанной записи (владелец)',
   })
   id?: number | string;
 
   @ApiProperty({
     required: false,
-    description: 'название связанной таблицы',
+    description: 'путь связи до владельца (multi-hop через точку)',
   })
   name?: string;
 
@@ -22,14 +25,13 @@ export class BindDto {
 
   @ApiProperty({
     required: false,
-    description:
-      'поле управляет отображением защищенных полей: true - разрешить все, false - разрешает отображение защищенных полей только для указанного ID связанной записи',
+    description: 'true — без строчных фильтров (суперюзер)',
   })
   allow?: boolean;
 
   @ApiProperty({
     required: false,
-    description: 'ID тенанта (relation path из TENANT_TABLE)',
+    description: 'ID тенанта',
   })
   tenantId?: number | string;
 
@@ -41,7 +43,7 @@ export class BindDto {
 
   @ApiProperty({
     required: false,
-    description: 'путь связи к таблице тенанта',
+    description: 'путь связи до тенанта',
   })
   tenantName?: string;
 
@@ -53,8 +55,7 @@ export class BindDto {
 
   @ApiProperty({
     required: false,
-    enum: ['own', 'all'],
-    description: 'tenant scope: own — фильтровать по tenantId, all — видеть все tenant',
+    description: 'форс-условия поверх пользовательского where (фильтр сильнее)',
   })
-  tenantScope?: TenantScope;
+  filter?: Record<string, unknown>;
 }
