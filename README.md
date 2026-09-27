@@ -878,8 +878,6 @@ Result: superuser creates article owned by Bob ✓
 | `@Account()` | Applies JWT `AuthGuard` — throws 401 if no valid token |
 | `@Account('noBlock')` | Applies JWT guard but **does not throw** if no token (user is `undefined`) |
 | `@Self()` | Param decorator — extracts `request.user` (requires `@Account()` guard to populate it) |
-| `@Secure` | `@UseGuards(SecureGuard)` — token-based access |
-| `@SimpleSecure` | `@UseGuards(SimpleSecureGuard)` — lightweight token check |
 | `@Data()` | Param decorator — merges `request.query` + `request.body`, JSON-parses strings |
 | `@FieldAccess({ read, write })` | Property decorator — field-level access control on entity columns |
 | `@SoftDelete()` | Property decorator — marks a Date column for soft delete. `remove()` becomes soft, `hardDelete()` + `restore()` routes generated |
@@ -1521,7 +1519,7 @@ When you outgrow the toolkit's `EntityController`:
 
 1. Replace `EntityController` with your own controllers (keep `CommonService`)
 2. Replace column factories with native TypeORM `@Column()` decorators
-3. Keep guards (`InternalAuthGuard`, `SecureGuard`) — they work independently
+3. Keep guards (`InternalAuthGuard`) — they work independently
 4. Keep `httpPost`/`httpGet` helpers — they have no NestJS dependencies
 
 The toolkit is designed to be adopted incrementally and abandoned incrementally.
@@ -1749,8 +1747,7 @@ domain assumptions:
 - Queue system (`QueueJobEntity`, `QueueWorker`, `QueueService`)
 - `HealthModule`, `bootstrap()`
 - `httpPost` / `httpGet` helpers
-- `InternalAuthGuard` (shared-secret, no identity model)
-- Legacy `SecureGuard` / `SimpleSecureGuard` (HMAC token, no identity extraction)
+- `InternalAuthGuard` (shared-secret, timing-safe, no identity model)
 
 ### Checklist: fork and adapt
 

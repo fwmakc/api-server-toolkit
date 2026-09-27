@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { timingSafeEqual } from "crypto";
 
 @Injectable()
 export class InternalAuthGuard implements CanActivate {
@@ -19,7 +20,12 @@ export class InternalAuthGuard implements CanActivate {
       throw new UnauthorizedException("INTERNAL_API_KEY is not configured");
     }
 
-    if (apiKey !== expected) {
+    const provided = Buffer.from(String(apiKey ?? ""));
+    const expectedKey = Buffer.from(expected);
+    if (
+      provided.length !== expectedKey.length ||
+      !timingSafeEqual(provided, expectedKey)
+    ) {
       throw new UnauthorizedException("Invalid or missing X-Internal-Api-Key");
     }
 

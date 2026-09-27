@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 197 declaration files.
+Generated from 181 declaration files.
 
 ---
 
@@ -54,12 +54,6 @@ import 'reflect-metadata';
 
 ```typescript
 import 'reflect-metadata';
-```
-
-## dist\__tests__\access.type.spec.d.ts
-
-```typescript
-export {};
 ```
 
 ## dist\__tests__\access.validator.spec.d.ts
@@ -129,12 +123,6 @@ import 'reflect-metadata';
 ```
 
 ## dist\__tests__\dto.column.validators.spec.d.ts
-
-```typescript
-import 'reflect-metadata';
-```
-
-## dist\__tests__\field-roles.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
@@ -212,24 +200,6 @@ export {};
 import 'reflect-metadata';
 ```
 
-## dist\__tests__\resolve-bind.spec.d.ts
-
-```typescript
-export {};
-```
-
-## dist\__tests__\roles.decorator.spec.d.ts
-
-```typescript
-import 'reflect-metadata';
-```
-
-## dist\__tests__\roles.guard.spec.d.ts
-
-```typescript
-export {};
-```
-
 ## dist\__tests__\safe-id.pipe.spec.d.ts
 
 ```typescript
@@ -252,18 +222,6 @@ export {};
 
 ```typescript
 export {};
-```
-
-## dist\__tests__\secure.guard.spec.d.ts
-
-```typescript
-import 'reflect-metadata';
-```
-
-## dist\__tests__\simple.secure.guard.spec.d.ts
-
-```typescript
-import 'reflect-metadata';
 ```
 
 ## dist\__tests__\soft-delete.spec.d.ts
@@ -312,12 +270,6 @@ export {};
 
 ```typescript
 import 'reflect-metadata';
-```
-
-## dist\__tests__\token-validate.spec.d.ts
-
-```typescript
-export {};
 ```
 
 ## dist\__tests__\tree.service.spec.d.ts
@@ -548,26 +500,6 @@ export interface BootstrapOptions {
 export declare function bootstrap(app: NestExpressApplication, options?: BootstrapOptions): Promise<void>;
 ```
 
-## dist\common\bootstrap\bootstrap.type.d.ts
-
-```typescript
-import { Type } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
-export interface BootstrapOptions {
-    module: Type<unknown>;
-    serviceName: string;
-    port?: number | string;
-    ip?: string;
-    cors?: boolean | Record<string, unknown>;
-    swagger?: boolean;
-    morgan?: boolean;
-    cookieParser?: boolean;
-    passport?: boolean;
-    transactional?: boolean;
-    beforeListen?: (app: NestExpressApplication) => void | Promise<void>;
-}
-```
-
 ## dist\common\bootstrap\setup\cookie-parser.d.ts
 
 ```typescript
@@ -579,8 +511,12 @@ export declare const CookieParser: {
 ## dist\common\bootstrap\setup\cors.d.ts
 
 ```typescript
+export interface CorsSetupOptions {
+    origins?: string[];
+    credentials?: boolean;
+}
 export declare const Cors: {
-    setup(app: any, opts?: boolean | Record<string, any>): void;
+    setup(app: any, opts?: boolean | CorsSetupOptions): void;
 };
 ```
 
@@ -885,8 +821,6 @@ export { BigIntColumn, BooleanColumn, CreatedColumn, DateColumn, DtoColumn, DtoC
 ```typescript
 export declare const Data: (...dataOrPipes: any[]) => ParameterDecorator;
 export declare const Doc: (type: any, classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
-export declare const Secure: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
-export declare const SimpleSecure: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
 ## dist\common\common.doc.d.ts
@@ -989,35 +923,6 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
 import { AccessRule } from '../access.rules';
 export declare function accessDecorators(rules: AccessRule[]): MethodDecorator[];
 export declare const Access: (rules: AccessRule[]) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
-```
-
-## dist\common\decorator\field_access.decorator.d.ts
-
-```typescript
-import { AccessLevel } from '../access.type';
-export interface FieldAccessOptions {
-    read?: AccessLevel;
-    write?: AccessLevel;
-}
-export declare const FIELD_ACCESS_METADATA = "fieldAccess";
-export declare function FieldAccess(options: FieldAccessOptions): (target: any, propertyKey: string) => void;
-```
-
-## dist\common\decorator\field_roles.decorator.d.ts
-
-```typescript
-export interface FieldRolesOptions {
-    read?: string[];
-    write?: string[];
-}
-export declare const FIELD_ROLES_METADATA = "fieldRoles";
-export declare function FieldRoles(options: FieldRolesOptions): (target: any, propertyKey: string) => void;
-```
-
-## dist\common\decorator\roles.decorator.d.ts
-
-```typescript
-export declare const Roles: (...roles: string[]) => import("@nestjs/common").CustomDecorator<string>;
 ```
 
 ## dist\common\decorator\soft-delete.decorator.d.ts
@@ -1213,44 +1118,6 @@ import { ConfigService } from "@nestjs/config";
 export declare class InternalAuthGuard implements CanActivate {
     private readonly config;
     constructor(config: ConfigService);
-    canActivate(context: ExecutionContext): boolean;
-}
-```
-
-## dist\common\guard\roles.guard.d.ts
-
-```typescript
-import { CanActivate, ExecutionContext } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-export declare const ROLES_METADATA = "roles";
-export declare class RolesGuard implements CanActivate {
-    private readonly reflector;
-    constructor(reflector: Reflector);
-    canActivate(context: ExecutionContext): boolean;
-}
-```
-
-## dist\common\guard\secure.guard.d.ts
-
-```typescript
-import { CanActivate, ExecutionContext } from '@nestjs/common';
-export declare class SecureGuard implements CanActivate {
-    canActivate(context: ExecutionContext): boolean;
-}
-```
-
-## dist\common\guard\secure.guard.service.d.ts
-
-```typescript
-export declare function tokenValidate(token: string): boolean;
-export declare function tokenValidateSimple(token: string): boolean;
-```
-
-## dist\common\guard\simple.secure.guard.d.ts
-
-```typescript
-import { CanActivate, ExecutionContext } from '@nestjs/common';
-export declare class SimpleSecureGuard implements CanActivate {
     canActivate(context: ExecutionContext): boolean;
 }
 ```
@@ -1870,9 +1737,6 @@ export type SearchType = {
 ```typescript
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
-export * from './common/guard/secure.guard.service';
-export * from './common/guard/secure.guard';
-export * from './common/guard/simple.secure.guard';
 ```
 
 ## dist\health.d.ts
@@ -1951,9 +1815,6 @@ export * from './common/health/health.module';
 export * from './common/health/health.controller';
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
-export * from './common/guard/secure.guard.service';
-export * from './common/guard/secure.guard';
-export * from './common/guard/simple.secure.guard';
 export * from './common/helper/array.helper';
 export * from './common/helper/http.helper';
 export * from './common/helper/object.helper';

@@ -8,6 +8,7 @@ export class Cookie {
       httpOnly: true,
       path: '/',
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
     });
   }
 
@@ -16,6 +17,7 @@ export class Cookie {
       httpOnly: true,
       path: '/',
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
     });
   }
 

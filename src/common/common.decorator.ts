@@ -2,7 +2,6 @@ import {
   applyDecorators,
   createParamDecorator,
   ExecutionContext,
-  UseGuards,
 } from '@nestjs/common';
 import { FindDoc } from './doc/find.doc';
 import { FindOneDoc } from './doc/find_one.doc';
@@ -15,8 +14,6 @@ import { UpdateDoc } from './doc/update.doc';
 import { RemoveDoc } from './doc/remove.doc';
 import { SortPositionDoc } from './doc/position_sort.doc';
 import { MovePositionDoc } from './doc/position_move.doc';
-import { SecureGuard } from './guard/secure.guard';
-import { SimpleSecureGuard } from './guard/simple.secure.guard';
 
 export const Data = createParamDecorator(
   async (arg = '', context: ExecutionContext) => {
@@ -67,12 +64,4 @@ export const Doc = (type, classDto) => {
   if (type === 'movePosition') {
     return applyDecorators(MovePositionDoc());
   }
-};
-
-export const Secure = () => {
-  return applyDecorators(UseGuards(SecureGuard));
-};
-
-export const SimpleSecure = () => {
-  return applyDecorators(UseGuards(SimpleSecureGuard));
 };

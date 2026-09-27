@@ -85,6 +85,23 @@ describe('bootstrap setup utilities', () => {
   });
 
   describe('Cors', () => {
+    const makeRes = () => {
+      const headers: Record<string, any> = {};
+      return {
+        headers,
+        statusCode: 0,
+        header(k: string, v: any) {
+          headers[k] = v;
+        },
+      };
+    };
+
+    const run = (mw: any, origin?: string, method = 'GET') => {
+      const res = makeRes();
+      mw({ method, headers: origin ? { origin } : {} }, res, () => {});
+      return res;
+    };
+
     it('calls app.use by default', () => {
       Cors.setup(app);
       expect(app.use).toHaveBeenCalledTimes(1);
@@ -95,9 +112,43 @@ describe('bootstrap setup utilities', () => {
       expect(app.use).not.toHaveBeenCalled();
     });
 
-    it('calls app.use when opts=true', () => {
-      Cors.setup(app, true);
-      expect(app.use).toHaveBeenCalledTimes(1);
+    it('reflects exactly the allowed origin with credentials', () => {
+      Cors.setup(app, { origins: ['https://app.example.com'] });
+      const res = run(app.use.mock.calls[0][0], 'https://app.example.com');
+      expect(res.headers['Access-Control-Allow-Origin']).toBe('https://app.example.com');
+      expect(res.headers['Access-Control-Allow-Credentials']).toBe('true');
+      expect(res.headers['Vary']).toBe('Origin');
+    });
+
+    it('sends no CORS headers for an origin outside the allowlist', () => {
+      Cors.setup(app, { origins: ['https://app.example.com'] });
+      const res = run(app.use.mock.calls[0][0], 'https://evil.example.net');
+      expect(res.headers['Access-Control-Allow-Origin']).toBeUndefined();
+      expect(res.headers['Access-Control-Allow-Credentials']).toBeUndefined();
+    });
+
+    it('empty allowlist (no CORS_ORIGINS) denies all origins', () => {
+      const orig = process.env.CORS_ORIGINS;
+      delete process.env.CORS_ORIGINS;
+      Cors.setup(app);
+      const res = run(app.use.mock.calls[0][0], 'https://app.example.com');
+      expect(res.headers['Access-Control-Allow-Origin']).toBeUndefined();
+      process.env.CORS_ORIGINS = orig;
+    });
+
+    it('reads CORS_ORIGINS env when no opts', () => {
+      const orig = process.env.CORS_ORIGINS;
+      process.env.CORS_ORIGINS = 'https://a.com, https://b.com';
+      Cors.setup(app);
+      const res = run(app.use.mock.calls[0][0], 'https://b.com');
+      expect(res.headers['Access-Control-Allow-Origin']).toBe('https://b.com');
+      process.env.CORS_ORIGINS = orig;
+    });
+
+    it('answers OPTIONS with 204 for allowed origin', () => {
+      Cors.setup(app, { origins: ['https://a.com'] });
+      const res = run(app.use.mock.calls[0][0], 'https://a.com', 'OPTIONS');
+      expect(res.statusCode).toBe(204);
     });
   });
 

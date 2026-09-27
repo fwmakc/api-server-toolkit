@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-09-28
+
+Security hardening release. Breaking: no backward compatibility is provided by design.
+
+### Removed
+- `SecureGuard`, `SimpleSecureGuard`, `@Secure`, `@SimpleSecure`, `tokenValidate`, `tokenValidateSimple` — legacy MD5/static-token guards. Use `@Account()` (JWT) and `InternalAuthGuard` instead.
+
+### Changed
+- `Cors.setup` — origin reflection (`origin: true` + `credentials: true`) replaced with an allowlist. Allowed origins come from the `CORS_ORIGINS` env var (comma-separated) or the `{ origins }` option. Matched origins are echoed exactly (`Vary: Origin`); everything else receives no CORS headers. Empty allowlist = CORS disabled.
+- `InternalAuthGuard` — API key comparison is now constant-time (`timingSafeEqual`).
+- `Cookie` service — `sameSite: 'lax'` on all cookies (`httpOnly` and production-only `secure` were already set).
+
+> Note: versions 0.10.0–0.16.0 shipped without CHANGELOG entries. Highlights, briefly: AccessRule access model with `who`/`scope`/`filter` and `FieldRule` with `response`/`request` keys (renamed from `read`/`write`), thin `bootstrap()` + named middleware setup utilities, `httpPost`/`httpGet` typed helpers, account info auth-client with caching, queue worker with stale-job reclaim.
+
 ## [0.9.0] - 2026-08-03
 
 Reset to pre-release versioning. The toolkit is feature-complete and well-tested (111 tests), but the overall stack is not yet production-hardened. 1.0.0 will be tagged when all services reach production readiness.

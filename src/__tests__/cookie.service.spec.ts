@@ -21,6 +21,7 @@ describe('Cookie', () => {
         httpOnly: true,
         path: '/',
         secure: false,
+        sameSite: 'lax',
       });
     });
 
@@ -30,6 +31,7 @@ describe('Cookie', () => {
         httpOnly: true,
         path: '/',
         secure: false,
+        sameSite: 'lax',
       });
     });
   });
@@ -42,6 +44,7 @@ describe('Cookie', () => {
         httpOnly: true,
         path: '/',
         secure: false,
+        sameSite: 'lax',
       });
     });
   });
