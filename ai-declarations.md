@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 181 declaration files.
+Generated from 183 declaration files.
 
 ---
 
@@ -66,6 +66,12 @@ import 'reflect-metadata';
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\api-key.guard.spec.d.ts
+
+```typescript
+export {};
 ```
 
 ## dist\__tests__\array.helper.spec.d.ts
@@ -333,6 +339,7 @@ import { BindDto } from './dto/bind.dto';
 export declare const PUBLIC_ROLE = "public";
 export declare const AUTHENTICATED_ROLE = "authenticated";
 export declare const SUPERUSER_ROLE = "superuser";
+export declare const API_ROLE = "api";
 export type OperationName = 'read' | 'create' | 'update' | 'delete';
 export type AccessScope = 'all' | {
     tenant: string;
@@ -820,6 +827,7 @@ export { BigIntColumn, BooleanColumn, CreatedColumn, DateColumn, DtoColumn, DtoC
 
 ```typescript
 export declare const Data: (...dataOrPipes: any[]) => ParameterDecorator;
+export declare const ApiKey: () => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 export declare const Doc: (type: any, classDto: any) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
 ```
 
@@ -1106,6 +1114,18 @@ export declare const ACCESS_RULES_METADATA = "access-rules";
 export declare class AccessGuard implements CanActivate {
     private readonly reflector;
     constructor(reflector: Reflector);
+    canActivate(context: ExecutionContext): boolean;
+}
+```
+
+## dist\common\guard\api-key.guard.d.ts
+
+```typescript
+import { CanActivate, ExecutionContext } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+export declare class ApiKeyGuard implements CanActivate {
+    private readonly config;
+    constructor(config: ConfigService);
     canActivate(context: ExecutionContext): boolean;
 }
 ```
@@ -1737,6 +1757,7 @@ export type SearchType = {
 ```typescript
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
+export * from './common/guard/api-key.guard';
 ```
 
 ## dist\health.d.ts
@@ -1815,6 +1836,7 @@ export * from './common/health/health.module';
 export * from './common/health/health.controller';
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
+export * from './common/guard/api-key.guard';
 export * from './common/helper/array.helper';
 export * from './common/helper/http.helper';
 export * from './common/helper/object.helper';

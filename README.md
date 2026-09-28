@@ -878,10 +878,53 @@ Result: superuser creates article owned by Bob ✓
 | `@Account()` | Applies JWT `AuthGuard` — throws 401 if no valid token |
 | `@Account('noBlock')` | Applies JWT guard but **does not throw** if no token (user is `undefined`) |
 | `@Self()` | Param decorator — extracts `request.user` (requires `@Account()` guard to populate it) |
+| `@ApiKey()` | Applies `ApiKeyGuard` — access by static API key (`X-Api-Key` header, env `API_KEYS`) |
 | `@Data()` | Param decorator — merges `request.query` + `request.body`, JSON-parses strings |
 | `@FieldAccess({ read, write })` | Property decorator — field-level access control on entity columns |
 | `@SoftDelete()` | Property decorator — marks a Date column for soft delete. `remove()` becomes soft, `hardDelete()` + `restore()` routes generated |
 | `@Doc(name, dto)` | Composes Swagger documentation decorators |
+
+---
+
+## API Keys (external integrations)
+
+`@ApiKey()` grants access to customers/partners without issuing JWT accounts or
+registering an OAuth client — the standard mechanism for B2B API access, and a
+convenient shortcut for dev environments.
+
+```typescript
+// .env — one or more keys, comma-separated. Generate: openssl rand -hex 32
+// API_KEYS=9f1c...e2,77ab...01
+
+import { ApiKey } from 'api-server-toolkit';
+
+@Controller('integration')
+export class IntegrationController {
+  @ApiKey()
+  @Get('report')
+  report() { /* ... */ }
+}
+```
+
+Semantics:
+
+- Key is sent in the `X-Api-Key` header. Comparison is constant-time; without
+  `API_KEYS` configured the guard fails closed (401 "API_KEYS is not configured").
+- On success the request gets the synthetic `api` role. Under the Access model,
+  open a route to key clients with `who: ['api']`:
+
+```typescript
+read: [
+  { who: ['api'] },               // API-key integrators
+  { who: ['authenticated'] },     // regular logged-in accounts
+],
+```
+
+- API keys combine with JWT: if both are present, the account identity is
+  preserved and `api` is added to its roles.
+- Keys live in env (same trust model as `INTERNAL_API_KEY`) — rotate by editing
+  the env and restarting. Per-key revocation/metadata would need a DB store; not
+  in scope of this mechanism.
 
 ---
 

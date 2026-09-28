@@ -12,6 +12,8 @@ import { isSuperuser } from './service/admin.service';
 export const PUBLIC_ROLE = 'public';
 export const AUTHENTICATED_ROLE = 'authenticated';
 export const SUPERUSER_ROLE = 'superuser';
+/** Роль клиентов с API-ключом (ApiKeyGuard): { who: ['api'] } открывает маршрут интеграциям. */
+export const API_ROLE = 'api';
 
 export type OperationName = 'read' | 'create' | 'update' | 'delete';
 

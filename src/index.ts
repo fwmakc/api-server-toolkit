@@ -73,6 +73,7 @@ export * from './common/health/health.controller';
 // --- Guards ---
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
+export * from './common/guard/api-key.guard';
 
 // --- Helpers ---
 export * from './common/helper/array.helper';

@@ -2,7 +2,9 @@ import {
   applyDecorators,
   createParamDecorator,
   ExecutionContext,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiKeyGuard } from './guard/api-key.guard';
 import { FindDoc } from './doc/find.doc';
 import { FindOneDoc } from './doc/find_one.doc';
 import { FindFirstDoc } from './doc/find_first.doc';
@@ -29,6 +31,9 @@ export const Data = createParamDecorator(
     return result;
   },
 );
+
+/** Доступ по API-ключу (env API_KEYS, заголовок X-Api-Key). См. ApiKeyGuard. */
+export const ApiKey = () => applyDecorators(UseGuards(ApiKeyGuard));
 
 export const Doc = (type, classDto) => {
   if (type === 'find') {

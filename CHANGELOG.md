@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-09-28
+
+### Added
+- `ApiKeyGuard` + `@ApiKey()` decorator — static API key access for external integrations (B2B customers without JWT accounts / OAuth clients) and dev environments. Keys in env `API_KEYS` (comma-separated, `openssl rand -hex 32`), `X-Api-Key` header, constant-time comparison, fail-closed without configuration. On success the request gets the synthetic `api` role (`API_ROLE`) — Access-model rules open routes to key clients with `{ who: ['api'] }`. Combines with JWT (identity preserved, `api` role added).
+
 ## [0.17.0] - 2026-09-28
 
 Security hardening release. Breaking: no backward compatibility is provided by design.
