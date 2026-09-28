@@ -70,6 +70,10 @@ export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
 
+// --- Logger (JSON logs + request id) ---
+export * from './common/logger/request.context';
+export * from './common/logger/json.logger';
+
 // --- Metrics (Prometheus) ---
 export * from './common/metrics/metrics.module';
 export * from './common/metrics/metrics.controller';

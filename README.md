@@ -1026,6 +1026,28 @@ export class AppModule {}
 
 ---
 
+## Logging: JSON format + request id
+
+`Log.setup(app)` gains a structured mode: set `LOG_FORMAT=json` (env) and it
+installs a request-id middleware plus a one-line JSON logger for everything
+Nest logs. The request id comes from an incoming `X-Request-Id` header
+(sanitized, capped at 128 chars) or a generated UUID, is echoed on the
+response, and rides through `AsyncLocalStorage` — every log line emitted while
+handling a request carries the same `requestId`. The morgan `json` access-log
+format includes it too (the format function is passed as morgan's **first**
+argument — `morgan(format, options)` would silently ignore it).
+
+```json
+{"timestamp":"2026-09-28T18:00:00.000Z","level":"log","context":"EventsService","requestId":"5f0c…","message":"Event 42 published"}
+```
+
+Programmatic access: `getRequestId()` (undefined outside a request); utilities
+exported from the root and the `api-server-toolkit/logger` subpath
+(`requestContextMiddleware`, `JsonLogger`, `REQUEST_ID_HEADER`). Without the
+env var behavior is unchanged (human-readable console logs).
+
+---
+
 ## AI Context Generation
 
 The toolkit ships two tools for AI-assisted development:

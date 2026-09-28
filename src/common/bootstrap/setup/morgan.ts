@@ -1,9 +1,10 @@
 export const Morgan = {
   setup(app: any, opts?: { format?: string }): void {
     const morgan = require('morgan');
+    const { getRequestId } = require('../../logger');
     const format = opts?.format || process.env.MORGAN_LOG_FORMAT || 'dev';
     if (format === 'json') {
-      app.use(morgan('json', (tokens: any, req: any, res: any) =>
+      app.use(morgan((tokens: any, req: any, res: any) =>
         JSON.stringify({
           method: tokens.method(req, res),
           url: tokens.url(req, res),
@@ -12,6 +13,7 @@ export const Morgan = {
           contentLength: tokens.res(req, res, 'content-length'),
           userAgent: req.headers['user-agent'],
           remoteAddr: tokens['remote-addr'](req, res),
+          requestId: getRequestId(),
           timestamp: new Date().toISOString(),
         }),
       ));
@@ -20,3 +22,4 @@ export const Morgan = {
     }
   },
 };
+

@@ -71,7 +71,8 @@ describe('bootstrap setup utilities', () => {
     it('calls morgan with json format when format=json', () => {
       Morgan.setup(app, { format: 'json' });
       const morgan = require('morgan');
-      expect(morgan).toHaveBeenCalledWith('json', expect.any(Function));
+      // format function is the first argument (morgan(format, options) would ignore it)
+      expect(morgan).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('uses MORGAN_LOG_FORMAT env when no opts', () => {

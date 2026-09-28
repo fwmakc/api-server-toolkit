@@ -1,6 +1,6 @@
 {
   "name": "api-server-toolkit",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "license": "MIT",
   "repository": {
@@ -61,6 +61,10 @@
     "./metrics": {
       "types": "./dist/metrics.d.ts",
       "default": "./dist/metrics.js"
+    },
+    "./logger": {
+      "types": "./dist/logger.d.ts",
+      "default": "./dist/logger.js"
     }
   },
   "typesVersions": {
@@ -88,6 +92,9 @@
       ],
       "metrics": [
         "dist/metrics.d.ts"
+      ],
+      "logger": [
+        "dist/logger.d.ts"
       ]
     }
   },

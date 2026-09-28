@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-09-28
+
+### Added
+- Structured logging: `LOG_FORMAT=json` turns `Log.setup` into a one-line JSON logger with an `X-Request-Id` middleware — incoming ids are honored (sanitized, ≤128 chars), otherwise a UUID is generated; the id is echoed on the response and attached to every log line inside the request via AsyncLocalStorage. `getRequestId()`, `requestContextMiddleware`, `JsonLogger` exported from the root and the new `api-server-toolkit/logger` subpath. Morgan's `json` access-log format carries `requestId` too.
+
+### Fixed
+- Morgan `json` format was silently ignored: `morgan('json', fn)` treats `fn` as the options object, so the custom JSON fields (timestamp, userAgent, camelCase timing) never reached the output and the predefined morgan json format was logged instead. The format function is now passed as the first argument.
+
 ## [0.19.0] - 2026-09-28
 
 ### Added
