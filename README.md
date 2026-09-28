@@ -1046,6 +1046,10 @@ exported from the root and the `api-server-toolkit/logger` subpath
 (`requestContextMiddleware`, `JsonLogger`, `REQUEST_ID_HEADER`). Without the
 env var behavior is unchanged (human-readable console logs).
 
+> **Ordering:** `Log.setup(app)` must be called **before** `Morgan.setup(app)`
+> — the access log reads the request id from the context `Log.setup` installs.
+> `main.ts` order elsewhere: `…Helmet → Log → Morgan → …`.
+
 ---
 
 ## AI Context Generation
