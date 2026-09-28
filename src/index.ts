@@ -70,6 +70,12 @@ export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
 
+// --- Metrics (Prometheus) ---
+export * from './common/metrics/metrics.module';
+export * from './common/metrics/metrics.controller';
+export * from './common/metrics/metrics.interceptor';
+export * from './common/metrics/metrics.service';
+
 // --- Guards ---
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';

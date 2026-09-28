@@ -66,7 +66,8 @@ async function request<T = unknown>(
     }
 
     const headers: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
+    // Minimal fetch mocks (and exotic runtimes) may omit `headers` — tolerate it
+    response.headers?.forEach?.((value, key) => {
       headers[key] = value;
     });
 

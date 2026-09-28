@@ -150,6 +150,20 @@ describe('http.helper', () => {
         expect((e as HttpError).data).toEqual({ error: 'bad request' });
       }
     });
+
+    it('tolerates minimal mock responses without headers', async () => {
+      // Event subscribers mock fetch with bare {status, ok, text} — no headers
+      global.fetch = jest.fn(async () => ({
+        status: 201,
+        ok: true,
+        text: async () => JSON.stringify({ created: true }),
+      })) as any;
+      const res = await httpPost('http://subscriber.local/webhook', { a: 1 });
+      expect(res.status).toBe(201);
+      expect(res.ok).toBe(true);
+      expect(res.data).toEqual({ created: true });
+      expect(res.headers).toEqual({});
+    });
   });
 
   describe('HttpError', () => {

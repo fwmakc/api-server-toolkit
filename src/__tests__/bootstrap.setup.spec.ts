@@ -18,7 +18,7 @@ jest.mock('@nestjs/common', () => ({
   Logger: jest.fn().mockReturnValue({}),
 }));
 
-const { Helmet, Morgan, Cors, CookieParser, Passport, Swagger, ValidationPipe, Log, Prefix, Sentry, Telemetry } = require('../common/bootstrap/setup/index');
+const { Helmet, Morgan, Cors, CookieParser, Passport, Swagger, ValidationPipe, Log, Prefix, Sentry } = require('../common/bootstrap/setup/index');
 
 const createMockApp = () => ({
   use: jest.fn(),
@@ -252,12 +252,6 @@ describe('bootstrap setup utilities', () => {
       expect(sentry.init).toHaveBeenCalledWith(
         expect.objectContaining({ dsn: 'https://key@sentry.io/1', environment: 'production' }),
       );
-    });
-  });
-
-  describe('Telemetry', () => {
-    it('catches error silently when opentelemetry not installed', () => {
-      expect(() => Telemetry.setup(app, { serviceName: 'test' })).not.toThrow();
     });
   });
 });

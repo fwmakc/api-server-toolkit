@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-09-28
+
+### Added
+- `MetricsModule.forRoot({ service, defaultLabels?, defaultMetricsInterval? })` — Prometheus observability: `GET /metrics` endpoint (`prom-client`), Node.js/process default metrics, and automatic HTTP instrumentation (method / route-pattern / status / duration via a global interceptor; `/metrics` itself excluded). All metrics carry a `service` label. Custom counters/gauges/histograms via `MetricsService.counter()/gauge()/histogram()`. Subpath import: `api-server-toolkit/metrics`.
+
+### Removed
+- `Telemetry` bootstrap stub — it was dead code (referenced a non-existent package and no service called it). Distributed tracing is deferred until there is a collector to receive spans; `httpPost` keeps propagating OTel trace headers when `@opentelemetry/api` is present.
+
+### Fixed
+- `httpPost`/`httpGet` — no longer crash when the fetch response has no `headers` (minimal fetch mocks in consumer tests made every webhook delivery look "failed").
+
 ## [0.18.0] - 2026-09-28
 
 ### Added

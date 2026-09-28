@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 183 declaration files.
+Generated from 188 declaration files.
 
 ---
 
@@ -159,6 +159,12 @@ export {};
 ```
 
 ## dist\__tests__\internal-auth.guard.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\metrics.spec.d.ts
 
 ```typescript
 export {};
@@ -548,7 +554,6 @@ export { Swagger } from './swagger';
 export { ValidationPipe } from './validation-pipe';
 export { Log } from './log';
 export { Prefix } from './prefix';
-export { Telemetry } from './telemetry';
 ```
 
 ## dist\common\bootstrap\setup\log.d.ts
@@ -603,18 +608,6 @@ export declare const Sentry: {
 ```typescript
 export declare const Swagger: {
     setup(app: any): void;
-};
-```
-
-## dist\common\bootstrap\setup\telemetry.d.ts
-
-```typescript
-export interface TelemetryOptions {
-    serviceName: string;
-    otlpEndpoint?: string;
-}
-export declare const Telemetry: {
-    setup(app: any, opts: TelemetryOptions): void;
 };
 ```
 
@@ -1261,6 +1254,65 @@ export declare class RemovePrivateFieldsInterceptor implements NestInterceptor {
 }
 ```
 
+## dist\common\metrics\metrics.controller.d.ts
+
+```typescript
+import { Response } from 'express';
+import { MetricsService } from './metrics.service';
+export declare class MetricsController {
+    private readonly metrics;
+    constructor(metrics: MetricsService);
+    getMetrics(res: Response): Promise<void>;
+}
+```
+
+## dist\common\metrics\metrics.interceptor.d.ts
+
+```typescript
+import { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { MetricsService } from './metrics.service';
+export declare class MetricsInterceptor implements NestInterceptor {
+    private readonly metrics;
+    constructor(metrics: MetricsService);
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown>;
+}
+```
+
+## dist\common\metrics\metrics.module.d.ts
+
+```typescript
+import { DynamicModule } from '@nestjs/common';
+import { MetricsModuleOptions } from './metrics.service';
+export declare class MetricsModule {
+    static forRoot(options: MetricsModuleOptions): DynamicModule;
+}
+```
+
+## dist\common\metrics\metrics.service.d.ts
+
+```typescript
+import { Counter, Gauge, Histogram, Registry } from 'prom-client';
+export declare const METRICS_SERVICE_NAME = "METRICS_SERVICE_NAME";
+export interface MetricsModuleOptions {
+    service: string;
+    defaultLabels?: Record<string, string>;
+    defaultMetricsInterval?: number;
+}
+export declare class MetricsService {
+    readonly registry: Registry<"text/plain; version=0.0.4; charset=utf-8">;
+    readonly contentType: "text/plain; version=0.0.4; charset=utf-8";
+    private readonly httpRequests;
+    private readonly httpDuration;
+    constructor(options: MetricsModuleOptions);
+    observeHttp(method: string, route: string, status: number, durationSec: number): void;
+    counter(name: string, help: string, labelNames?: string[]): Counter<string>;
+    gauge(name: string, help: string, labelNames?: string[]): Gauge<string>;
+    histogram(name: string, help: string, labelNames?: string[], buckets?: number[]): Histogram<string>;
+    getMetrics(): Promise<string>;
+}
+```
+
 ## dist\common\permission.registry.d.ts
 
 ```typescript
@@ -1834,6 +1886,10 @@ export * from './common/doc/self.doc';
 export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
+export * from './common/metrics/metrics.module';
+export * from './common/metrics/metrics.controller';
+export * from './common/metrics/metrics.interceptor';
+export * from './common/metrics/metrics.service';
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
 export * from './common/guard/api-key.guard';
@@ -1881,4 +1937,13 @@ export * from './common/service/batch-loader.service';
 export * from './common/service/where.service';
 export * from './common/type/api.type';
 export * from './common/type/search.type';
+```
+
+## dist\metrics.d.ts
+
+```typescript
+export * from './common/metrics/metrics.module';
+export * from './common/metrics/metrics.controller';
+export * from './common/metrics/metrics.interceptor';
+export * from './common/metrics/metrics.service';
 ```

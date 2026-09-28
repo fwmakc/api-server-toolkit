@@ -1000,6 +1000,32 @@ import { httpPost, httpGet } from 'api-server-toolkit/helper';
 
 ---
 
+## Metrics (Prometheus)
+
+`MetricsModule.forRoot({ service })` adds a `GET /metrics` scrape endpoint
+(`prom-client`, text exposition) with Node.js/process default metrics and
+automatic HTTP instrumentation — request counter and duration histogram labeled
+by method / route-pattern / status. Every metric carries a `service` label, so
+one Prometheus can scrape all services without conflicts.
+
+```typescript
+import { MetricsModule } from 'api-server-toolkit/metrics';
+
+@Module({
+  imports: [MetricsModule.forRoot({ service: 'auth-server' })],
+})
+export class AppModule {}
+```
+
+- Routes are recorded as **patterns** (`/users/:id`), never raw paths — label
+  cardinality stays bounded; unmatched routes are labeled `unmatched`.
+- `/metrics` itself is excluded from instrumentation.
+- Custom metrics: inject `MetricsService` and use `counter()/gauge()/histogram()`.
+- The endpoint is intentionally unauthenticated — keep it on the internal
+  network (the gateway nginx does not proxy `/metrics`).
+
+---
+
 ## AI Context Generation
 
 The toolkit ships two tools for AI-assisted development:

@@ -8,4 +8,3 @@ export { Swagger } from './swagger';
 export { ValidationPipe } from './validation-pipe';
 export { Log } from './log';
 export { Prefix } from './prefix';
-export { Telemetry } from './telemetry';
