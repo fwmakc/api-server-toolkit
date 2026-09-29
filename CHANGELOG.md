@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.3] - 2026-09-29
+### Fixed
+- `QueueWorker` claim: Postgres rejects `FOR UPDATE` on the nullable side of an outer join, so any worker whose `loadRelations` override adds a `leftJoinAndSelect` (e.g. MailWorker hydrating `data.attachments`) failed every cycle with «FOR UPDATE cannot be applied to the nullable side of an outer join» and jobs stayed `pending` forever. Candidate ids are now locked first (`SELECT id ... FOR UPDATE SKIP LOCKED`), then relations are hydrated by a second, lock-free query inside the same transaction — rows stay locked until commit, so claiming semantics are unchanged.
+- `QueueWorker` claim: the follow-up status update was built with `createQueryBuilder('j').update()` — Postgres has no FROM clause in `UPDATE`, so the aliased `WHERE "j"."id"` failed with «missing FROM-clause entry for table "j"». Replaced with a plain `repo.update(ids, ...)`.
+
 ## [0.20.2] - 2026-09-29
 ### Fixed
 - `bootstrap()` now binds `0.0.0.0` by default. The previous default (`localhost`) made services loopback-only, which is unreachable cross-container — nginx proxied every route to 502 and inter-service webhooks could not connect. Pass an explicit `ip` to narrow the binding.

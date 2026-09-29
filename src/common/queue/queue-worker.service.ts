@@ -88,8 +88,13 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
     return this.repo.manager.transaction(async (manager) => {
       const repo = manager.getRepository(this.repo.target) as Repository<TJob>;
 
-      const qb = repo
+      // Lock candidate ids only: Postgres forbids FOR UPDATE on the nullable
+      // side of an outer join, so relations are hydrated by a second,
+      // lock-free query in the same transaction (rows stay locked until it
+      // commits, so no other worker can claim them in between).
+      const locked = await repo
         .createQueryBuilder('j')
+        .select('j.id', 'id')
         .setLock('pessimistic_write')
         .setOnLocked('skip_locked')
         .where(
@@ -98,18 +103,28 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
           { now, staleBefore },
         )
         .orderBy('j.id', 'ASC')
-        .take(this.queueConfig.batchSize);
+        .take(this.queueConfig.batchSize)
+        .getRawMany();
+      const ids = locked
+        .map((row) => Number(row.id))
+        .filter((id) => Number.isFinite(id));
 
-      this.loadRelations(qb);
-      const jobs = await qb.getMany();
+      let jobs: TJob[] = [];
+      if (ids.length > 0) {
+        const hydrate = repo.createQueryBuilder('j');
+        this.loadRelations(hydrate);
+        jobs = await hydrate
+          .where('j.id IN (:...ids)', { ids })
+          .orderBy('j.id', 'ASC')
+          .getMany();
 
-      if (jobs.length > 0) {
-        await repo
-          .createQueryBuilder('j')
-          .update()
-          .set({ status: 'processing' as QueueStatus, lastAttemptAt: new Date() } as any)
-          .where('j.id IN (:...ids)', { ids: jobs.map((j) => j.id) })
-          .execute();
+        // repo.update, not createQueryBuilder('j').update(): the aliased
+        // WHERE would produce UPDATE ... WHERE "j".id, which Postgres rejects
+        // (no FROM clause in UPDATE to define the alias).
+        await repo.update(ids, {
+          status: 'processing' as QueueStatus,
+          lastAttemptAt: new Date(),
+        } as any);
       }
 
       return jobs;
