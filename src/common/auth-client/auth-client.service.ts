@@ -10,6 +10,7 @@ export class AuthClientService {
   private readonly internalKey: string;
   private cache = new Map<number, { data: AccountInfo; expires: number }>();
   private readonly defaultTtl: number;
+  private readonly maxEntries: number;
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl =
@@ -17,6 +18,8 @@ export class AuthClientService {
     this.internalKey = this.configService.get('INTERNAL_API_KEY') || '';
     const ttlEnv = process.env.AUTH_CACHE_TTL;
     this.defaultTtl = ttlEnv !== undefined ? Number(ttlEnv) : 30_000;
+    const maxEnv = process.env.AUTH_CACHE_MAX;
+    this.maxEntries = Number(maxEnv) > 0 ? Number(maxEnv) : 10_000;
     if (!this.internalKey) {
       this.logger.warn(
         'INTERNAL_API_KEY is not set — auth-server requests will fail',
@@ -26,8 +29,14 @@ export class AuthClientService {
 
   async getAccountInfo(id: number): Promise<AccountInfo | null> {
     const cached = this.cache.get(id);
-    if (cached && cached.expires > Date.now()) {
-      return cached.data;
+    if (cached) {
+      // Переустановка перемещает id в конец Map (порядок = давность
+      // использования, LRU), просроченная запись просто выбрасывается
+      this.cache.delete(id);
+      if (cached.expires > Date.now()) {
+        this.cache.set(id, cached);
+        return cached.data;
+      }
     }
 
     try {
@@ -48,6 +57,7 @@ export class AuthClientService {
         data: response.data as AccountInfo,
         expires: Date.now() + ttl,
       });
+      this.evictStale();
       return response.data as AccountInfo;
     } catch (e) {
       this.logger.error(
@@ -62,6 +72,14 @@ export class AuthClientService {
       this.cache.delete(id);
     } else {
       this.cache.clear();
+    }
+  }
+
+  private evictStale() {
+    while (this.cache.size > this.maxEntries) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest === undefined) break;
+      this.cache.delete(oldest);
     }
   }
 }

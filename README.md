@@ -1153,6 +1153,7 @@ Consumer can set `AUTH_CACHE_TTL` as fallback when header is missing.
 | `AUTH_SERVER_URL` | Consumer | `http://localhost:3001` | Auth-server base URL |
 | `INTERNAL_API_KEY` | Consumer | — | Shared secret for internal calls |
 | `AUTH_CACHE_TTL` | Consumer | 30000 | Fallback cache TTL in ms |
+| `AUTH_CACHE_MAX` | Consumer | 10000 | Max cached entries (LRU — the least recently used entry is evicted beyond the limit) |
 | `INTERNAL_INFO_CACHE_TTL` | Auth-server | 30 | Cache-Control max-age in seconds |
 
 ### Peer dependencies
