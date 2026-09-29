@@ -27,10 +27,10 @@ describe('bootstrap (thin)', () => {
     process.removeAllListeners('SIGINT');
   });
 
-  it('calls app.listen with PORT env and localhost', async () => {
+  it('calls app.listen with PORT env and the 0.0.0.0 default', async () => {
     process.env.PORT = '3000';
     await bootstrap(mockApp as any);
-    expect(mockApp.listen).toHaveBeenCalledWith('3000', 'localhost');
+    expect(mockApp.listen).toHaveBeenCalledWith('3000', '0.0.0.0');
   });
 
   it('calls app.listen with custom port and ip from options', async () => {
