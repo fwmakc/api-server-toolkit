@@ -12,7 +12,10 @@ export async function bootstrap(
 ): Promise<void> {
   const {
     port = process.env.PORT,
-    ip = 'localhost',
+    // Bind all interfaces: in containers the service must be reachable
+    // cross-container (nginx, webhooks). Pass a narrower ip explicitly
+    // for host-only setups.
+    ip = '0.0.0.0',
   } = options || {};
 
   const logger = new Logger('Bootstrap');
