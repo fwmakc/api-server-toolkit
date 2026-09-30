@@ -65,6 +65,10 @@
     "./logger": {
       "types": "./dist/logger.d.ts",
       "default": "./dist/logger.js"
+    },
+    "./db": {
+      "types": "./dist/db.d.ts",
+      "default": "./dist/db.js"
     }
   },
   "typesVersions": {
@@ -95,6 +99,9 @@
       ],
       "logger": [
         "dist/logger.d.ts"
+      ],
+      "db": [
+        "dist/db.d.ts"
       ]
     }
   },
