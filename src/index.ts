@@ -112,6 +112,9 @@ export * from './common/queue/queue-job.entity';
 export * from './common/queue/queue-worker.service';
 export * from './common/queue/queue.service';
 
+// --- DB (boot migrations) ---
+export * from './common/db/migrations-lock';
+
 // --- Services ---
 export * from './common/service/admin.service';
 export * from './common/service/owner.service';

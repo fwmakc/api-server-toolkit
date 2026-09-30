@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-09-30
+### Added
+- **`runMigrationsUnderLock(option, lockKey?)`** (root export): runs pending TypeORM migrations under a PostgreSQL transaction-local advisory lock (`pg_advisory_xact_lock` held by an explicit transaction for the whole `runMigrations()` call). TypeORM 0.3.x has no built-in migration locking, so simultaneously booting replicas raced on a cold database (both running `InitialSchema` → one crashes with «relation already exists»). The transaction-scoped lock works behind pgbouncer in transaction-pooling mode, where a session-level `pg_advisory_lock` could be released from a different backend connection. Non-PostgreSQL drivers run unlocked; the throwaway DataSource is destroyed in every code path and `migrationsRun` is stripped from the returned options — services call it from `dataSourceFactory` before constructing the app DataSource. All four DB services (api/auth/event/message) wire it; boot migrations are now multi-replica safe out of the box (a one-per-deploy `migration:run` remains the recommendation for large fleets — it removes migration time from boot entirely).
+
 ## [0.22.0] - 2026-09-30
 ### Fixed
 - **`AccessRule.filter` was never compiled into the bind** (self-pentest, critical): a public read rule like `{ who: ['public'], filter: { isPublished: true } }` imposed no restriction — the filter was dead code, and a scope-`all` match compiled to `undefined`, which hit the service-level default `{ allow: true }` (trusted-call bypass). `compileRuleToBind` now returns an explicit bind for scope-`all`, carries `rule.filter` into the bind (`buildFindWhere`/`buildCountWhere` merge it over the client `where` — filter wins), and `bind.roles` drives field stripping (`removePrivateFields`/`stripWriteFields`), so response/request field rules apply on service-level calls too.
