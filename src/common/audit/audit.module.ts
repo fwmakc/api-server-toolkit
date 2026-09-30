@@ -1,5 +1,6 @@
-import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider, Type } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { EventClientModule } from '../client/event-client.module';
 import { AuditInterceptor } from './audit.interceptor';
 import { AuditService } from './audit.service';
 
@@ -8,6 +9,14 @@ export interface AuditModuleOptions {
    * Turn off for services whose mutations are fully covered by explicit
    * audit calls (e.g. auth-server). Default: true. */
   mutations?: boolean;
+  /** Bind IEventClient by importing EventClientModule here. Without it
+   * AuditService cannot see the app-root's EventClientModule (module scopes
+   * are not shared) and silently falls back to log lines. Set false only
+   * when you pass the client's module yourself via `imports`. Default: true. */
+  client?: boolean;
+  /** Extra modules made visible to AuditService (e.g. a custom IEventClient
+   * provider module when `client: false`). */
+  imports?: Array<DynamicModule | Type>;
 }
 
 /** Global so AccessGuard can inject AuditService from any module context. */
@@ -21,6 +30,10 @@ export class AuditModule {
     }
     return {
       module: AuditModule,
+      imports: [
+        ...(options.client === false ? [] : [EventClientModule]),
+        ...(options.imports ?? []),
+      ],
       providers,
       exports: [AuditService],
     };

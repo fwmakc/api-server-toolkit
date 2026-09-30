@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.1] - 2026-09-30
+### Fixed
+- `AuditModule.forRoot()` did not resolve `IEventClient`: `AuditService` is a provider of `AuditModule`, and Nest module scopes are not shared — an `EventClientModule` imported at the app root is invisible to it, so the client stayed `undefined` and every audit entry silently degraded to the fallback log line (found by a new DI-wiring test that compiles the real module graph). `forRoot()` now imports `EventClientModule` itself. Apps that bind their own `IEventClient` pass `client: false` and expose it via the new `imports` option.
+
 ## [0.21.0] - 2026-09-30
 ### Added
 - **Audit logging** (`AuditModule`, `AuditService`, `AuditInterceptor`): security-relevant events are published to the event bus as `audit.event` (contract owned by event-server, hash-chained append-only storage there). `AuditModule.forRoot({ mutations?: boolean })` is a `@Global()` module; `AuditService.log()` is fire-and-forget, injects `requestId` from the request-scoped ALS, and falls back to a structured `audit-fallback {...}` log line when no `IEventClient` is bound. When `mutations !== false`, an `APP_INTERCEPTOR` records non-GET 2xx responses as `data.created` / `data.updated` / `data.deleted`.

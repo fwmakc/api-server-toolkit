@@ -1,11 +1,13 @@
 import 'reflect-metadata';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Module } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
 import { of } from 'rxjs';
 import { lastValueFrom } from 'rxjs';
 import { ACCESS_RULES_METADATA, AccessGuard } from '../common/guard/access.guard';
 import { AccessRule } from '../common/access.rules';
 import { AuditInterceptor } from '../common/audit/audit.interceptor';
+import { AuditModule } from '../common/audit/audit.module';
 import { AuditService } from '../common/audit/audit.service';
 import { IEventClient } from '../common/client/event-client.interfaces';
 
@@ -53,6 +55,27 @@ describe('AuditService', () => {
     const client = { publish: jest.fn().mockRejectedValue(new Error('bus down')) } as unknown as IEventClient;
     const audit = new AuditService(client);
     expect(() => audit.log({ action: 'auth.login.success', accountId: 1 })).not.toThrow();
+  });
+
+  it('AuditModule wiring: AuditService resolves the event client from EventClientModule', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AuditModule.forRoot()],
+    }).compile();
+    const audit = moduleRef.get(AuditService);
+    expect((audit as any).client).toBeDefined();
+  });
+
+  it('AuditModule wiring: client: false with a custom imports module is honored', async () => {
+    @Module({
+      providers: [{ provide: IEventClient, useValue: { publish: jest.fn() } }],
+      exports: [IEventClient],
+    })
+    class CustomClientModule {}
+    const moduleRef = await Test.createTestingModule({
+      imports: [AuditModule.forRoot({ client: false, imports: [CustomClientModule] })],
+    }).compile();
+    const audit = moduleRef.get(AuditService);
+    expect((audit as any).client).toBeDefined();
   });
 });
 
