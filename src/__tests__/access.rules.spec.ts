@@ -135,9 +135,15 @@ describe('access.rules', () => {
       expect(bind?.allow).toBe(true);
     });
 
-    it('scope all produces no bind (no filter)', () => {
+    it('scope all produces an explicit bind (never undefined — undefined means trusted allow-bind)', () => {
       const bind = compileRuleToBind(matched({}), user({ roles: [] }));
-      expect(bind).toBeUndefined();
+      expect(bind).toEqual({ roles: ['authenticated'] });
+      expect(bind?.allow).toBeUndefined();
+    });
+
+    it('rule filter travels into the bind (filter wins over where)', () => {
+      const bind = compileRuleToBind(matched({ filter: { isPublished: true } }), user({ roles: [] }));
+      expect(bind).toEqual({ filter: { isPublished: true }, roles: ['authenticated'] });
     });
 
     it('no match produces no bind', () => {
@@ -172,12 +178,32 @@ describe('access.rules', () => {
       expect(bind?.tenantId).toBe(7);
     });
 
+    it('owner scope without account id fails closed (silent skip meant the whole table)', () => {
+      expect(() =>
+        compileRuleToBind(
+          matched({ scope: { owner: 'author.id' } }),
+          user({ id: undefined }),
+        ),
+      ).toThrow(/requires an account id/);
+    });
+
+    it('tenant scope without tenantId fails closed', () => {
+      expect(() =>
+        compileRuleToBind(
+          matched({ scope: { tenant: 'tenant.id' } }),
+          user({ roles: [] }),
+        ),
+      ).toThrow(/requires a tenantId/);
+    });
+
     it('widened scope compiles like all', () => {
       const m = matchRule(
         [{ who: ['moderator'], scope: { owner: 'author.id' } }],
         user({ roles: ['moderator'], roleEntries: [{ role: 'moderator', tenant: 'all' }] }),
       );
-      expect(compileRuleToBind(m, user({ roles: ['moderator'] }))).toBeUndefined();
+      const bind = compileRuleToBind(m, user({ roles: ['moderator'] }));
+      expect(bind).toEqual({ roles: ['moderator', 'authenticated'] });
+      expect(bind?.allow).toBeUndefined();
     });
   });
 

@@ -80,6 +80,8 @@ export async function executeMovePosition<Entity>(
   oldPosition: number,
   newPosition: number,
   manager: EntityManager,
+  bind: BindDto = {},
+  metadata?: EntityMetadata,
 ): Promise<void> {
   if (oldPosition === newPosition) return;
 
@@ -88,12 +90,33 @@ export async function executeMovePosition<Entity>(
       oldPosition > newPosition ? `${field} + 1` : `${field} - 1`,
   };
 
+  // Range-сдвиг двигает ЧУЖИЕ строки — без штампов скоупа он перенумеровал бы
+  // строки других owner'ов/тенантов (запрос обновления ограничен скоупом бинда).
   const whereEntries: DeepPartial<any> = {
     [field]:
       oldPosition > newPosition
         ? And(MoreThanOrEqual(newPosition), LessThan(oldPosition))
         : And(MoreThan(oldPosition), LessThanOrEqual(newPosition)),
   };
+  if (bind.id !== undefined && !bind.allow) {
+    if (bind.name?.includes('.') && metadata) {
+      const { resolveBindRelationId } = await import('./bind-resolve.helper');
+      const resolvedId = await resolveBindRelationId(metadata, bind, manager);
+      whereEntries[bind.name] =
+        resolvedId !== null
+          ? { id: resolvedId }
+          : { [bind.key || 'id']: bind.id };
+    } else {
+      whereEntries[bind.name || OWNER_TABLE] = {
+        [bind.key || 'id']: bind.id,
+      };
+    }
+  }
+  if (bind.tenantId !== undefined && bind.tenantName && !bind.allow) {
+    whereEntries[bind.tenantName] = {
+      [bind.tenantKey || 'id']: bind.tenantId,
+    };
+  }
 
   await manager.update(entityTarget, whereEntries, updateEntries);
 

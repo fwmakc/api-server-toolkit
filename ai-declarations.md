@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 188 declaration files.
+Generated from 199 declaration files.
 
 ---
 
@@ -75,6 +75,18 @@ export {};
 ```
 
 ## dist\__tests__\array.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\audit.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\auth-client.service.spec.d.ts
 
 ```typescript
 export {};
@@ -159,6 +171,12 @@ export {};
 ```
 
 ## dist\__tests__\internal-auth.guard.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\logger.spec.d.ts
 
 ```typescript
 export {};
@@ -422,6 +440,59 @@ export declare function validateAccessRegistry(dataSource: DataSource): void;
 export declare function validateEntityAccess(metadata: EntityMetadata, config: EntityAccessConfig): string[];
 ```
 
+## dist\common\audit\audit.interceptor.d.ts
+
+```typescript
+import { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { AuditService } from './audit.service';
+export declare class AuditInterceptor implements NestInterceptor {
+    private readonly audit;
+    constructor(audit: AuditService);
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown>;
+}
+```
+
+## dist\common\audit\audit.module.d.ts
+
+```typescript
+import { DynamicModule, Type } from '@nestjs/common';
+export interface AuditModuleOptions {
+    mutations?: boolean;
+    client?: boolean;
+    imports?: Array<DynamicModule | Type>;
+}
+export declare class AuditModule {
+    static forRoot(options?: AuditModuleOptions): DynamicModule;
+}
+```
+
+## dist\common\audit\audit.service.d.ts
+
+```typescript
+import { IEventClient } from '../client/event-client.interfaces';
+export declare const AUDIT_EVENT_PATTERN = "audit.event";
+export interface AuditEntry {
+    action: string;
+    outcome?: 'allow' | 'deny' | 'success' | 'failure';
+    accountId?: number | string;
+    accountUsername?: string;
+    tenantId?: number | string;
+    ip?: string;
+    userAgent?: string;
+    requestId?: string;
+    targetType?: string;
+    targetId?: string | number;
+    details?: Record<string, unknown>;
+}
+export declare class AuditService {
+    private readonly client?;
+    private readonly logger;
+    constructor(client?: IEventClient);
+    log(entry: AuditEntry): void;
+}
+```
+
 ## dist\common\auth-client\account.strategy.d.ts
 
 ```typescript
@@ -467,9 +538,11 @@ export declare class AuthClientService {
     private readonly internalKey;
     private cache;
     private readonly defaultTtl;
+    private readonly maxEntries;
     constructor(configService: ConfigService);
     getAccountInfo(id: number): Promise<AccountInfo | null>;
     clearCache(id?: number): void;
+    private evictStale;
 }
 ```
 
@@ -509,6 +582,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 export interface BootstrapOptions {
     port?: number | string;
     ip?: string;
+    trustProxy?: boolean | number | string;
 }
 export declare function bootstrap(app: NestExpressApplication, options?: BootstrapOptions): Promise<void>;
 ```
@@ -890,10 +964,14 @@ import { BindDto } from './dto/bind.dto';
 export declare class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     protected readonly repository: Repository<Entity>;
     protected getRepository(): Repository<Entity>;
-    find(find?: FindDto, bind?: BindDto): Promise<Entity[]>;
+    find(find?: FindDto, bind?: BindDto, opts?: {
+        includeDeleted?: boolean;
+    }): Promise<Entity[]>;
     findFirst(find: FindDto, bind?: BindDto): Promise<Entity>;
     findMany(findMany: FindManyDto, bind?: BindDto): Promise<Entity[]>;
-    findOne(findOne: FindOneDto, bind?: BindDto): Promise<Entity>;
+    findOne(findOne: FindOneDto, bind?: BindDto, opts?: {
+        includeDeleted?: boolean;
+    }): Promise<Entity>;
     count(find: FindDto, bind?: BindDto): Promise<number>;
     countDistinct(field: string, find: FindDto): Promise<number>;
     protected persistCreate(entity: DeepPartial<any>, bind: BindDto, manager: EntityManager): Promise<any>;
@@ -904,6 +982,7 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getIdType(): string;
+    private existsInScope;
     remove(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
     hardDelete(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
     restore(id: number | string, bind?: BindDto): Promise<boolean>;
@@ -1103,10 +1182,12 @@ export declare const EntityController: (options: EntityControllerOptions) => {
 ```typescript
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { AuditService } from '../audit/audit.service';
 export declare const ACCESS_RULES_METADATA = "access-rules";
 export declare class AccessGuard implements CanActivate {
     private readonly reflector;
-    constructor(reflector: Reflector);
+    private readonly audit?;
+    constructor(reflector: Reflector, audit?: AuditService);
     canActivate(context: ExecutionContext): boolean;
 }
 ```
@@ -1189,6 +1270,12 @@ export declare function httpPost<T = unknown>(url: string, body?: unknown, optio
 export declare function httpGet<T = unknown>(url: string, options?: HttpOptions): Promise<HttpResponse<T>>;
 ```
 
+## dist\common\helper\ip.helper.d.ts
+
+```typescript
+export declare function getClientIp(request: any): string | undefined;
+```
+
 ## dist\common\helper\object.helper.d.ts
 
 ```typescript
@@ -1252,6 +1339,36 @@ import { Observable } from 'rxjs';
 export declare class RemovePrivateFieldsInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<unknown>;
 }
+```
+
+## dist\common\logger\index.d.ts
+
+```typescript
+export { requestContextMiddleware, getRequestId, REQUEST_ID_HEADER } from './request.context';
+export { JsonLogger } from './json.logger';
+```
+
+## dist\common\logger\json.logger.d.ts
+
+```typescript
+import { LoggerService } from '@nestjs/common';
+export declare class JsonLogger implements LoggerService {
+    log(message: any, context?: string): void;
+    error(message: any, stackOrContext?: string, context?: string): void;
+    warn(message: any, context?: string): void;
+    debug?(message: any, context?: string): void;
+    verbose?(message: any, context?: string): void;
+    fatal?(message: any, stackOrContext?: string, context?: string): void;
+    private emit;
+}
+```
+
+## dist\common\logger\request.context.d.ts
+
+```typescript
+export declare const REQUEST_ID_HEADER = "x-request-id";
+export declare function requestContextMiddleware(req: any, res: any, next: () => void): void;
+export declare function getRequestId(): string | undefined;
 ```
 
 ## dist\common\metrics\metrics.controller.d.ts
@@ -1615,7 +1732,7 @@ import { BindDto } from '../dto/bind.dto';
 import { FindDto } from '../dto/find.dto';
 export declare function validatePositionField(metadata: EntityMetadata, field: string): void;
 export declare function executeSortPosition<Entity>(entityTarget: EntityTarget<Entity>, field: string, entries: any[], find: FindDto, bind: BindDto, metadata: EntityMetadata, manager: EntityManager): Promise<boolean>;
-export declare function executeMovePosition<Entity>(entityTarget: EntityTarget<Entity>, id: number | string, field: string, _position: number, oldPosition: number, newPosition: number, manager: EntityManager): Promise<void>;
+export declare function executeMovePosition<Entity>(entityTarget: EntityTarget<Entity>, id: number | string, field: string, _position: number, oldPosition: number, newPosition: number, manager: EntityManager, bind?: BindDto, metadata?: EntityMetadata): Promise<void>;
 ```
 
 ## dist\common\service\private_fields.service.d.ts
@@ -1845,6 +1962,9 @@ export * from './common/permission.registry';
 export * from './common/client/event-client.interfaces';
 export * from './common/client/event-client.service';
 export * from './common/client/event-client.module';
+export * from './common/audit/audit.service';
+export * from './common/audit/audit.interceptor';
+export * from './common/audit/audit.module';
 export * from './common/column/bigint.column';
 export * from './common/column/boolean.column';
 export * from './common/column/created.column';
@@ -1886,6 +2006,8 @@ export * from './common/doc/self.doc';
 export * from './common/doc/update.doc';
 export * from './common/health/health.module';
 export * from './common/health/health.controller';
+export * from './common/logger/request.context';
+export * from './common/logger/json.logger';
 export * from './common/metrics/metrics.module';
 export * from './common/metrics/metrics.controller';
 export * from './common/metrics/metrics.interceptor';
@@ -1895,6 +2017,7 @@ export * from './common/guard/access.guard';
 export * from './common/guard/api-key.guard';
 export * from './common/helper/array.helper';
 export * from './common/helper/http.helper';
+export * from './common/helper/ip.helper';
 export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
@@ -1937,6 +2060,12 @@ export * from './common/service/batch-loader.service';
 export * from './common/service/where.service';
 export * from './common/type/api.type';
 export * from './common/type/search.type';
+```
+
+## dist\logger.d.ts
+
+```typescript
+export { requestContextMiddleware, getRequestId, REQUEST_ID_HEADER, JsonLogger } from './common/logger';
 ```
 
 ## dist\metrics.d.ts

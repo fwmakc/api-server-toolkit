@@ -135,12 +135,15 @@ describe('find.helper', () => {
       expect(mergeSearchWhere).toHaveBeenCalled();
     });
 
-    it('adds relation from search field with dot notation', () => {
+    it('does not load a relation from search field with dot notation (whitelist bypass fix)', () => {
       const find = createFind({} as any);
       (find as any).search = { fields: ['user.name'], term: 'test' };
       const bind = createBind({});
       const result = buildFindWhere(bind, find);
-      expect(result.relationNames).toContain('user');
+      // the nested where stays, but the relation must not be JOIN/batch-loaded:
+      // otherwise dotted search is a relations-whitelist bypass
+      expect(result.relationNames).not.toContain('user');
+      expect(result.where).toBeTruthy();
     });
 
     it('sets take and skip from limit and offset', () => {

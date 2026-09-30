@@ -46,8 +46,11 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   async find(
     find: FindDto = {},
     bind: BindDto = { allow: true },
+    opts?: { includeDeleted?: boolean },
   ): Promise<Entity[]> {
-    const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
+    const softDeleteCol = opts?.includeDeleted
+      ? null
+      : getSoftDeleteColumn(this.repository.metadata.target);
     const findResult = buildFindWhere(bind, find, softDeleteCol);
     try {
       return await executeFind(this.getRepository(), find, findResult, bind);
@@ -76,10 +79,15 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   async findOne(
     findOne: FindOneDto,
     bind: BindDto = { allow: true },
+    opts?: { includeDeleted?: boolean },
   ): Promise<Entity> {
     const { id, ...find } = findOne;
     const where: any = { ...find.where, id };
-    const [result] = await this.find({ ...find, where, limit: 1, offset: 0 }, bind);
+    const [result] = await this.find(
+      { ...find, where, limit: 1, offset: 0 },
+      bind,
+      opts,
+    );
     return result;
   }
 
@@ -208,11 +216,23 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return column?.type || 'int';
   }
 
+  /**
+   * Скоуп-проверка для remove/hardDelete/restore: строка должна существовать И
+   * попадать в бинд. Проверяются ВСЕ не-allow бинды (owner И tenant — у tenant
+   * bind.id не задан, старый guard его пропускал → cross-tenant delete по id).
+   * Soft-delete фильтр отключён: restore ищет именно удалённые строки.
+   */
+  private async existsInScope(id: number | string, bind: BindDto): Promise<boolean> {
+    const found = await this.findOne(
+      { id, select: { id: true } as any },
+      bind,
+      { includeDeleted: true },
+    );
+    return !!found;
+  }
+
   async remove(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
-    if (bind.id !== undefined && !bind.allow) {
-      const find = await this.findOne({ id, select: { id: true } }, bind);
-      if (!find) return false;
-    }
+    if (!bind.allow && !(await this.existsInScope(id, bind))) return false;
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
       const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
@@ -226,10 +246,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   }
 
   async hardDelete(id: number | string, bind: BindDto = { allow: true }, externalManager?: EntityManager): Promise<boolean> {
-    if (bind.id !== undefined && !bind.allow) {
-      const find = await this.findOne({ id, select: { id: true } }, bind);
-      if (!find) return false;
-    }
+    if (!bind.allow && !(await this.existsInScope(id, bind))) return false;
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
       return await hardRemove(repo, id);
@@ -241,10 +258,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
   async restore(id: number | string, bind: BindDto = { allow: true }): Promise<boolean> {
     const col = getSoftDeleteColumn(this.repository.metadata.target);
     if (!col) return false;
-    if (bind.id !== undefined && !bind.allow) {
-      const find = await this.findOne({ id, select: { id: true } }, bind);
-      if (!find) return false;
-    }
+    if (!bind.allow && !(await this.existsInScope(id, bind))) return false;
     try {
       return await restoreDeleted(this.getRepository(), id, col);
     } catch (e) {
@@ -338,7 +352,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (position === undefined || position === null) return false;
 
     const [entrie, lastEntrie] = await Promise.all([
-      this.findOne({ id, select: { [field]: true } }, bind),
+      // id нужен в select: owner/tenant-бинд даёт join + take → DISTINCT-подзапрос
+      // TypeORM ссылается на distinctAlias.<entity>_id
+      this.findOne({ id, select: { id: true, [field]: true } as any }, bind),
       this.findFirst({ select: { id: true, [field]: true }, order: { [field]: 'DESC' } }, bind),
     ]);
     if (!entrie) return false;
@@ -367,6 +383,8 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
           oldPosition,
           newPosition,
           manager,
+          bind,
+          this.repository.metadata,
         );
       });
       return true;

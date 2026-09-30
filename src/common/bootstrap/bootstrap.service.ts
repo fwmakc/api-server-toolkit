@@ -4,6 +4,11 @@ import { Logger } from '@nestjs/common';
 export interface BootstrapOptions {
   port?: number | string;
   ip?: string;
+  /** Express `trust proxy` value. Default: TRUST_PROXY env or 1 (one proxy
+   * hop — the gateway nginx). req.ip then resolves to the real client IP
+   * (rightmost X-Forwarded-For entry appended by nginx), which feeds the
+   * throttler and audit records. Set 0/false for direct exposure. */
+  trustProxy?: boolean | number | string;
 }
 
 export async function bootstrap(
@@ -16,7 +21,13 @@ export async function bootstrap(
     // cross-container (nginx, webhooks). Pass a narrower ip explicitly
     // for host-only setups.
     ip = '0.0.0.0',
+    trustProxy = process.env.TRUST_PROXY ?? 1,
   } = options || {};
+
+  const raw = String(trustProxy);
+  const proxyValue: boolean | number | string =
+    raw === 'true' ? true : raw === 'false' ? false : /^\d+$/.test(raw) ? Number(raw) : raw;
+  app.set('trust proxy', proxyValue);
 
   const logger = new Logger('Bootstrap');
 

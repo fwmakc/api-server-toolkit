@@ -3,26 +3,19 @@ import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { of } from 'rxjs';
 import { AddClientIpInterceptor } from '../common/interceptor/add-client-ip.interceptor';
 
-jest.mock('@supercharge/request-ip', () => ({
-  getClientIp: jest.fn().mockReturnValue('1.2.3.4'),
-}));
-
-import { getClientIp } from '@supercharge/request-ip';
-
 describe('AddClientIpInterceptor', () => {
   let interceptor: AddClientIpInterceptor;
 
   function mockContext(body: Record<string, unknown> = {}): ExecutionContext {
     return {
       switchToHttp: () => ({
-        getRequest: () => ({ body }),
+        getRequest: () => ({ body, ip: '1.2.3.4' }),
       }),
     } as any;
   }
 
   beforeEach(() => {
     interceptor = new AddClientIpInterceptor();
-    (getClientIp as jest.Mock).mockReturnValue('1.2.3.4');
   });
 
   it('adds client IP to request body with default key "ip"', () => {
@@ -56,15 +49,18 @@ describe('AddClientIpInterceptor', () => {
     expect(body.ip).toBe('1.2.3.4');
   });
 
-  it('calls getClientIp with request', () => {
+  it('falls back to socket address when req.ip is absent', () => {
     const body: Record<string, unknown> = {};
-    const ctx = mockContext(body);
-    const req = ctx.switchToHttp().getRequest();
+    const ctx = {
+      switchToHttp: () => ({
+        getRequest: () => ({ body, socket: { remoteAddress: '10.0.0.9' } }),
+      }),
+    } as any;
     const next: CallHandler = { handle: () => of('result') } as any;
 
-    interceptor.intercept(ctx, next).subscribe();
+    new AddClientIpInterceptor().intercept(ctx, next).subscribe();
 
-    expect(getClientIp).toHaveBeenCalledWith(req);
+    expect(body.ip).toBe('10.0.0.9');
   });
 
   it('passes through the observable', (done) => {

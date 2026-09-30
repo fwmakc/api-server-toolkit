@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { getClientIp } from '@supercharge/request-ip';
+import { getClientIp } from '../helper/ip.helper';
 import { Observable } from 'rxjs';
 
 @Injectable()

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-09-30
+### Fixed
+- **`AccessRule.filter` was never compiled into the bind** (self-pentest, critical): a public read rule like `{ who: ['public'], filter: { isPublished: true } }` imposed no restriction — the filter was dead code, and a scope-`all` match compiled to `undefined`, which hit the service-level default `{ allow: true }` (trusted-call bypass). `compileRuleToBind` now returns an explicit bind for scope-`all`, carries `rule.filter` into the bind (`buildFindWhere`/`buildCountWhere` merge it over the client `where` — filter wins), and `bind.roles` drives field stripping (`removePrivateFields`/`stripWriteFields`), so response/request field rules apply on service-level calls too.
+- **Cross-tenant delete by id** (self-pentest, critical): `remove`/`hardDelete`/`restore` scope-checked only owner binds (`bind.id`); a tenant bind (`bind.tenantId`, no `id`) silently skipped the check, so any id from another tenant was removable at `TENANT_STRATEGY=where`. All three now verify via `existsInScope` — the row must exist *and* fall inside the bind, for every non-allow bind. `restore` checks scope with soft-delete filtering disabled (`includeDeleted`) — previously it looked for `deleted_at IS NULL` and always refused to restore.
+- **Owner/tenant binds fail closed**: `compileRuleToBind` for an owner scope without `account.id` (or a tenant scope without `account.tenantId`) used to silently skip the stamp — producing an unscoped query over the whole table. It now throws `ForbiddenException`.
+- **`movePosition` range-shift ignored scope**: the `position ± 1` update over the shift range had no bind stamps, so moving one entry renumbered other owners'/tenants' rows in range. The range update is now stamped with the owner/tenant condition (same as `executeSortPosition`).
+- **Search no longer widens relation loading**: a search term on a dotted field (`account.email`) pushed that relation into `relationNames`, bypassing the caller's relations whitelist — the JOIN would pull unrelated data into the response. Nested where executes without loading the relation; only explicitly requested relations load.
+- **`distinctAlias` error on paginated scoped finds**: `take` + a bind-driven implicit relation join + a custom `select` without the primary key produced «column distinctAlias.&lt;entity&gt;_id does not exist» (TypeORM references the PK in its DISTINCT subquery). `executeFind` now adds `id` to the select in that combination; `movePosition`'s internal findOne selects `id` too.
+- **Client IP spoofing via `X-Forwarded-For`** (self-pentest): helpers parsed the raw `x-forwarded-for` header, whose leftmost element is client-controlled — audit logs and rate-limit buckets could be poisoned by header injection. New `getClientIp()` uses Express `req.ip` (right-most trusted proxy appended value); `bootstrap()` now sets `app.set('trust proxy', N)` from the `TRUST_PROXY` env (default `1` — one reverse proxy in front, nginx). Parsers in `AuditInterceptor`, `AccessGuard` and `AddClientIpInterceptor` switched to `getClientIp()`.
+
+### Added
+- `getClientIp(request)` helper (root export) — the single supported way to read a client IP server-side.
+- `BootstrapOptions.trustProxy` / `TRUST_PROXY` env (`false`/`true`/number/hop-string, default `1`).
+
 ## [0.21.1] - 2026-09-30
 ### Fixed
 - `AuditModule.forRoot()` did not resolve `IEventClient`: `AuditService` is a provider of `AuditModule`, and Nest module scopes are not shared — an `EventClientModule` imported at the app root is invisible to it, so the client stayed `undefined` and every audit entry silently degraded to the fallback log line (found by a new DI-wiring test that compiles the real module graph). `forRoot()` now imports `EventClientModule` itself. Apps that bind their own `IEventClient` pass `client: false` and expose it via the new `imports` option.

@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { AccountInfo, RoleName } from './access.type';
 import { BindDto } from './dto/bind.dto';
 import { isSuperuser } from './service/admin.service';
@@ -151,8 +152,11 @@ export function parseAccessPath(path: string): { name: string; key: string } {
 
 /**
  * Совпавшее правило → BindDto (внутренний мост к find/write/delete helper'ам).
- * Суперюзер → {allow:true}; scope 'all' → без фильтра (undefined);
+ * Суперюзер → {allow:true}; scope 'all' → без строчных фильтров, но ЯВНЫЙ бинд:
+ * undefined у CommonService означает «доверенный сервисный вызов» (allow:true
+ * по умолчанию) — вернув его сюда, отключили бы и rule.filter, и полевые правила.
  * owner → {id, key, name}; tenant → {tenantId, tenantKey, tenantName}.
+ * rule.filter переносится в bind.filter — «фильтр всегда сильнее where».
  */
 export function compileRuleToBind(
   matched: MatchedRule | undefined,
@@ -162,21 +166,38 @@ export function compileRuleToBind(
   const roles = rolesOf(account);
   if (isSuperuser(account)) return { allow: true, roles };
 
+  const { filter } = matched.rule;
+  const force = filter && Object.keys(filter).length > 0 ? { filter } : {};
+
   const { scope } = matched;
-  if (scope === 'all') return undefined;
+  if (scope === 'all') return { ...force, roles };
 
   if ('owner' in scope) {
+    if (account?.id === undefined) {
+      // fail closed: owner-бинд без id молча пропустил бы штамп → вся таблица
+      throw new ForbiddenException('Owner-scoped access requires an account id');
+    }
     const { name, key } = parseAccessPath(scope.owner);
-    return name
-      ? { id: account?.id, key, name, roles }
-      : { id: account?.id, key: 'id', roles };
+    return {
+      ...force,
+      id: account.id,
+      ...(name ? { name, key } : { key: 'id' }),
+      roles,
+    };
   }
 
+  if (account?.tenantId === undefined) {
+    // fail closed: tenant-бинд без tenantId молча пропустил бы штамп → вся таблица
+    throw new ForbiddenException(
+      'Tenant-scoped access requires a tenantId on the account',
+    );
+  }
   const { name, key } = parseAccessPath(scope.tenant);
   return {
+    ...force,
     tenantName: name,
     tenantKey: key,
-    tenantId: account?.tenantId,
+    tenantId: account.tenantId,
     roles,
   };
 }

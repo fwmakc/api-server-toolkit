@@ -7,12 +7,12 @@ jest.mock('@nestjs/common', () => ({
 import { bootstrap } from '../common/bootstrap/bootstrap.service';
 
 describe('bootstrap (thin)', () => {
-  let mockApp: { listen: jest.Mock; close: jest.Mock };
+  let mockApp: { listen: jest.Mock; close: jest.Mock; set: jest.Mock };
   let origPort: string | undefined;
   let origNodeEnv: string | undefined;
 
   beforeEach(() => {
-    mockApp = { listen: jest.fn().mockResolvedValue(undefined), close: jest.fn() };
+    mockApp = { listen: jest.fn().mockResolvedValue(undefined), close: jest.fn(), set: jest.fn() };
     origPort = process.env.PORT;
     origNodeEnv = process.env.NODE_ENV;
     delete process.env.PORT;

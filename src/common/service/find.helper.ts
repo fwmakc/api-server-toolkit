@@ -60,14 +60,10 @@ export function buildFindWhere(
   if (search) {
     const searchWhere = buildSearchWhere(search);
     where = mergeSearchWhere(where, searchWhere);
-    for (const field of search.fields) {
-      if (field.includes('.')) {
-        const firstSegment = field.split('.')[0];
-        if (!relationNames.includes(firstSegment)) {
-          relationNames.push(firstSegment);
-        }
-      }
-    }
+    // dotted search-поля НЕ добавляют связи к загрузке: иначе search по
+    // 'account.password' становится обходом вайтлиста relations (JOIN подтянул
+    // бы чужие данные в ответ). Вложенный where TypeORM исполняет и без
+    // загрузки связи; загружаются только явно запрошенные relations.
   }
 
   if (bind.filter && Object.keys(bind.filter).length > 0) {
@@ -120,14 +116,7 @@ export function buildCountWhere(
   if (find.search) {
     const searchWhere = buildSearchWhere(find.search);
     where = mergeSearchWhere(where, searchWhere);
-    for (const field of find.search.fields) {
-      if (field.includes('.')) {
-        const firstSegment = field.split('.')[0];
-        if (!relationNames.includes(firstSegment)) {
-          relationNames.push(firstSegment);
-        }
-      }
-    }
+    // см. buildFindWhere: dotted search не расширяет загрузку связей
   }
 
   if (bind.filter && Object.keys(bind.filter).length > 0) {
@@ -150,6 +139,20 @@ export async function executeFind<Entity extends BaseEntity>(
   let result: Entity[];
 
   const hasPagination = !!(take || skip);
+
+  // DISTINCT-подзапрос (take + неявный join из бинда) требует PK в select:
+  // TypeORM ссылается на distinctAlias.<entity>_id, которого нет при кастомном
+  // select без id → «column distinctAlias... does not exist».
+  if (
+    hasPagination &&
+    relationNames.length > 0 &&
+    params.select &&
+    typeof params.select === 'object' &&
+    !Array.isArray(params.select) &&
+    !params.select.id
+  ) {
+    params.select = { ...params.select, id: true };
+  }
 
   if (isMultiHop && hasPagination) {
     // take/skip из params ломают страницу: OFFSET считался бы по дублям JOIN,

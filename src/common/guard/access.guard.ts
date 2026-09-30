@@ -6,7 +6,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { getClientIp } from '@supercharge/request-ip';
+import { getClientIp } from '../helper/ip.helper';
 import { AccessRule, matchRule } from '../access.rules';
 import { AuditService } from '../audit/audit.service';
 import { isSuperuser } from '../service/admin.service';

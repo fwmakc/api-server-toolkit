@@ -4,7 +4,7 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { getClientIp } from '@supercharge/request-ip';
+import { getClientIp } from '../helper/ip.helper';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AccountInfo } from '../access.type';

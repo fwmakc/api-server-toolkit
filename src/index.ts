@@ -93,6 +93,7 @@ export * from './common/guard/api-key.guard';
 // --- Helpers ---
 export * from './common/helper/array.helper';
 export * from './common/helper/http.helper';
+export * from './common/helper/ip.helper';
 export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
