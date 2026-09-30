@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-09-30
+### Added
+- **Audit logging** (`AuditModule`, `AuditService`, `AuditInterceptor`): security-relevant events are published to the event bus as `audit.event` (contract owned by event-server, hash-chained append-only storage there). `AuditModule.forRoot({ mutations?: boolean })` is a `@Global()` module; `AuditService.log()` is fire-and-forget, injects `requestId` from the request-scoped ALS, and falls back to a structured `audit-fallback {...}` log line when no `IEventClient` is bound. When `mutations !== false`, an `APP_INTERCEPTOR` records non-GET 2xx responses as `data.created` / `data.updated` / `data.deleted`.
+- `AccessGuard` now accepts an optional `AuditService` and logs `access.denied` (outcome `deny`, with route, method, roles, ip, user-agent) on every 403 before throwing. Passing it is opt-in per module: import `AuditModule.forRoot()` and Nest resolves the dependency.
+
 ## [0.20.3] - 2026-09-29
 ### Fixed
 - `QueueWorker` claim: Postgres rejects `FOR UPDATE` on the nullable side of an outer join, so any worker whose `loadRelations` override adds a `leftJoinAndSelect` (e.g. MailWorker hydrating `data.attachments`) failed every cycle with «FOR UPDATE cannot be applied to the nullable side of an outer join» and jobs stayed `pending` forever. Candidate ids are now locked first (`SELECT id ... FOR UPDATE SKIP LOCKED`), then relations are hydrated by a second, lock-free query inside the same transaction — rows stay locked until commit, so claiming semantics are unchanged.

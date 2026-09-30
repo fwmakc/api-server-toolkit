@@ -19,6 +19,11 @@ export * from './common/client/event-client.interfaces';
 export * from './common/client/event-client.service';
 export * from './common/client/event-client.module';
 
+// --- Audit (security event publishing) ---
+export * from './common/audit/audit.service';
+export * from './common/audit/audit.interceptor';
+export * from './common/audit/audit.module';
+
 // --- Columns ---
 export * from './common/column/bigint.column';
 export * from './common/column/boolean.column';

@@ -3,9 +3,12 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { getClientIp } from '@supercharge/request-ip';
 import { AccessRule, matchRule } from '../access.rules';
+import { AuditService } from '../audit/audit.service';
 import { isSuperuser } from '../service/admin.service';
 
 export const ACCESS_RULES_METADATA = 'access-rules';
@@ -13,10 +16,14 @@ export const ACCESS_RULES_METADATA = 'access-rules';
 /**
  * Проверяет совпадение правил операции по ролям (who).
  * Суперюзер проходит всегда. Совпавшее правило кладётся в request.accessRule.
+ * Отказ (403) публикуется в аудит, если AuditService доступен.
  */
 @Injectable()
 export class AccessGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Optional() private readonly audit?: AuditService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const rules = this.reflector.get<AccessRule[]>(
@@ -36,6 +43,18 @@ export class AccessGuard implements CanActivate {
 
     const matched = matchRule(rules, user);
     if (!matched) {
+      this.audit?.log({
+        action: 'access.denied',
+        outcome: 'deny',
+        accountId: user?.id,
+        accountUsername: user?.username,
+        tenantId: user?.tenantId,
+        ip: getClientIp(request),
+        userAgent: request.headers?.['user-agent'],
+        targetType: 'route',
+        targetId: request.route?.path ?? request.url,
+        details: { method: request.method, roles: user?.roles ?? ['public'] },
+      });
       throw new ForbiddenException('Access denied');
     }
 
