@@ -115,6 +115,20 @@ describe("validateWebhookEgress", () => {
     expect(validateWebhookEgress("http://evil.example.com/x", "allowlist", allow).ok).toBe(false);
   });
 
+  it("normalizes trailing-dot hostnames (DNS root form)", () => {
+    // `localhost.` and `127.0.0.1.` previously slipped past the filters:
+    // the trailing dot defeated both the "no dot" rule and the IP parse.
+    expect(validateWebhookEgress("http://localhost./x", "public").ok).toBe(false);
+    expect(validateWebhookEgress("http://127.0.0.1./x", "public").ok).toBe(false);
+    expect(validateWebhookEgress("http://10.0.0.5./x", "public").ok).toBe(false);
+    expect(validateWebhookEgress("http://metadata.google.internal./x", "public").ok).toBe(false);
+    // a genuinely public host stays allowed in its root form
+    expect(validateWebhookEgress("https://hooks.example.com./x", "public").ok).toBe(true);
+    // allowlist matches the root form of a pinned name
+    expect(validateWebhookEgress("http://message-server./x", "allowlist", ["message-server"]).ok).toBe(true);
+    expect(validateWebhookEgress("http://evil.example.com./x", "allowlist", ["message-server"]).ok).toBe(false);
+  });
+
   it("exposes the header names the guard reads", () => {
     expect(WEBHOOK_SIGNATURE_HEADER).toBe("x-event-signature");
   });

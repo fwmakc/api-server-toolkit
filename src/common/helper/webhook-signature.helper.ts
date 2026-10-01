@@ -129,7 +129,13 @@ const isBlockedIp = (ip: string): boolean => {
 };
 
 const isPrivateHostname = (hostname: string): boolean => {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // Trailing dot is the DNS root form (`localhost.` == `localhost`,
+  // `127.0.0.1.` parses like an IP) — normalize before any name/rule check,
+  // otherwise `http://localhost./` slips past the public-mode filters.
+  const host = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
   // .local / mDNS and bare names without a dot never leave the segment
   if (host.endsWith(".local") || host.endsWith(".internal") || !host.includes("."))
     return true;
@@ -163,8 +169,11 @@ export const validateWebhookEgress = (
   if (!hostname) return { ok: false, reason: "empty hostname" };
 
   if (mode === "allowlist") {
+    // Compare the root-stripped hostname too: `Host.example.` must match an
+    // allowlist entry for `host.example` (same machine, same policy).
+    const normalized = hostname.toLowerCase().replace(/\.+$/, "");
     const match = allowlist.some(
-      (entry) => entry.trim().toLowerCase() === hostname.toLowerCase(),
+      (entry) => entry.trim().toLowerCase().replace(/\.+$/, "") === normalized,
     );
     return match
       ? { ok: true }
