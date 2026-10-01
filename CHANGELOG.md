@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-10-01
+### Security (Wave 6 audit — access-model and write-path hardening)
+- **`matchRoles`: empty rules now deny explicitly** — `[]` means "no roles allowed" (deny), `undefined` means "rule not configured" (allow). Previously `[]` silently matched everyone: a field rule `{ response: [] }` intended to hide a field exposed it to all roles.
+- **`@Access([])` / `accessBind([])` fail loud** — empty rules throw `ForbiddenException` instead of falling through to the service default `allow: true` bypass; `AccessGuard` audits and denies empty rule sets (a missing `@Access()` metadata still passes — unadorned routes are intentional, empty metadata is a mistake).
+- **`prepareAndUpdate` re-stamps owner/tenant/auto-assign** — update ignored bind-derived fields, so a client payload could re-point `author.id` / `tenant.id` to another owner/tenant (create stamped them, update didn't). Update now mirrors `prepareAndCreate`: bind owner, tenant, and auto-assign fields are overwritten from the resolved bind, client values ignored.
+- **`stripWriteFields` strips tenant path too** — request field-rules removed only the owner path; the tenant relation id (`tenantId`/`tenantName`) stayed writable and could bypass the re-stamp. Both bind paths are now stripped together.
+- **`tenant: 'id'` scope rejected at compile** — `{ tenant: 'id' }` (the entity's own column) is not a relation join; it compiled to a broken/absent condition. `compileRuleToBind` throws with a hint to use a relation path like `tenant.id`.
+- **`filter` × array where (OR branches)** — `bind.filter` merged over an array `where` (from `mergeSearchWhere`) spread the array's numeric keys into one object, producing `{0: …, 1: …}` and a 500 from TypeORM. `mergeFilter` now merges the filter into every OR branch.
+- **TenantMiddleware fail-loud + hardening** — without `req.user` under a non-`where` strategy it silently ran with no tenant isolation; it now throws at request time with wiring instructions. Non-numeric tenant ids are rejected; the schema `search_path` is quoted (`SET search_path TO "tenant_42"`); the query runner is released exactly once via `res.once('finish'/'close')`.
+- **Nested filter respects tenant scope** — `filterNestedRelations` honored owner binds but ignored tenant binds: nested relation rows from another tenant survived in responses. Tenant mode filters nested arrays/objects by the bind tenant.
+- **Unique probe scoped** — `findUniqueEntry` matched rows regardless of owner/tenant/soft-delete state, so a soft-deleted (or foreign-scope) row with the same unique value surfaced as a duplicate conflict. The probe now applies bind owner/tenant conditions and `deleted_at IS NULL`.
+- **Delete/restore criteria are atomic** — `softRemove`/`hardRemove`/`restoreDeleted` accepted an extra `scopeWhere` merged into the update/delete criteria (`{ ...scopeWhere, id }`), closing the check-then-act race between `existsInScope` and the write; `CommonService` passes the bind criteria through.
+- **`executeSortPosition` locks rows** — positions were written from a possibly stale snapshot; the page rows are re-read under `pessimistic_write` inside the transaction and fresh rows are saved.
+- **`httpPost`/`httpGet` `redirect` option** — `HttpOptions.redirect` passes through to `fetch`; egress-restricted callers (event-server delivery) can use `redirect: 'manual'` to re-validate redirect targets instead of silently following them.
+- **Prototype-pollution guard in tree service** — `setDeepValue` refuses `__proto__`/`constructor`/`prototype` keys instead of writing into `Object.prototype`.
+
+### Tests
+- 9 new regression tests (`wave6-audit.spec`) covering each fix above; updated specs that encoded the old (vulnerable) behavior: tenant middleware (fail-loud, quoted search_path, single release), access guard (empty-rules deny + no-metadata pass), position helper (locked re-read and fresh-row saves), delete helper (criteria-object assertions, scope predicate).
+
 ## [0.25.1] - 2026-10-01
 ### Fixed
 - **v1 keeps the legacy lenient key parse** (caught live on the stand 30 minutes after 0.25.0): stacks can carry a non-hex `AES_SECRET` — the pre-0.25.0 code silently parsed non-hex pairs as `NaN → byte 0`, so 0.25.0's strict hex validation rejected their key outright (2FA setup / OAuth token saves failed with "Expected a hex string") and, worse, could never decrypt existing envelopes. Version 1 now reproduces the legacy `NaN → 0` bytes exactly (old envelopes stay readable through rotation); versions 2+ require real hex — a typo there must not collapse the key. Recommend `openssl rand -hex 32` for new keys.

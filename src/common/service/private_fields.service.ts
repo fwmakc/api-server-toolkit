@@ -60,7 +60,9 @@ function processDto(
   for (const key of Object.keys(dto)) {
     if (!ctx.bypass) {
       const response = config?.fields?.[key]?.response;
-      if (response?.length && !matchRoles(response, ctx.roles)) {
+      // response === undefined → правило не задано (видимо по умолчанию);
+      // [] → явный deny: matchRoles([]) === false, поле вырезается у всех
+      if (response !== undefined && !matchRoles(response, ctx.roles)) {
         delete dto[key];
         continue;
       }
@@ -101,15 +103,21 @@ export const stripWriteFields = (
   const config =
     typeof entityTarget === 'function' ? PermissionRegistry.get(entityTarget) : undefined;
   const bindField = bind?.name ? bind.name.split('.')[0] : undefined;
+  // tenant-связь штампуется сервером так же, как owner-связь — клиент не может
+  // её перевесить (прежде вырезался только owner-путь)
+  const bindTenantField =
+    bind?.tenantName && !bind.tenantName.includes('.')
+      ? bind.tenantName.split('.')[0]
+      : undefined;
 
   for (const key of Object.keys(dto)) {
-    if (bindField && key === bindField) {
+    if ((bindField && key === bindField) || (bindTenantField && key === bindTenantField)) {
       delete dto[key];
       continue;
     }
 
     const request = config?.fields?.[key]?.request;
-    if (request?.length && !matchRoles(request, roles)) {
+    if (request !== undefined && !matchRoles(request, roles)) {
       delete dto[key];
     }
   }

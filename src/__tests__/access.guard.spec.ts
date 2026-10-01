@@ -24,8 +24,16 @@ describe('AccessGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  it('allows empty rules', () => {
+  // Wave 6: explicit @Access([]) used to fall through to allow:true with an
+  // undefined bind — it must deny (undefined metadata still passes: the guard
+  // does not own routes it was never given rules for)
+  it('denies explicit empty rules', () => {
     const { guard, context } = createContext(undefined, []);
+    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+  });
+
+  it('passes when no rules metadata is set', () => {
+    const { guard, context } = createContext(undefined, undefined);
     expect(guard.canActivate(context)).toBe(true);
   });
 

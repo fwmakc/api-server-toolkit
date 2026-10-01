@@ -19,6 +19,17 @@ interface FindParams {
   order?: any;
 }
 
+/**
+ * bind.filter сильнее клиентского where. where после mergeSearchWhere может
+ * быть МАССИВОМ (OR-ветки поиска) — спред массива дал бы {0:..., 1:...} и
+ * 500 от TypeORM; фильтр вливается в каждую ветку.
+ */
+function mergeFilter(where: any, filter: Record<string, unknown> | undefined): any {
+  if (!filter || Object.keys(filter).length === 0) return where;
+  if (Array.isArray(where)) return where.map((w) => ({ ...w, ...filter }));
+  return { ...where, ...filter };
+}
+
 export interface BuildFindResult {
   where: any;
   relationNames: string[];
@@ -67,7 +78,7 @@ export function buildFindWhere(
   }
 
   if (bind.filter && Object.keys(bind.filter).length > 0) {
-    where = { ...where, ...bind.filter };
+    where = mergeFilter(where, bind.filter);
   }
 
   const useJoin = join && relationNames.length > 0;
@@ -120,7 +131,7 @@ export function buildCountWhere(
   }
 
   if (bind.filter && Object.keys(bind.filter).length > 0) {
-    where = { ...where, ...bind.filter };
+    where = mergeFilter(where, bind.filter);
   }
 
   return { where, relationNames };

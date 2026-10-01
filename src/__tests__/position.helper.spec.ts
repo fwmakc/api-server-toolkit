@@ -7,7 +7,7 @@ import { EntityMetadata, EntityManager } from 'typeorm';
 const createBind = (props: Partial<BindDto>): BindDto => Object.assign(new BindDto(), props);
 const createFind = (props: Partial<FindDto>): FindDto => Object.assign(new FindDto(), props);
 
-const createMockManager = () => {
+const createMockManager = (rows?: any[]) => {
   const updates: any[] = [];
   const saves: any[] = [];
   const manager = {
@@ -19,7 +19,11 @@ const createMockManager = () => {
       saves.push({ target, entries });
       return entries;
     }),
-    getRepository: jest.fn().mockReturnValue({ metadata: {} }),
+    // Wave 6: page rows are re-selected FOR UPDATE inside the transaction
+    getRepository: jest.fn().mockReturnValue({
+      metadata: {},
+      find: jest.fn().mockResolvedValue(rows ?? []),
+    }),
   };
   return { manager: manager as unknown as EntityManager, updates, saves };
 };
@@ -31,7 +35,7 @@ describe('position.helper', () => {
 
   describe('executeSortPosition', () => {
     it('assigns sequential positions to entries', async () => {
-      const { manager, saves } = createMockManager();
+      const { manager, saves } = createMockManager([{ id: 1 }, { id: 2 }, { id: 3 }]);
       const entries: any[] = [{ id: 1 }, { id: 2 }, { id: 3 }];
       const find = createFind({});
       const bind = createBind({});
@@ -40,9 +44,13 @@ describe('position.helper', () => {
       const result = await executeSortPosition('Entity', 'pos', entries, find, bind, metadata, manager);
 
       expect(result).toBe(true);
-      expect(entries[0].pos).toBe(1);
-      expect(entries[1].pos).toBe(2);
-      expect(entries[2].pos).toBe(3);
+      // positions land on the FOR UPDATE re-select (fresh rows), not the
+      // stale pre-transaction snapshot
+      const saved = saves[0].entries;
+      expect(saved.map((r: any) => r.id)).toEqual([1, 2, 3]);
+      expect(saved[0].pos).toBe(1);
+      expect(saved[1].pos).toBe(2);
+      expect(saved[2].pos).toBe(3);
       expect(saves.length).toBe(1);
     });
 

@@ -13,8 +13,18 @@ describe('delete.helper', () => {
     it('sets soft delete column to current date and returns true', async () => {
       const repo = createMockRepo();
       const result = await softRemove(repo, 1, 'deletedAt');
-      expect(repo.update).toHaveBeenCalledWith(1, expect.objectContaining({ deletedAt: expect.any(Date) }));
+      // Wave 6: the scope predicate rides in the same UPDATE (default: id only)
+      expect(repo.update).toHaveBeenCalledWith({ id: 1 }, expect.objectContaining({ deletedAt: expect.any(Date) }));
       expect(result).toBe(true);
+    });
+
+    it('keeps a scope predicate in the write statement', async () => {
+      const repo = createMockRepo();
+      await softRemove(repo, 1, 'deletedAt', { tenant: { id: 7 } });
+      expect(repo.update).toHaveBeenCalledWith(
+        { id: 1, tenant: { id: 7 } },
+        expect.objectContaining({ deletedAt: expect.any(Date) }),
+      );
     });
 
     it('returns false when affected is 0', async () => {
@@ -32,7 +42,7 @@ describe('delete.helper', () => {
     it('works with string id', async () => {
       const repo = createMockRepo();
       await softRemove(repo, 'abc', 'deletedAt');
-      expect(repo.update).toHaveBeenCalledWith('abc', expect.any(Object));
+      expect(repo.update).toHaveBeenCalledWith({ id: 'abc' }, expect.any(Object));
     });
   });
 
@@ -40,7 +50,7 @@ describe('delete.helper', () => {
     it('deletes by id and returns true', async () => {
       const repo = createMockRepo();
       const result = await hardRemove(repo, 1);
-      expect(repo.delete).toHaveBeenCalledWith(1);
+      expect(repo.delete).toHaveBeenCalledWith({ id: 1 });
       expect(result).toBe(true);
     });
 
@@ -61,7 +71,7 @@ describe('delete.helper', () => {
     it('sets soft delete column to null and returns true', async () => {
       const repo = createMockRepo();
       const result = await restoreDeleted(repo, 1, 'deletedAt');
-      expect(repo.update).toHaveBeenCalledWith(1, { deletedAt: null });
+      expect(repo.update).toHaveBeenCalledWith({ id: 1 }, { deletedAt: null });
       expect(result).toBe(true);
     });
 

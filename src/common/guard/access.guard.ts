@@ -31,9 +31,25 @@ export class AccessGuard implements CanActivate {
       context.getHandler(),
     );
 
-    if (!rules?.length) return true;
+    // metadata === undefined: маршрут без @Access — гард не управляет им
+    // (глобальное монтирование не должно ломать остальные маршруты).
+    // Явный пустой массив — deny: пропустить его значило бы отдать хендлер
+    // с accessBind-байпасом (CommonService трактует undefined-бинд как allow).
+    if (rules === undefined) return true;
 
     const request = context.switchToHttp().getRequest();
+
+    if (rules.length === 0) {
+      this.audit?.log({
+        action: 'access.denied',
+        outcome: 'deny',
+        accountId: request?.user?.id,
+        targetType: 'route',
+        targetId: request?.route?.path ?? request?.url,
+        details: { reason: 'empty rules' },
+      });
+      throw new ForbiddenException('Access denied');
+    }
     const { user } = request;
 
     if (isSuperuser(user)) {

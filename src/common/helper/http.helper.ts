@@ -2,6 +2,9 @@ export interface HttpOptions {
   headers?: Record<string, string>;
   timeout?: number;
   raw?: boolean;
+  /** 'manual' for egress to untrusted hosts: a 3xx is returned, not followed
+   * (a redirect would re-issue the signed body to an unvalidated target). */
+  redirect?: RequestRedirect;
 }
 
 export interface HttpResponse<T = unknown> {
@@ -51,6 +54,7 @@ async function request<T = unknown>(
       headers: { 'Content-Type': 'application/json', ...getTraceHeaders(), ...options?.headers },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
+      redirect: options?.redirect,
     });
 
     const text = await response.text();

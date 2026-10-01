@@ -222,6 +222,21 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
    * bind.id не задан, старый guard его пропускал → cross-tenant delete по id).
    * Soft-delete фильтр отключён: restore ищет именно удалённые строки.
    */
+  // Критерии скоупа для записи (update/delete criteria) — дублируют проверку
+  // existsInScope В САМОМ запросе, закрывая гонку между проверкой и записью.
+  private bindCriteria(bind: BindDto): Record<string, any> {
+    if (bind.allow) return {};
+    const c: Record<string, any> = {};
+    if (bind.id !== undefined) {
+      if (bind.name) c[bind.name] = { [bind.key || 'id']: bind.id };
+      else c.id = bind.id;
+    }
+    if (bind.tenantId !== undefined && bind.tenantName) {
+      c[bind.tenantName] = { [bind.tenantKey || 'id']: bind.tenantId };
+    }
+    return c;
+  }
+
   private async existsInScope(id: number | string, bind: BindDto): Promise<boolean> {
     const found = await this.findOne(
       { id, select: { id: true } as any },
@@ -236,10 +251,11 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
       const softDeleteCol = getSoftDeleteColumn(this.repository.metadata.target);
+      const scope = this.bindCriteria(bind);
       if (softDeleteCol) {
-        return await softRemove(repo, id, softDeleteCol);
+        return await softRemove(repo, id, softDeleteCol, scope);
       }
-      return await hardRemove(repo, id);
+      return await hardRemove(repo, id, scope);
     } catch (e) {
       this.error(e);
     }
@@ -249,7 +265,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (!bind.allow && !(await this.existsInScope(id, bind))) return false;
     try {
       const repo = externalManager ? externalManager.getRepository(this.repository.target) : this.getRepository();
-      return await hardRemove(repo, id);
+      return await hardRemove(repo, id, this.bindCriteria(bind));
     } catch (e) {
       this.error(e);
     }
@@ -260,7 +276,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (!col) return false;
     if (!bind.allow && !(await this.existsInScope(id, bind))) return false;
     try {
-      return await restoreDeleted(this.getRepository(), id, col);
+      return await restoreDeleted(this.getRepository(), id, col, this.bindCriteria(bind));
     } catch (e) {
       this.error(e);
     }
@@ -285,7 +301,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       }
     }
 
-    const existsEntrie = await this.findUniqueEntry(entity);
+    const existsEntrie = await this.findUniqueEntry(entity, bind);
     if (existsEntrie?.id) {
       return await this.update(existsEntrie.id, dto, relations, bind);
     }
@@ -294,7 +310,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
       return await this.create(dto, relations, bind);
     } catch (e) {
       if (e?.code === '23505') {
-        const retryEntrie = await this.findUniqueEntry(entity);
+        const retryEntrie = await this.findUniqueEntry(entity, bind);
         if (retryEntrie?.id) {
           return await this.update(retryEntrie.id, dto, relations, bind);
         }
@@ -397,8 +413,13 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     return getUniqueColumns(this.repository.metadata);
   }
 
-  async findUniqueEntry(entity: DeepPartial<any>): Promise<any> {
-    return findUniqueEntry(this.getRepository(), entity);
+  async findUniqueEntry(entity: DeepPartial<any>, bind: BindDto = { allow: true }): Promise<any> {
+    return findUniqueEntry(
+      this.getRepository(),
+      entity,
+      bind,
+      getSoftDeleteColumn(this.getRepository().metadata.target),
+    );
   }
 
   async findUniqueEntrie(entity: DeepPartial<any>): Promise<any> {

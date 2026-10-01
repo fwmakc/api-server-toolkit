@@ -135,7 +135,11 @@ export function matchWho(
 
 /** Как matchWho, но по готовому набору ролей (без вывода ролей из аккаунта). */
 export function matchRoles(rules: AccessRule[] | undefined, roles: string[]): boolean {
-  if (!rules?.length) return true;
+  // undefined — правило не задано: поведение по умолчанию (поле видимо).
+  // [] — явный пустой массив: deny (никто не проходит), как у операций —
+  // иначе fields: { x: { response: [] } } означало бы «видно всем».
+  if (rules === undefined) return true;
+  if (rules.length === 0) return false;
   return rules.some((rule) => {
     const who = normalizeRuleNames(rule.who);
     return who.some((r) => roles.includes(r));
@@ -193,6 +197,13 @@ export function compileRuleToBind(
     );
   }
   const { name, key } = parseAccessPath(scope.tenant);
+  if (!name) {
+    // fail closed: { tenant: 'id' } парсится в пустое имя → бинд без колонки
+    // tenantName = «никакой фильтр, никакого штампа» = вся таблица
+    throw new ForbiddenException(
+      'Tenant scope path must reference a relation (e.g. "tenant.id"), not the entity id',
+    );
+  }
   return {
     ...force,
     tenantName: name,
@@ -207,6 +218,12 @@ export function accessBind(
   rules: AccessRule[] | undefined,
   account: AccountInfo | undefined | null,
 ): BindDto | undefined {
+  // Явный пустой массив — deny: undefined-бинд у CommonService означает
+  // «доверенный сервисный вызов» (allow:true), поэтому @Access([]) обязан
+  // упасть, а не превратиться в полный обход строк и полевых правил.
+  if (Array.isArray(rules) && rules.length === 0) {
+    throw new ForbiddenException('Empty access rules deny all');
+  }
   return compileRuleToBind(matchRule(rules, account), account);
 }
 

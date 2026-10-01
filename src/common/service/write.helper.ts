@@ -36,6 +36,27 @@ export async function prepareAndUpdate(
   bind: BindDto,
   manager: EntityManager,
 ): Promise<void> {
+  // Update перештамповывает привязки так же, как create: клиентское значение
+  // owner/tenant-связи не может перевесить строку в другой скоуп
+  // (stripWriteFields вырезает связи, но не скалярные FK-варианты).
+  if (bind.id !== undefined && !bind.allow) {
+    const { resolveAutoAssign } = await import('./bind-resolve.helper');
+    const metadata = manager.getRepository(entityTarget).metadata;
+    const autoAssign = await resolveAutoAssign(metadata, bind, manager);
+    if (autoAssign) {
+      entity[autoAssign.name] = { id: autoAssign.id };
+    }
+  }
+
+  if (
+    bind.tenantId !== undefined &&
+    !bind.allow &&
+    bind.tenantName &&
+    !bind.tenantName.includes('.')
+  ) {
+    entity[bind.tenantName] = { id: bind.tenantId };
+  }
+
   await sanitizeForSave(entity, manager.getRepository(entityTarget).metadata, bind, manager);
   await manager.getRepository(entityTarget).save(entity);
 }

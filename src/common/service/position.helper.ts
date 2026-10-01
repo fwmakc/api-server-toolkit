@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { And, DeepPartial, EntityManager, EntityMetadata, EntityTarget, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
+import { And, DeepPartial, EntityManager, EntityMetadata, EntityTarget, In, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual } from 'typeorm';
 import { parseWhereObject } from './where.service';
 import { BindDto } from '../dto/bind.dto';
 import { OWNER_TABLE } from './owner.service';
@@ -64,11 +64,26 @@ export async function executeSortPosition<Entity>(
     );
   }
 
-  entries.forEach((entrie: any, index: number) => {
-    entrie[field] = index + 1;
-  });
-
-  await manager.save(entityTarget, entries);
+  // Перечитываем страницы под блокировкой внутри транзакции: снапшот,
+  // снятый снаружи (до BEGIN), мог устареть — гонка сортировок теряла
+  // обновления и сталкивала позиции.
+  const ids = entries.map((e) => e.id);
+  if (ids.length > 0) {
+    const fresh = await manager.getRepository(entityTarget).find({
+      where: { id: In(ids) } as any,
+      select: { id: true, [field]: true } as any,
+      lock: { mode: 'pessimistic_write' },
+    });
+    const orderIndex = new Map(entries.map((e: any, i: number) => [String(e.id), i]));
+    fresh.sort(
+      (a: any, b: any) =>
+        (orderIndex.get(String(a.id)) ?? 0) - (orderIndex.get(String(b.id)) ?? 0),
+    );
+    fresh.forEach((row: any, index: number) => {
+      row[field] = index + 1;
+    });
+    await manager.save(entityTarget, fresh);
+  }
   return true;
 }
 

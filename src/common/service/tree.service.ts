@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 export function treeToFlat(
   data: object | object[],
 ): Record<string, unknown> | Record<string, unknown>[] {
@@ -64,6 +66,11 @@ function setDeepValue(
     const key = keys[i];
     const nextKey = keys[i + 1];
     const isNextArrayIndex = /^\d+$/.test(nextKey);
+
+    // __proto__/constructor как ключи — не навигация по прототипу
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      throw new BadRequestException(`Illegal tree key: ${key}`);
+    }
 
     if (current[key] === undefined || current[key] === null) {
       current[key] = isNextArrayIndex ? [] : {};
