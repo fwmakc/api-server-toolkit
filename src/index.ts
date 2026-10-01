@@ -98,6 +98,7 @@ export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
 export * from './common/helper/random.helper';
+export * from './common/helper/webhook-signature.helper';
 
 // --- Interceptors ---
 export * from './common/interceptor/add-client-ip.interceptor';
