@@ -70,4 +70,26 @@ describe('crypt.service AES versioning', () => {
       'AES_SECRET_V3 is missing',
     );
   });
+
+  it('keeps the legacy lenient parse for a non-hex v1 key', async () => {
+    process.env.AES_SECRET = 'zz'.repeat(16);
+    const envelope = await encrypt('legacy-key-data');
+    expect(await decrypt(envelope.encrypted, envelope.iv, envelope.v)).toBe('legacy-key-data');
+  });
+
+  it('a v1 envelope written by the old NaN-collapsing code still decrypts', async () => {
+    // The old implementation produced byte 0 for non-hex pairs; the lenient
+    // v1 parse must reproduce exactly those bytes.
+    process.env.AES_SECRET = 'zz'.repeat(16);
+    const envelope = await encrypt('same-bytes');
+    expect(await decrypt(envelope.encrypted, envelope.iv)).toBe('same-bytes');
+  });
+
+  it('rejects a non-hex key for versions above 1', async () => {
+    process.env.AES_SECRET = V1_KEY;
+    process.env.AES_SECRET_V2 = 'zz'.repeat(32);
+    expect(async () => await encrypt('data')).rejects.toThrow(
+      'hex string for versions above 1',
+    );
+  });
 });

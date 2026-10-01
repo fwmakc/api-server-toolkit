@@ -35,12 +35,23 @@ export function currentAesVersion(): number {
   return current;
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = String(hex ?? '')
-    .match(/.{1,2}/g)
-    ?.map((byte) => parseInt(byte, 16));
-  if (!bytes?.length || bytes.some((byte) => Number.isNaN(byte))) {
+function hexToBytes(hex: string, strict: boolean): Uint8Array {
+  const pairs = String(hex ?? '').match(/.{1,2}/g);
+  if (!pairs?.length) {
     throw new BadRequestException('Expected a hex string');
+  }
+  const bytes = pairs.map((byte) => parseInt(byte, 16));
+  // Version 1 keeps the legacy lenient parse: pre-0.25.0 stacks could set a
+  // non-hex AES_SECRET (parseInt → NaN → byte 0), and envelopes written that
+  // way must stay decryptable through rotation. Version 2+ keys must be real
+  // hex — a typo there must not silently collapse the key.
+  if (bytes.some((byte) => Number.isNaN(byte))) {
+    if (strict) {
+      throw new BadRequestException(
+        'AES key must be a hex string for versions above 1 (openssl rand -hex 32)',
+      );
+    }
+    return new Uint8Array(bytes.map((byte) => (Number.isNaN(byte) ? 0 : byte)));
   }
   return new Uint8Array(bytes);
 }
@@ -63,7 +74,7 @@ async function importAesKey(
   }
   return webcrypto.subtle.importKey(
     'raw',
-    hexToBytes(key),
+    hexToBytes(key, version > 1),
     { name: 'AES-GCM' },
     false,
     usages,
@@ -111,10 +122,10 @@ export async function decrypt(
     const decrypted = await webcrypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv: hexToBytes(iv),
+        iv: hexToBytes(iv, version > 1),
       },
       cryptoKey,
-      hexToBytes(encryptedData),
+      hexToBytes(encryptedData, version > 1),
     );
 
     // Возвращаем расшифрованные данные в виде строки

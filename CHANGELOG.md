@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.1] - 2026-10-01
+### Fixed
+- **v1 keeps the legacy lenient key parse** (caught live on the stand 30 minutes after 0.25.0): stacks can carry a non-hex `AES_SECRET` — the pre-0.25.0 code silently parsed non-hex pairs as `NaN → byte 0`, so 0.25.0's strict hex validation rejected their key outright (2FA setup / OAuth token saves failed with "Expected a hex string") and, worse, could never decrypt existing envelopes. Version 1 now reproduces the legacy `NaN → 0` bytes exactly (old envelopes stay readable through rotation); versions 2+ require real hex — a typo there must not collapse the key. Recommend `openssl rand -hex 32` for new keys.
+
 ## [0.25.0] - 2026-10-01
 ### Added
 - **AES key versioning for secret rotation** (`crypt.service`): envelopes carry a `v` field; `AES_SECRET` stays version 1, `AES_SECRET_V2`…`AES_SECRET_V9` extend it, the **highest configured version is current** (`encrypt()` stamps it, `decrypt()` dispatches on it). Envelopes written before this change (no `v`) keep decrypting with `AES_SECRET` — the system works mid-rotation with no data migration; the one-pass re-encrypt lives in auth-server (`scripts/reencrypt-aes.mjs`). Runbook: gateway-server `docs/secret-rotation.md`.
