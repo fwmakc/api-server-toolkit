@@ -18,6 +18,51 @@ describe('InternalAuthGuard', () => {
     guard = new InternalAuthGuard(configService);
   });
 
+  describe('rotation window (INTERNAL_API_KEY_PREVIOUS)', () => {
+    function mockEnv(values: Record<string, string | undefined>) {
+      configService.get.mockImplementation((key: string) => values[key]);
+    }
+
+    it('accepts the previous key while it is still listed', () => {
+      mockEnv({
+        INTERNAL_API_KEY: 'new-key',
+        INTERNAL_API_KEY_PREVIOUS: 'old-key-1, old-key-2',
+      });
+      const ctx = mockContext({ 'x-internal-api-key': 'old-key-2' });
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+
+    it('accepts the current key alongside previous ones', () => {
+      mockEnv({
+        INTERNAL_API_KEY: 'new-key',
+        INTERNAL_API_KEY_PREVIOUS: 'old-key-1',
+      });
+      const ctx = mockContext({ 'x-internal-api-key': 'new-key' });
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+
+    it('rejects a key that is neither current nor previous', () => {
+      mockEnv({
+        INTERNAL_API_KEY: 'new-key',
+        INTERNAL_API_KEY_PREVIOUS: 'old-key-1',
+      });
+      const ctx = mockContext({ 'x-internal-api-key': 'retired-key' });
+      expect(() => guard.canActivate(ctx)).toThrow('Invalid or missing');
+    });
+
+    it('rejects the previous key once the rotation window closes', () => {
+      mockEnv({ INTERNAL_API_KEY: 'new-key' });
+      const ctx = mockContext({ 'x-internal-api-key': 'old-key-1' });
+      expect(() => guard.canActivate(ctx)).toThrow('Invalid or missing');
+    });
+
+    it('ignores blank previous entries', () => {
+      mockEnv({ INTERNAL_API_KEY: 'new-key', INTERNAL_API_KEY_PREVIOUS: ' ,' });
+      const ctx = mockContext({ 'x-internal-api-key': 'new-key' });
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+  });
+
   it('returns true when API key matches', () => {
     configService.get.mockReturnValue('expected-key');
     const ctx = mockContext({ 'x-internal-api-key': 'expected-key' });

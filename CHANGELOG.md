@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-10-01
+### Added
+- **AES key versioning for secret rotation** (`crypt.service`): envelopes carry a `v` field; `AES_SECRET` stays version 1, `AES_SECRET_V2`…`AES_SECRET_V9` extend it, the **highest configured version is current** (`encrypt()` stamps it, `decrypt()` dispatches on it). Envelopes written before this change (no `v`) keep decrypting with `AES_SECRET` — the system works mid-rotation with no data migration; the one-pass re-encrypt lives in auth-server (`scripts/reencrypt-aes.mjs`). Runbook: gateway-server `docs/secret-rotation.md`.
+- **`InternalAuthGuard` rotation window**: `INTERNAL_API_KEY_PREVIOUS` (comma-separated) stays valid alongside the current key, per-key constant-time comparison unchanged, fail-closed unchanged. (`API_KEYS` already rotates additively — the comma list is the window.)
+
+### Tests
+- 20 new: AES version round-trips (current-version stamping, legacy envelope without `v`, wrong-version key rejection, unconfigured version message, no-key error), internal-key dual window (previous accepted, retired rejected, blanks ignored).
+
 ## [0.24.2] - 2026-10-01
 ### Fixed
 - **`passport` declared in `dependencies`**: `bootstrap/setup/passport.ts` does `require('passport')` at runtime, but the package never declared it (only a leftover `peerDependenciesMeta` entry). With `--legacy-peer-deps` installs (CI, docker builds) `@nestjs/passport@11` leaves the peer unsatisfied — the toolkit's own SBOM step failed with `ESBOMPROBLEMS: missing: passport`, and a consumer calling `Passport.setup()` without its own passport dependency would crash at boot. Version `^0.7.0` matches what every passport-using service already declares (dedupes to one copy).
