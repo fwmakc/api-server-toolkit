@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.2] - 2026-10-01
+### Fixed
+- **`passport` declared in `dependencies`**: `bootstrap/setup/passport.ts` does `require('passport')` at runtime, but the package never declared it (only a leftover `peerDependenciesMeta` entry). With `--legacy-peer-deps` installs (CI, docker builds) `@nestjs/passport@11` leaves the peer unsatisfied — the toolkit's own SBOM step failed with `ESBOMPROBLEMS: missing: passport`, and a consumer calling `Passport.setup()` without its own passport dependency would crash at boot. Version `^0.7.0` matches what every passport-using service already declares (dedupes to one copy).
+
+## [0.24.1] - 2026-10-01
+### Added
+- `AccountStrategy`: optional JWT `iss`/`aud` claim verification via `JWT_ISSUER`/`JWT_AUDIENCE` — aligns with gateway pass-through; verified e2e through nginx (token with claims accepted, without → 401).
+
+## [0.24.0] - 2026-10-01
+### Added
+- Signed event deliveries: webhook-signature helper + `EventDeliveryGuard` — subscribers verify `X-Webhook-Signature` (HMAC) instead of trusting network position.
+
 ## [0.23.0] - 2026-09-30
 ### Added
 - **`runMigrationsUnderLock(option, lockKey?)`** (root export): runs pending TypeORM migrations under a PostgreSQL transaction-local advisory lock (`pg_advisory_xact_lock` held by an explicit transaction for the whole `runMigrations()` call). TypeORM 0.3.x has no built-in migration locking, so simultaneously booting replicas raced on a cold database (both running `InitialSchema` → one crashes with «relation already exists»). The transaction-scoped lock works behind pgbouncer in transaction-pooling mode, where a session-level `pg_advisory_lock` could be released from a different backend connection. Non-PostgreSQL drivers run unlocked; the throwaway DataSource is destroyed in every code path and `migrationsRun` is stripped from the returned options — services call it from `dataSourceFactory` before constructing the app DataSource. Exposed as the `api-server-toolkit/db` subpath (root barrel + `exports`/`typesVersions`) — event/message don't ship `@nestjs/passport`, so they must not import the root barrel. All four DB services (api/auth/event/message) wire it; boot migrations are now multi-replica safe out of the box (a one-per-deploy `migration:run` remains the recommendation for large fleets — it removes migration time from boot entirely).
