@@ -15,6 +15,12 @@ export class AccountStrategy extends PassportStrategy(Strategy) {
     configService: ConfigService,
     private readonly authClientService: AuthClientService,
   ) {
+    // JWT_ISSUER / JWT_AUDIENCE: when set, verification enforces the claims
+    // (passport-jwt skips the check when the options are undefined — old
+    // stacks without the env keep validating the old way). Must match the
+    // auth-server signing options; roll out stack-wide in one deploy.
+    const issuer = configService.get<string>('JWT_ISSUER');
+    const audience = configService.get<string>('JWT_AUDIENCE');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKeyProvider: passportJwtSecret({
@@ -24,6 +30,8 @@ export class AccountStrategy extends PassportStrategy(Strategy) {
         jwksRequestsPerMinute: 5,
       }),
       algorithms: ['RS256'],
+      ...(issuer ? { issuer } : {}),
+      ...(audience ? { audience } : {}),
     });
   }
 
