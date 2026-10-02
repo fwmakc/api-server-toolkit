@@ -224,12 +224,19 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
    */
   // Критерии скоупа для записи (update/delete criteria) — дублируют проверку
   // existsInScope В САМОМ запросе, закрывая гонку между проверкой и записью.
+  // Multi-hop bind (dot-path, напр. 'article.account') в плоский criteria
+  // не выражается: TypeORM требует join-алиас, которого в update/delete нет,
+  // и падает «Cannot find alias for relation». Такие бинды остаются под
+  // защитой existsInScope — как до введения атомарного критерия.
   private bindCriteria(bind: BindDto): Record<string, any> {
     if (bind.allow) return {};
     const c: Record<string, any> = {};
     if (bind.id !== undefined) {
-      if (bind.name) c[bind.name] = { [bind.key || 'id']: bind.id };
-      else c.id = bind.id;
+      if (bind.name && !bind.name.includes('.')) {
+        c[bind.name] = { [bind.key || 'id']: bind.id };
+      } else if (!bind.name) {
+        c.id = bind.id;
+      }
     }
     if (bind.tenantId !== undefined && bind.tenantName) {
       c[bind.tenantName] = { [bind.tenantKey || 'id']: bind.tenantId };

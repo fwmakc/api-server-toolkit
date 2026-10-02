@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.2] - 2026-10-02
+### Fixed
+- **Multi-hop (dot-path) bind names больше не попадают в атомарные criteria update/delete**: `bindCriteria` клал `article.account` ключом criteria — TypeORM в update/delete не резолвит dot-path без join-алиасов и падал «Cannot find alias for relation at article» (regression 0.26.0, пойман api-server bind-multi-hop MH10). Dot-path бинды снова под защитой existsInScope pre-check; атомарный критерий в самом запросе остаётся для single-hop/id/tenant.
+- `remove-scope.spec` — регрессия на форму criteria (single-hop в запросе, dot-path только id, allow → пустой скоуп).
+
 ## [0.26.1] - 2026-10-01
 ### Security
 - **Egress validator: trailing-dot hostname normalization** — `http://localhost./`, `http://127.0.0.1./`, `http://10.0.0.5./` slipped past the `public`-mode filters (the trailing DNS root dot defeated both the "bare name has no dot" rule and the IPv4 parse). Hostnames are now root-stripped before every name/rule check, and allowlist comparison matches the root form too (`message-server.` == `message-server`).
