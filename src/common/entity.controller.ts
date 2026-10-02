@@ -242,7 +242,11 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self() account: AccountInfo,
     ): Promise<boolean> {
       const b = accessBind(deleteRules, account);
-      return await this.service.remove(id, b);
+      const result = await this.service.remove(id, b);
+      if (!result) {
+        throw new NotFoundException('Entrie not found');
+      }
+      return result;
     }
 
     @hardDeleteRoute
@@ -251,7 +255,11 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self() account: AccountInfo,
     ): Promise<boolean> {
       const b = accessBind(deleteRules, account);
-      return await this.service.hardDelete(id, b);
+      const result = await this.service.hardDelete(id, b);
+      if (!result) {
+        throw new NotFoundException('Entrie not found');
+      }
+      return result;
     }
 
     @restoreRoute
@@ -260,7 +268,11 @@ export const EntityController = (options: EntityControllerOptions) => {
       @Self() account: AccountInfo,
     ): Promise<boolean> {
       const b = accessBind(deleteRules, account);
-      return await this.service.restore(id, b);
+      const result = await this.service.restore(id, b);
+      if (!result) {
+        throw new NotFoundException('Entrie not found');
+      }
+      return result;
     }
 
     @sortRoute

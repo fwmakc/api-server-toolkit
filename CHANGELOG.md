@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- **EntityController: no-op delete/restore answers 404, not 200 `false`**: `remove` / `hardDelete` / `restore` returned the `CommonService` boolean as-is — an out-of-scope (or already deleted) row produced `200 {"false"}` instead of `404`, inconsistent with `update` (rows outside scope → 404 per the Access model). All three handlers now throw `NotFoundException` when nothing matched. Caught by stage-3 E2E on the live stack (`other owner delete → 404`).
+### Tests
+- `entity.controller.remove-404.spec` — pins the contract: `false` from the service rejects with `NotFoundException` for remove/hardDelete/restore, `true` resolves.
+
 ## [0.26.2] - 2026-10-02
 ### Fixed
 - **Multi-hop (dot-path) bind names больше не попадают в атомарные criteria update/delete**: `bindCriteria` клал `article.account` ключом criteria — TypeORM в update/delete не резолвит dot-path без join-алиасов и падал «Cannot find alias for relation at article» (regression 0.26.0, пойман api-server bind-multi-hop MH10). Dot-path бинды снова под защитой existsInScope pre-check; атомарный критерий в самом запросе остаётся для single-hop/id/tenant.
