@@ -1,6 +1,7 @@
 import { InternalAuthGuard } from '../common/guard/internal-auth.guard';
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 
 describe('InternalAuthGuard', () => {
   let configService: jest.Mocked<ConfigService>;
@@ -67,6 +68,18 @@ describe('InternalAuthGuard', () => {
     configService.get.mockReturnValue('expected-key');
     const ctx = mockContext({ 'x-internal-api-key': 'expected-key' });
     expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('compares via crypto.timingSafeEqual (pin: no plain string equality)', () => {
+    const spy = jest.spyOn(crypto, 'timingSafeEqual');
+    configService.get.mockReturnValue('expected-key');
+    const ctx = mockContext({ 'x-internal-api-key': 'expected-key' });
+    expect(guard.canActivate(ctx)).toBe(true);
+    expect(spy).toHaveBeenCalledWith(
+      Buffer.from('expected-key'),
+      Buffer.from('expected-key'),
+    );
+    spy.mockRestore();
   });
 
   it('throws when API key does not match', () => {
