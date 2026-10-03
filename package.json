@@ -178,7 +178,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/swagger": "^11.0.0",
+    "@nestjs/swagger": "^12.0.2",
     "@nestjs/testing": "^11.2.7",
     "@nestjs/typeorm": "^11.0.0",
     "@sentry/nestjs": "^10.69.0",
