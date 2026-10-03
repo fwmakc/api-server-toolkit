@@ -49,6 +49,7 @@ export * from './common/column/varchar.column';
 
 // --- Decorators ---
 export * from './common/decorator/access.decorator';
+export * from './common/decorator/create-only.decorator';
 export * from './common/decorator/soft-delete.decorator';
 
 // --- DTOs ---
@@ -118,6 +119,7 @@ export * from './common/db/migrations-lock';
 
 // --- Services ---
 export * from './common/service/admin.service';
+export * from './common/service/capacity.helper';
 export * from './common/service/owner.service';
 export * from './common/service/tenant.service';
 export * from './common/service/tenant-strategy';

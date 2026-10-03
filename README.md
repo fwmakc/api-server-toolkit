@@ -682,6 +682,40 @@ Course (bind: `enrolls.student.account`):
 
 ---
 
+## Write-once fields: `@CreateOnly`
+
+Marks a DTO property as writable only on `create`. On `update` the field is
+silently stripped from the entity (in `CommonService.update`, before
+`stripWriteFields`). The restriction is tied to the DTO class that carries the
+decorator: the same column stays writable through any other controller/DTO
+without the decorator.
+
+```typescript
+class AnswerDto extends CommonDto {
+  @DtoColumn('Selected option')
+  @CreateOnly()
+  choice: boolean;
+
+  @DtoColumn('Moderator note')
+  note: string;
+}
+```
+
+Semantics:
+
+- `create` — the field passes through as a regular field (written once).
+- `update` via this DTO — silently stripped (no error: the rule is a contract of
+  the DTO, not a client mistake).
+- A plain object (no class instance) carries no contract — fields pass as-is.
+  The global `ValidationPipe` (`transform: true`) produces class instances, so
+  the standard CRUD path is always covered.
+- Internal writes that must overwrite such a field use a different DTO or the
+  raw `updateEntity()` escape hatch.
+
+Exported: `CreateOnly()`, `createOnlyFieldsOf(dto)`, `stripCreateOnlyFields(entity, dto)`.
+
+---
+
 ## Nested write protection
 
 When creating or updating records with nested relation data, the framework prevents
@@ -1316,6 +1350,36 @@ Database errors are mapped to appropriate HTTP status codes via `throwDbError()`
 
 Schema details (table/column names) are never leaked to the client.
 Full error details are logged server-side via `Logger`.
+
+---
+
+## Capacity helper: `claimSlot`
+
+Atomic slot claiming across candidate rows — "first candidate with a free slot":
+
+```typescript
+import { claimSlot } from 'api-server-toolkit';
+
+const streamId = await claimSlot(streamRepository, candidateStreamIds);
+if (streamId === null) {
+  // every candidate is full — surface as "no capacity" to the caller
+}
+```
+
+Runs `UPDATE ... SET taken = taken + 1 WHERE id = :id AND taken < capacity
+RETURNING id` per candidate, in order, until one update hits a row. The
+`taken < capacity` condition is evaluated under the row lock, so overbooking is
+impossible under concurrent writes (the hot row on the filling candidate is
+expected). Column names default to `capacity` / `taken` (property names,
+resolved to DB columns via entity metadata) and can be overridden:
+
+```typescript
+await claimSlot(repo, ids, { capacityColumn: 'limit', takenColumn: 'occupied' });
+```
+
+Pass a transaction's repository (`manager.getRepository(StreamEntity)`) to
+claim inside a transaction. Returns the claimed row id, or `null` when every
+candidate is full (or the candidate list is empty).
 
 ---
 

@@ -18,6 +18,7 @@ import { FindOneDto } from './dto/find_one.dto';
 import {
   stripWriteFields,
 } from './service/private_fields.service';
+import { stripCreateOnlyFields } from './decorator/create-only.decorator';
 import { bind } from './service/bind.service';
 import { BindDto } from './dto/bind.dto';
 import { buildFindWhere, buildCountWhere, executeFind } from './service/find.helper';
@@ -186,6 +187,7 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     if (!exists) return;
 
     const entity: DeepPartial<any> = { ...dto, id };
+    stripCreateOnlyFields(entity, dto);
     stripWriteFields(entity, this.repository.metadata.target, bind, bind);
 
     try {

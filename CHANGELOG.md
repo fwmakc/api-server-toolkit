@@ -5,11 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.27.0] - 2026-10-03
+### Added
+- **`@CreateOnly()` DTO decorator (write-once fields)** — a DTO property marked
+  `@CreateOnly()` passes on `create` and is silently stripped on `update`
+  (enforced in `CommonService.update`, before `stripWriteFields`). The rule is
+  tied to the DTO class: the same column stays writable through other
+  controllers/DTOs without the decorator. Exports: `CreateOnly()`,
+  `createOnlyFieldsOf(dto)`, `stripCreateOnlyFields(entity, dto)`.
+- **`claimSlot()` capacity helper** — atomic slot claiming across candidate
+  rows: `UPDATE ... SET taken = taken + 1 WHERE id = :id AND taken < capacity
+  RETURNING id` per candidate in order; overbooking impossible under
+  concurrency. Default columns `capacity`/`taken`, overridable; pass a
+  transaction repository to claim inside a transaction.
 ### Fixed
 - **EntityController: no-op delete/restore answers 404, not 200 `false`**: `remove` / `hardDelete` / `restore` returned the `CommonService` boolean as-is — an out-of-scope (or already deleted) row produced `200 {"false"}` instead of `404`, inconsistent with `update` (rows outside scope → 404 per the Access model). All three handlers now throw `NotFoundException` when nothing matched. Caught by stage-3 E2E on the live stack (`other owner delete → 404`).
 ### Tests
-- `entity.controller.remove-404.spec` — pins the contract: `false` from the service rejects with `NotFoundException` for remove/hardDelete/restore, `true` resolves.
+- `create-only.decorator.spec` — metadata/inheritance, strip on update (DTO instance) vs create passthrough, plain-object no-contract semantics.
+- `capacity.helper.spec` — claim order, full-candidate fallback, empty list, custom column resolution via entity metadata.
 
 ## [0.26.2] - 2026-10-02
 ### Fixed
