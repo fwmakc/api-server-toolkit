@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2026-10-04
+### Changed
+- **BREAKING: `OutboxEventClient.publish` is strict** — it now rejects when
+  the outbox insert fails, in both modes (with and without
+  `PublishOptions.manager`). The 0.28.0 never-rejects compatibility bridge
+  (swallow + log without a manager) is removed while the codebase is still
+  pre-RC; no consumers carried the old contract beyond auth-server, which is
+  updated in the same pass. Callers must handle the failure explicitly:
+  `await publish(p, x, { manager })` (transactional), `await publish(p, x)`
+  (visible failure), or `publish(p, x).catch(log)` (deliberate
+  fire-and-forget); unawaited calls risk an unhandled-rejection process
+  crash (Node 15+). `HttpEventClient` keeps its swallow-and-log behavior —
+  it is the legacy transport, not the durable one.
+
 ## [0.28.0] - 2026-10-04
 ### Added
 - **`OutboxModule.forRoot(entity)` — durable event publishing** — a

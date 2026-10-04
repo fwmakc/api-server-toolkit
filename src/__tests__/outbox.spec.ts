@@ -52,7 +52,7 @@ describe('buildEventEnvelope', () => {
 });
 
 describe('OutboxEventClient', () => {
-  it('queues the envelope into the outbox and does not throw', async () => {
+  it('queues the envelope into the outbox', async () => {
     const repo = makeRepo();
     const client = new OutboxEventClient(repo, config({ SERVICE_NAME: 'auth-server' }));
 
@@ -67,12 +67,12 @@ describe('OutboxEventClient', () => {
     expect(row.source).toBe('auth-server');
   });
 
-  it('swallows a failed self-insert (fire-and-forget contract)', async () => {
+  it('propagates a failed self-insert (strict contract)', async () => {
     const repo = makeRepo();
     repo.insert.mockRejectedValueOnce(new Error('db down'));
     const client = new OutboxEventClient(repo, config());
 
-    await expect(client.publish('p', {})).resolves.toBeUndefined();
+    await expect(client.publish('p', {})).rejects.toThrow('db down');
   });
 
   it('writes through the caller manager and propagates its errors', async () => {

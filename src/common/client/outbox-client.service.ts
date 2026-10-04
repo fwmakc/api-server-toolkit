@@ -10,11 +10,18 @@ import { EventOutboxEntity, OUTBOX_REPOSITORY } from './outbox.entity';
  * delivers rows to event-server with retries — an event-server outage or
  * an overload burst delays events instead of losing them.
  *
- * Contract parity with HttpEventClient: without `options.manager` publish()
- * NEVER rejects — a failed insert is logged, not thrown (call sites stay
- * unawaited without crash risk). With `manager` (the caller's transaction)
- * insert failures propagate, so the event commits or rolls back together
- * with the business change.
+ * STRICT contract: publish() rejects when the insert fails. The event row
+ * lives in the same database as the business data, so a failed insert is a
+ * real failure — callers decide explicitly how to handle it:
+ *  - `await publish(..., { manager })` — event joins the caller's transaction
+ *    (commits or rolls back together with the business change);
+ *  - `await publish(...)` — best-effort delivery with visible failure
+ *    (the request errors out if the event could not be queued);
+ *  - `publish(...).catch(err => ...)` — deliberate fire-and-forget for
+ *    non-critical events.
+ * Never call publish() unawaited: an unhandled rejection crashes the
+ * process (Node 15+). For audit-style side channels, see AuditService —
+ * it catches and logs on purpose.
  */
 @Injectable()
 export class OutboxEventClient extends IEventClient {
@@ -48,20 +55,11 @@ export class OutboxEventClient extends IEventClient {
       },
     };
 
-    try {
-      if (options?.manager) {
-        await options.manager
-          .getRepository(this.repo.target)
-          .insert(row);
-      } else {
-        await this.repo.insert(row);
-      }
-      this.logger.log(`Event queued to outbox: ${pattern}`);
-    } catch (err) {
-      if (options?.manager) throw err;
-      this.logger.error(
-        `Failed to queue event "${pattern}" to outbox: ${err instanceof Error ? err.message : err}`,
-      );
+    if (options?.manager) {
+      await options.manager.getRepository(this.repo.target).insert(row);
+    } else {
+      await this.repo.insert(row);
     }
+    this.logger.log(`Event queued to outbox: ${pattern}`);
   }
 }

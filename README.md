@@ -1254,9 +1254,16 @@ commit `1792300000000-EventOutbox` for the reference DDL.
 
 Transactional atomicity: pass the caller's EntityManager via
 `PublishOptions.manager` and the event row is written in the SAME transaction
-as the business change (commit together, roll back together). Without a
-manager, publish() keeps the fire-and-forget contract — it never rejects; a
-failed insert is logged. Relay tuning env: `OUTBOX_INTERVAL_MS` (2000),
+as the business change (commit together, roll back together).
+
+`OutboxEventClient.publish` is STRICT (v0.29.0+): it rejects when the insert
+fails — the row goes into the same database as the business data, so a failed
+insert is a real failure. Callers choose explicitly:
+`await publish(p, x, { manager })` for transactional flows, `await publish(p, x)`
+for best-effort-with-visible-failure, `publish(p, x).catch(log)` for deliberate
+fire-and-forget. Never call it unawaited — an unhandled rejection crashes the
+process (Node 15+). (`HttpEventClient`, the legacy transport, keeps its
+swallow-and-log behavior.) Relay tuning env: `OUTBOX_INTERVAL_MS` (2000),
 `OUTBOX_BATCH_SIZE` (50), `OUTBOX_MAX_ATTEMPTS` (10), `OUTBOX_RETRY_DELAY`
 (5s base, exponential), `OUTBOX_HTTP_TIMEOUT_MS` (5000),
 `OUTBOX_CLEANUP_*`; plus the usual `EVENT_SERVER_URL`, `INTERNAL_API_KEY`,
