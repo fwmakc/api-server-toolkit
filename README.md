@@ -1220,6 +1220,48 @@ async onRegister(user: User) {
 }
 ```
 
+### Outbox — durable publishing (recommended for events you must not lose)
+
+`HttpEventClient.publish` is fire-and-forget: it POSTs to event-server but
+callers do not await it, and any failure (event-server down, timeout, crash
+mid-flight) silently drops the event. `OutboxModule` (v0.28.0+) keeps the same
+`IEventClient` token and the same wire envelope, but persists the event into
+the service's own `event_outbox` table first; a relay worker delivers rows to
+event-server with retries (QueueWorker machinery: SKIP LOCKED claim,
+exponential backoff, stale reclaim, cleanup). An event-server outage or a
+process crash delays events instead of losing them; a permanently failed row
+stays in the table replayable.
+
+Setup — one local entity (TypeORM loads entities by glob from the service's
+src, so the toolkit base is undecorated) + one migration + one module swap:
+
+```typescript
+// src/db/outbox.entity.ts
+import { Entity } from 'typeorm';
+import { EventOutboxEntity } from 'api-server-toolkit';
+
+@Entity('event_outbox')
+export class AuthOutboxEntity extends EventOutboxEntity {}
+
+// app module: replace EventClientModule with
+OutboxModule.forRoot(AuthOutboxEntity)
+```
+
+The `event_outbox` migration mirrors the entity columns (`QueueJobEntity`
+fields + `pattern`, `payload` jsonb, `source`, `opts` jsonb) plus the
+`IDX_event_outbox_claim (status, next_attempt_at)` index — see auth-server
+commit `1792300000000-EventOutbox` for the reference DDL.
+
+Transactional atomicity: pass the caller's EntityManager via
+`PublishOptions.manager` and the event row is written in the SAME transaction
+as the business change (commit together, roll back together). Without a
+manager, publish() keeps the fire-and-forget contract — it never rejects; a
+failed insert is logged. Relay tuning env: `OUTBOX_INTERVAL_MS` (2000),
+`OUTBOX_BATCH_SIZE` (50), `OUTBOX_MAX_ATTEMPTS` (10), `OUTBOX_RETRY_DELAY`
+(5s base, exponential), `OUTBOX_HTTP_TIMEOUT_MS` (5000),
+`OUTBOX_CLEANUP_*`; plus the usual `EVENT_SERVER_URL`, `INTERNAL_API_KEY`,
+`SERVICE_NAME`.
+
 ### Replacing the transport
 
 The toolkit does NOT hardcode a message broker. `IEventClient` is a single-method abstract class:
