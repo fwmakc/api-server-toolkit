@@ -1430,6 +1430,14 @@ Pass a transaction's repository (`manager.getRepository(StreamEntity)`) to
 claim inside a transaction. Returns the claimed row id, or `null` when every
 candidate is full (or the candidate list is empty).
 
+**Claim-then-insert contract:** the UPDATE commits immediately unless the
+repository belongs to an open transaction. A caller that claims in one
+transaction and inserts the dependent row (subscription/booking) in another
+leaks slots: a crash between the two steps leaves a claimed slot with no row
+(`taken` exceeds the row count). `claimSlot` and the dependent write MUST
+share one transaction — pass the repository from the same `manager` and do
+the insert inside it.
+
 ---
 
 ## Soft Delete
