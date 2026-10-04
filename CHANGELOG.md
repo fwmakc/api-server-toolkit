@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-10-04
+### Added
+- **`OutboxModule.forRoot(entity)` — durable event publishing** — a
+  fire-and-forget `HttpEventClient.publish` loses events on process crashes
+  (measured: 18% under kill windows in the LMS load case) and swallows
+  event-server outages. The outbox client persists the envelope into the
+  service-local `event_outbox` table and a relay worker (QueueWorker
+  machinery: SKIP LOCKED claim, exponential backoff, stale reclaim, cleanup)
+  delivers to event-server with retries; a permanently failed row stays
+  replayable in the table. Contract parity: same `IEventClient` token, same
+  wire envelope — services swap one imported module and add one migration.
+  `PublishOptions.manager` writes the event row in the caller's transaction
+  (atomic with the business change); without it publish() never rejects,
+  matching the old fire-and-forget contract. Services declare a local
+  `@Entity('event_outbox')` subclass of `EventOutboxEntity` (glob-based
+  entity loading). New exports: `OutboxModule`, `OutboxEventClient`,
+  `OutboxRelayWorker`, `EventOutboxEntity`, `OutboxOptions`,
+  `OUTBOX_REPOSITORY`, `buildEventEnvelope`; `PublishOptions` gains
+  `manager?`.
+
 ## [0.27.0] - 2026-10-03
 ### Added
 - **`@CreateOnly()` DTO decorator (write-once fields)** — a DTO property marked

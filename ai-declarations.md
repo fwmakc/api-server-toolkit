@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 199 declaration files.
+Generated from 220 declaration files.
 
 ---
 
@@ -122,6 +122,12 @@ import 'reflect-metadata';
 import 'reflect-metadata';
 ```
 
+## dist\__tests__\capacity.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
 ## dist\__tests__\column.factories.spec.d.ts
 
 ```typescript
@@ -129,6 +135,18 @@ import 'reflect-metadata';
 ```
 
 ## dist\__tests__\cookie.service.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\create-only.decorator.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\crypt.service.spec.d.ts
 
 ```typescript
 export {};
@@ -144,6 +162,18 @@ import 'reflect-metadata';
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\entity.controller.remove-404.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\event-delivery.guard.spec.d.ts
+
+```typescript
+import "reflect-metadata";
 ```
 
 ## dist\__tests__\find.helper.executeFind.spec.d.ts
@@ -188,6 +218,12 @@ export {};
 export {};
 ```
 
+## dist\__tests__\migrations-lock.spec.d.ts
+
+```typescript
+export {};
+```
+
 ## dist\__tests__\nested_filter.service.spec.d.ts
 
 ```typescript
@@ -195,6 +231,12 @@ import 'reflect-metadata';
 ```
 
 ## dist\__tests__\object.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
+## dist\__tests__\outbox.spec.d.ts
 
 ```typescript
 export {};
@@ -225,6 +267,12 @@ export {};
 ```
 
 ## dist\__tests__\remove-private.interceptor.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\remove-scope.spec.d.ts
 
 ```typescript
 import 'reflect-metadata';
@@ -314,6 +362,18 @@ import 'reflect-metadata';
 import 'reflect-metadata';
 ```
 
+## dist\__tests__\wave6-audit.spec.d.ts
+
+```typescript
+import 'reflect-metadata';
+```
+
+## dist\__tests__\webhook-signature.helper.spec.d.ts
+
+```typescript
+export {};
+```
+
 ## dist\__tests__\where.service.spec.d.ts
 
 ```typescript
@@ -338,6 +398,11 @@ export * from './common/bootstrap/bootstrap.service';
 export * from './common/client/event-client.interfaces';
 export * from './common/client/event-client.service';
 export * from './common/client/event-client.module';
+export * from './common/client/outbox.entity';
+export * from './common/client/outbox.envelope';
+export * from './common/client/outbox-client.service';
+export * from './common/client/outbox-relay.service';
+export * from './common/client/outbox.module';
 ```
 
 ## dist\common\access.module.d.ts
@@ -707,6 +772,7 @@ export interface PublishOptions {
     delay?: number;
     log?: boolean;
     ttl?: number;
+    manager?: import("typeorm").EntityManager;
 }
 export declare abstract class IEventClient {
     abstract publish(pattern: string, payload: Record<string, unknown>, options?: PublishOptions): Promise<void>;
@@ -733,6 +799,75 @@ export declare class HttpEventClient extends IEventClient {
     private readonly serviceName;
     constructor(config: ConfigService);
     publish(pattern: string, payload: Record<string, unknown>, options?: PublishOptions): Promise<void>;
+}
+```
+
+## dist\common\client\outbox-client.service.d.ts
+
+```typescript
+import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
+import { IEventClient, PublishOptions } from './event-client.interfaces';
+import { EventOutboxEntity } from './outbox.entity';
+export declare class OutboxEventClient extends IEventClient {
+    private readonly repo;
+    private readonly logger;
+    private readonly serviceName;
+    constructor(repo: Repository<EventOutboxEntity>, config: ConfigService);
+    publish(pattern: string, payload: Record<string, unknown>, options?: PublishOptions): Promise<void>;
+}
+```
+
+## dist\common\client\outbox-relay.service.d.ts
+
+```typescript
+import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
+import { QueueWorker } from '../queue/queue-worker.service';
+import { EventOutboxEntity } from './outbox.entity';
+export declare class OutboxRelayWorker extends QueueWorker<EventOutboxEntity> {
+    private readonly eventServerUrl;
+    private readonly apiKey;
+    private readonly httpTimeout;
+    constructor(repo: Repository<EventOutboxEntity>, config: ConfigService);
+    protected process(job: EventOutboxEntity): Promise<void>;
+}
+```
+
+## dist\common\client\outbox.entity.d.ts
+
+```typescript
+import { QueueJobEntity } from '../queue/queue-job.entity';
+export interface OutboxOptions {
+    broadcast?: boolean;
+    priority?: 'low' | 'normal' | 'high';
+    delay?: number;
+    log?: boolean;
+    ttl?: number;
+}
+export declare class EventOutboxEntity extends QueueJobEntity {
+    pattern: string;
+    payload: Record<string, unknown>;
+    source: string | null;
+    opts: OutboxOptions | null;
+}
+export declare const OUTBOX_REPOSITORY = "OUTBOX_REPOSITORY";
+```
+
+## dist\common\client\outbox.envelope.d.ts
+
+```typescript
+import { OutboxOptions } from './outbox.entity';
+export declare function buildEventEnvelope(pattern: string, payload: Record<string, unknown>, source: string | null | undefined, opts: OutboxOptions | null | undefined): Record<string, unknown>;
+```
+
+## dist\common\client\outbox.module.d.ts
+
+```typescript
+import { DynamicModule } from '@nestjs/common';
+import { EventOutboxEntity } from './outbox.entity';
+export declare class OutboxModule {
+    static forRoot(entity: typeof EventOutboxEntity): DynamicModule;
 }
 ```
 
@@ -982,6 +1117,7 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     update(id: number | string, dto: Dto, relations?: Array<RelationsDto>, bind?: BindDto, externalManager?: EntityManager): Promise<Entity>;
     updateEntity(entity: DeepPartial<any>, manager?: EntityManager): Promise<any>;
     getIdType(): string;
+    private bindCriteria;
     private existsInScope;
     remove(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
     hardDelete(id: number | string, bind?: BindDto, externalManager?: EntityManager): Promise<boolean>;
@@ -990,11 +1126,19 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
     sortPosition(field: string, find: FindDto, bind?: BindDto): Promise<boolean>;
     movePosition(id: number | string, field: string, position: number, bind?: BindDto): Promise<boolean>;
     getUniqueColumns(): Array<string[]>;
-    findUniqueEntry(entity: DeepPartial<any>): Promise<any>;
+    findUniqueEntry(entity: DeepPartial<any>, bind?: BindDto): Promise<any>;
     findUniqueEntrie(entity: DeepPartial<any>): Promise<any>;
     bind(entrie: any, data: any): BindDto;
     error(e: any): void;
 }
+```
+
+## dist\common\db\migrations-lock.d.ts
+
+```typescript
+import { DataSourceOptions, Migration } from "typeorm";
+export declare const MIGRATION_LOCK_KEY = 827261001;
+export declare const runMigrationsUnderLock: (option: DataSourceOptions, lockKey?: number) => Promise<Migration[]>;
 ```
 
 ## dist\common\decorator\access.decorator.d.ts
@@ -1003,6 +1147,15 @@ export declare class CommonService<Dto extends CommonDto, Entity extends BaseEnt
 import { AccessRule } from '../access.rules';
 export declare function accessDecorators(rules: AccessRule[]): MethodDecorator[];
 export declare const Access: (rules: AccessRule[]) => <TFunction extends Function, Y>(target: TFunction | object, propertyKey?: string | symbol, descriptor?: TypedPropertyDescriptor<Y>) => void;
+```
+
+## dist\common\decorator\create-only.decorator.d.ts
+
+```typescript
+export declare const CREATE_ONLY_METADATA = "toolkit:create-only";
+export declare function CreateOnly(): PropertyDecorator;
+export declare function createOnlyFieldsOf(dto: object): string[];
+export declare const stripCreateOnlyFields: (entity: any, dto: object) => void;
 ```
 
 ## dist\common\decorator\soft-delete.decorator.d.ts
@@ -1204,6 +1357,18 @@ export declare class ApiKeyGuard implements CanActivate {
 }
 ```
 
+## dist\common\guard\event-delivery.guard.d.ts
+
+```typescript
+import { CanActivate, ExecutionContext } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+export declare class EventDeliveryGuard implements CanActivate {
+    private readonly config;
+    constructor(config: ConfigService);
+    canActivate(context: ExecutionContext): boolean;
+}
+```
+
 ## dist\common\guard\internal-auth.guard.d.ts
 
 ```typescript
@@ -1254,6 +1419,7 @@ export interface HttpOptions {
     headers?: Record<string, string>;
     timeout?: number;
     raw?: boolean;
+    redirect?: RequestRedirect;
 }
 export interface HttpResponse<T = unknown> {
     status: number;
@@ -1317,6 +1483,23 @@ export declare const isFilled: (value: unknown) => boolean;
 
 ```typescript
 export declare const stripHtmlTags: (html: string) => string;
+```
+
+## dist\common\helper\webhook-signature.helper.d.ts
+
+```typescript
+export declare const WEBHOOK_SIGNATURE_HEADER = "x-event-signature";
+export declare const WEBHOOK_TIMESTAMP_HEADER = "x-event-timestamp";
+export declare const DEFAULT_TIMESTAMP_TOLERANCE_SECONDS = 300;
+export declare const generateWebhookSecret: () => string;
+export declare const signEventDelivery: (secret: string, timestamp: number, rawBody: string) => string;
+export declare const verifyEventDelivery: (secret: string, rawBody: string, signature: string | undefined, timestamp: string | number | undefined, toleranceSeconds?: number) => boolean;
+export type WebhookEgressMode = "internal" | "public" | "allowlist";
+export interface WebhookEgressCheck {
+    ok: boolean;
+    reason?: string;
+}
+export declare const validateWebhookEgress: (url: string, mode?: WebhookEgressMode, allowlist?: string[]) => WebhookEgressCheck;
 ```
 
 ## dist\common\interceptor\add-client-ip.interceptor.d.ts
@@ -1574,6 +1757,17 @@ import { BindDto } from '../dto/bind.dto';
 export declare function bind(entrie: any, options: BindDto): BindDto;
 ```
 
+## dist\common\service\capacity.helper.d.ts
+
+```typescript
+import { Repository } from 'typeorm';
+export interface CapacityColumns {
+    capacityColumn?: string;
+    takenColumn?: string;
+}
+export declare const claimSlot: (repository: Repository<any>, candidateIds: Array<number | string>, columns?: CapacityColumns) => Promise<number | string | null>;
+```
+
 ## dist\common\service\cookie.service.d.ts
 
 ```typescript
@@ -1593,11 +1787,14 @@ export declare class Cookie {
 ## dist\common\service\crypt.service.d.ts
 
 ```typescript
-export declare function encrypt(data: any): Promise<{
+export interface AesEnvelope {
+    v?: number;
     encrypted: string;
     iv: string;
-}>;
-export declare function decrypt(encryptedData: any, iv: any): Promise<string>;
+}
+export declare function currentAesVersion(): number;
+export declare function encrypt(data: any): Promise<AesEnvelope>;
+export declare function decrypt(encryptedData: any, iv: any, version?: number): Promise<string>;
 export declare function hash(data: any, type?: string): string;
 ```
 
@@ -1605,9 +1802,9 @@ export declare function hash(data: any, type?: string): string;
 
 ```typescript
 import { Repository } from 'typeorm';
-export declare function softRemove<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string): Promise<boolean>;
-export declare function hardRemove<Entity>(repo: Repository<Entity>, id: number | string): Promise<boolean>;
-export declare function restoreDeleted<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string): Promise<boolean>;
+export declare function softRemove<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string, scopeWhere?: Record<string, any>): Promise<boolean>;
+export declare function hardRemove<Entity>(repo: Repository<Entity>, id: number | string, scopeWhere?: Record<string, any>): Promise<boolean>;
+export declare function restoreDeleted<Entity>(repo: Repository<Entity>, id: number | string, softDeleteCol: string, scopeWhere?: Record<string, any>): Promise<boolean>;
 ```
 
 ## dist\common\service\dynamic.save.service.d.ts
@@ -1843,7 +2040,7 @@ export declare class TenantMiddleware implements NestMiddleware {
     private dataSource?;
     private options;
     constructor(options: TenantMiddlewareOptions, dataSource?: DataSource);
-    use(req: any, _res: Response, next: NextFunction): void;
+    use(req: any, res: Response, next: NextFunction): void;
     private handleSchema;
     private handleDatabase;
 }
@@ -1883,11 +2080,12 @@ export declare function flatToTree(data: Record<string, unknown> | Record<string
 
 ```typescript
 import { EntityMetadata } from 'typeorm';
+import { BindDto } from '../dto/bind.dto';
 export declare function getUniqueColumns(metadata: EntityMetadata): Array<string[]>;
 export declare function findUniqueEntry<_Entity>(repository: {
     metadata: EntityMetadata;
     findOne: (options: any) => Promise<any>;
-}, entity: Record<string, any>): Promise<any>;
+}, entity: Record<string, any>, bind?: BindDto, softDeleteCol?: string | null): Promise<any>;
 ```
 
 ## dist\common\service\where.service.d.ts
@@ -1921,12 +2119,19 @@ export type SearchType = {
 };
 ```
 
+## dist\db.d.ts
+
+```typescript
+export * from './common/db/migrations-lock';
+```
+
 ## dist\guard.d.ts
 
 ```typescript
 export * from './common/guard/internal-auth.guard';
 export * from './common/guard/access.guard';
 export * from './common/guard/api-key.guard';
+export * from './common/guard/event-delivery.guard';
 ```
 
 ## dist\health.d.ts
@@ -1940,6 +2145,7 @@ export * from './common/health/health.controller';
 
 ```typescript
 export * from './common/helper/http.helper';
+export * from './common/helper/webhook-signature.helper';
 ```
 
 ## dist\index.d.ts
@@ -1962,6 +2168,11 @@ export * from './common/permission.registry';
 export * from './common/client/event-client.interfaces';
 export * from './common/client/event-client.service';
 export * from './common/client/event-client.module';
+export * from './common/client/outbox.entity';
+export * from './common/client/outbox.envelope';
+export * from './common/client/outbox-client.service';
+export * from './common/client/outbox-relay.service';
+export * from './common/client/outbox.module';
 export * from './common/audit/audit.service';
 export * from './common/audit/audit.interceptor';
 export * from './common/audit/audit.module';
@@ -1987,6 +2198,7 @@ export * from './common/column/text.column';
 export * from './common/column/updated.column';
 export * from './common/column/varchar.column';
 export * from './common/decorator/access.decorator';
+export * from './common/decorator/create-only.decorator';
 export * from './common/decorator/soft-delete.decorator';
 export * from './common/dto/bind.dto';
 export * from './common/dto/find.dto';
@@ -2022,6 +2234,7 @@ export * from './common/helper/object.helper';
 export * from './common/helper/scalar.helper';
 export * from './common/helper/string.helper';
 export * from './common/helper/random.helper';
+export * from './common/helper/webhook-signature.helper';
 export * from './common/interceptor/add-client-ip.interceptor';
 export * from './common/interceptor/remove-private.interceptor';
 export * from './common/pipe/safe_id.pipe';
@@ -2029,7 +2242,9 @@ export * from './common/queue/queue.interfaces';
 export * from './common/queue/queue-job.entity';
 export * from './common/queue/queue-worker.service';
 export * from './common/queue/queue.service';
+export * from './common/db/migrations-lock';
 export * from './common/service/admin.service';
+export * from './common/service/capacity.helper';
 export * from './common/service/owner.service';
 export * from './common/service/tenant.service';
 export * from './common/service/tenant-strategy';
