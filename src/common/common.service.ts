@@ -9,6 +9,7 @@ import {
   Repository,
 } from 'typeorm';
 import { getTenantStrategy } from './service/tenant-strategy';
+import { relationsToFindOptions } from './service/relations.service';
 import { TenantContext } from './service/tenant-context';
 import { RelationsDto } from './dto/relations.dto';
 import { CommonDto } from './common.dto';
@@ -97,7 +98,9 @@ export class CommonService<Dto extends CommonDto, Entity extends BaseEntity> {
     const { where, relationNames } = buildCountWhere(bind, find, softDeleteCol);
     return await this.getRepository().count({
       where,
-      ...(relationNames.length > 0 ? { relations: relationNames } : {}),
+      ...(relationNames.length > 0
+        ? { relations: relationsToFindOptions(relationNames) }
+        : {}),
     });
   }
 

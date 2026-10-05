@@ -1,6 +1,6 @@
 {
   "name": "api-server-toolkit",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "NestJS CRUD engine, decorators, and guards for API microservices",
   "license": "MIT",
   "repository": {
@@ -136,7 +136,7 @@
     "passport-jwt": "^4.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20 || ^1.1.0"
   },
   "peerDependenciesMeta": {
     "@sentry/nestjs": {

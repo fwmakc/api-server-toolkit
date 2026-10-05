@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-10-05
+### Changed
+- **typeorm 1.x compatibility** (peer range widened to `^0.3.20 || ^1.1.0`;
+  devDep stays on 0.3 — the fleet still runs 0.3). Two deltas of the 1.x
+  line are absorbed:
+  - `relationsToFindOptions` (relations.service) — typeorm 1.x removed the
+    string[] form of `FindOptionsRelations`; the toolkit keeps the string[]
+    public API (FindDto.relations, EntityController whitelists, bind-built
+    relation names) and converts dot-paths to the object tree at every
+    `repository.find`/`count` boundary. typeorm 0.3 accepts the object form
+    too, so behavior is identical on both majors.
+  - `BooleanColumn` no longer passes `width` (removed from ColumnOptions in
+    1.x; a MySQL-ism always ignored on postgres) and passes `comment` only
+    when set.
+  Verified against BOTH majors locally: 659/659 on 1.1.1 and 659/659 on
+  0.3.31.
+
 ## [0.30.0] - 2026-10-05
 ### Added
 - `QueueWorkerConfig.concurrency` (default 1) — bounded worker pool over a

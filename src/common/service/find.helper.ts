@@ -1,11 +1,11 @@
-import { In, IsNull, Repository } from 'typeorm';
+import { FindManyOptions, In, IsNull, Repository } from 'typeorm';
 import { BaseEntity } from 'typeorm';
 import { buildNestedWhere } from './bind-path.service';
 import { parseWhereObject } from './where.service';
 import { buildSearchWhere, mergeSearchWhere } from './search.service';
 import { BindDto } from '../dto/bind.dto';
 import { FindDto } from '../dto/find.dto';
-import { relationsOrder } from './relations.service';
+import { relationsOrder, relationsToFindOptions } from './relations.service';
 import { filterNestedRelations } from './nested_filter.service';
 import { removePrivateFields } from './private_fields.service';
 import { batchLoadRelations } from './batch-loader.service';
@@ -190,13 +190,18 @@ export async function executeFind<Entity extends BaseEntity>(
     } else {
       result = await repository.find({
         ...idParams,
-        relations: useJoin ? relationNames : undefined,
+        relations: useJoin ? relationsToFindOptions(relationNames) : undefined,
         where: { id: In(paginatedIds) } as any,
         take: limitNum,
       });
     }
   } else {
-    result = await repository.find(params);
+    // string[] relations converted at the DB boundary (typeorm 1.x accepts
+    // the object form only; 0.3 takes both — see relationsToFindOptions)
+    result = await repository.find({
+      ...params,
+      relations: relationsToFindOptions(params.relations),
+    } as FindManyOptions<Entity>);
   }
 
   if (!useJoin && relationNames.length > 0 && result.length > 0) {

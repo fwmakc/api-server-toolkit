@@ -9,6 +9,7 @@ jest.mock('../common/service/batch-loader.service', () => ({
 }));
 
 jest.mock('../common/service/relations.service', () => ({
+  ...jest.requireActual('../common/service/relations.service'),
   relationsOrder: jest.fn((items) => items),
 }));
 

@@ -51,3 +51,29 @@ export const relationsOrder = (result, relations: Array<RelationsDto>) => {
 
   return result;
 };
+/**
+ * typeorm 1.x removed the string[] form of FindOptionsRelations — relations
+ * must be an object tree. The toolkit keeps the string[] public API
+ * (FindDto.relations, EntityController whitelists, bind-generated names), so
+ * this adapter sits at every repository.find/count boundary. Dot-paths
+ * ('account.tenant') become nested nodes; typeorm 0.3 accepts the object
+ * form too, so the same output serves both runtime majors.
+ */
+export const relationsToFindOptions = (
+  relations: string[] | undefined | null,
+): Record<string, any> | undefined => {
+  if (!relations || relations.length === 0) {
+    return undefined;
+  }
+  const tree: Record<string, any> = {};
+  for (const relation of relations) {
+    let node = tree;
+    for (const part of relation.split('.')) {
+      if (typeof node[part] !== 'object' || node[part] === null) {
+        node[part] = {};
+      }
+      node = node[part];
+    }
+  }
+  return tree;
+};

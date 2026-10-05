@@ -24,13 +24,14 @@ export function BooleanColumn(
 
     const defaultValue = +value || 0;
 
+    // typeorm 1.x dropped `width` from ColumnOptions (a MySQL-ism that was
+    // always ignored on postgres — smallint needs no width)
     Column({
-      comment,
+      ...(comment ? { comment } : {}),
       default: defaultValue,
       name,
       transformer: new BooleanColumnTransformer(),
       type: 'smallint',
-      width: 1,
     })(object, propertyName);
   };
 }

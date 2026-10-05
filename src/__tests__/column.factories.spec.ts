@@ -352,13 +352,13 @@ describe('FloatColumn', () => {
 describe('BooleanColumn', () => {
   it('creates smallint column with default 0 when value=false', () => {
     applyDecorator(BooleanColumn('active'));
+    // typeorm 1.x dropped `width` from ColumnOptions (a MySQL-ism that was
+    // always ignored on postgres); `comment` is passed only when set
     expect(mockColumnFn).toHaveBeenCalledWith({
-      comment: undefined,
       default: 0,
       name: 'active',
       transformer: expect.any(Object),
       type: 'smallint',
-      width: 1,
     });
   });
 
