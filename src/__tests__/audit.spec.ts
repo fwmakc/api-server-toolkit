@@ -27,8 +27,11 @@ describe('AuditService', () => {
     });
 
     expect(client.publish).toHaveBeenCalledTimes(1);
-    const [pattern, payload] = (client.publish as jest.Mock).mock.calls[0];
+    const [pattern, payload, options] = (client.publish as jest.Mock).mock.calls[0];
     expect(pattern).toBe('audit.event');
+    // journal 14: audit noise claims at the lowest rank so a sustained
+    // audit flood cannot starve operational deliveries behind the FIFO
+    expect(options).toMatchObject({ priority: 'low' });
     expect(payload).toMatchObject({
       action: 'auth.login.failed',
       outcome: 'failure',

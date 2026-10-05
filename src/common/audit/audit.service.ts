@@ -58,10 +58,16 @@ export class AuditService {
       this.logger.log(`audit-fallback ${JSON.stringify(payload)}`);
       return;
     }
-    this.client.publish(AUDIT_EVENT_PATTERN, payload).catch((err: unknown) => {
-      this.logger.error(
-        `Failed to publish audit "${entry.action}": ${err instanceof Error ? err.message : err}`,
-      );
-    });
+    // audit noise must never compete with operational traffic in the event
+    // bus claim queue: at equal priority a sustained audit flood (login
+    // storms fire one audit per probe) starves real deliveries behind the
+    // FIFO (journal 14, storm14 R2c). Demoted to the lowest claim rank.
+    this.client
+      .publish(AUDIT_EVENT_PATTERN, payload, { priority: 'low' })
+      .catch((err: unknown) => {
+        this.logger.error(
+          `Failed to publish audit "${entry.action}": ${err instanceof Error ? err.message : err}`,
+        );
+      });
   }
 }
