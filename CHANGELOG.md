@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-10-05
+### Added
+- `QueueWorkerConfig.concurrency` (default 1) — bounded worker pool over a
+  claimed batch. 1 reproduces the historical sequential loop; higher values
+  fan the batch out in parallel (journal №7: the mail pipeline sent one
+  SMTP letter at a time regardless of batch size). Claiming stays batched
+  and locked (SKIP LOCKED), so multi-replica deployments remain safe.
+
+## [0.29.1] - 2026-10-05
+### Changed
+- Audit events are published at `priority: 'low'` — at equal priority a
+  sustained audit flood (login storms fire one audit event per probe)
+  starved real deliveries behind the event bus FIFO claim queue
+  (journal 14, storm14 R2c: honest p95 33.6s at a ~33k zombie backlog;
+  with the priority split, p95 611ms at the same backlog size).
+
 ## [0.29.0] - 2026-10-04
 ### Changed
 - **BREAKING: `OutboxEventClient.publish` is strict** — it now rejects when

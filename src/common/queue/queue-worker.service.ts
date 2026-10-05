@@ -37,7 +37,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
     }
 
     this.logger.log(
-      `Worker started (interval=${this.queueConfig.interval}-${this.maxInterval}ms adaptive, batch=${this.queueConfig.batchSize})`,
+      `Worker started (interval=${this.queueConfig.interval}-${this.maxInterval}ms adaptive, batch=${this.queueConfig.batchSize}, concurrency=${Math.max(1, Math.floor(this.queueConfig.concurrency ?? 1))})`,
     );
   }
 
@@ -66,9 +66,7 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
       }
       this.currentDelay = this.queueConfig.interval;
 
-      for (const job of jobs) {
-        await this.processJob(job);
-      }
+      await this.processBatch(jobs);
     } else {
       const prev = this.currentDelay;
       this.currentDelay = Math.min(
@@ -133,6 +131,33 @@ export abstract class QueueWorker<TJob extends QueueJobEntity>
 
   protected loadRelations(_qb: import('typeorm').SelectQueryBuilder<TJob>): void {
     // subclasses override to add leftJoinAndSelect for eager relations
+  }
+
+  private async processBatch(jobs: TJob[]): Promise<void> {
+    // Bounded worker pool over the claimed batch (journal №7): the default of
+    // 1 reproduces the historical sequential loop. The shared cursor advances
+    // synchronously, so cursor races are impossible; each job keeps its own
+    // attempt bookkeeping, and a slow job only occupies one slot.
+    const limit = Math.max(1, Math.floor(this.queueConfig.concurrency ?? 1));
+
+    if (limit === 1 || jobs.length === 1) {
+      for (const job of jobs) {
+        await this.processJob(job);
+      }
+      return;
+    }
+
+    let cursor = 0;
+    const slots = Array.from(
+      { length: Math.min(limit, jobs.length) },
+      async () => {
+        while (cursor < jobs.length) {
+          const job = jobs[cursor++];
+          await this.processJob(job);
+        }
+      },
+    );
+    await Promise.all(slots);
   }
 
   private async processJob(job: TJob): Promise<void> {

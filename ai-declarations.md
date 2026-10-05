@@ -3,7 +3,7 @@
 This file is auto-generated for AI-assisted development.
 Feed it to your LLM (Claude, ChatGPT, etc.) to get framework-aware code without hallucinations.
 
-Generated from 220 declaration files.
+Generated from 221 declaration files.
 
 ---
 
@@ -258,6 +258,12 @@ import 'reflect-metadata';
 
 ```typescript
 import 'reflect-metadata';
+```
+
+## dist\__tests__\queue-worker.spec.d.ts
+
+```typescript
+export {};
 ```
 
 ## dist\__tests__\relations.service.spec.d.ts
@@ -1677,6 +1683,7 @@ export declare abstract class QueueWorker<TJob extends QueueJobEntity> implement
     private runCycle;
     private claimJobs;
     protected loadRelations(_qb: import('typeorm').SelectQueryBuilder<TJob>): void;
+    private processBatch;
     private processJob;
     private handleFailure;
     protected formatError(error: Error): string;
@@ -1692,6 +1699,7 @@ export interface QueueWorkerConfig {
     interval: number;
     maxInterval?: number;
     batchSize: number;
+    concurrency?: number;
     maxAttempts: number;
     retryDelay: number;
     staleTimeout?: number;

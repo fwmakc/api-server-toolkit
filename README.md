@@ -1232,6 +1232,16 @@ exponential backoff, stale reclaim, cleanup). An event-server outage or a
 process crash delays events instead of losing them; a permanently failed row
 stays in the table replayable.
 
+### QueueWorker concurrency (v0.30.0+)
+
+`QueueWorkerConfig.concurrency` (default `1`) controls how many jobs of a
+claimed batch run in parallel. `1` reproduces the historical sequential
+loop; e.g. `4` lets a mail worker hold four SMTP conversations at once
+while the claim stays a locked, batched `SKIP LOCKED` query — multiple
+worker replicas remain safe, and per-job retry/backoff bookkeeping is
+unchanged (journal №7: the mail pipeline sent one letter at a time
+regardless of batch size).
+
 Setup — one local entity (TypeORM loads entities by glob from the service's
 src, so the toolkit base is undecorated) + one migration + one module swap:
 
