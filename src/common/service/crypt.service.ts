@@ -64,8 +64,8 @@ function bytesToHex(bytes: Uint8Array): string {
 
 async function importAesKey(
   version: number,
-  usages: KeyUsage[],
-): Promise<CryptoKey> {
+  usages: import('crypto').webcrypto.KeyUsage[],
+): Promise<import('crypto').webcrypto.CryptoKey> {
   const key = process.env[aesKeyEnvName(version)];
   if (!key) {
     throw new BadRequestException(
