@@ -528,10 +528,12 @@ export declare class AuditInterceptor implements NestInterceptor {
 
 ```typescript
 import { DynamicModule, Type } from '@nestjs/common';
+import { AuditFilterOptions } from './audit.service';
 export interface AuditModuleOptions {
     mutations?: boolean;
     client?: boolean;
     imports?: Array<DynamicModule | Type>;
+    filter?: AuditFilterOptions;
 }
 export declare class AuditModule {
     static forRoot(options?: AuditModuleOptions): DynamicModule;
@@ -541,8 +543,11 @@ export declare class AuditModule {
 ## dist\common\audit\audit.service.d.ts
 
 ```typescript
+import { OnModuleInit } from '@nestjs/common';
 import { IEventClient } from '../client/event-client.interfaces';
+import { MetricsService } from '../metrics/metrics.service';
 export declare const AUDIT_EVENT_PATTERN = "audit.event";
+export declare const AUDIT_OPTIONS = "AUDIT_OPTIONS";
 export interface AuditEntry {
     action: string;
     outcome?: 'allow' | 'deny' | 'success' | 'failure';
@@ -556,11 +561,23 @@ export interface AuditEntry {
     targetId?: string | number;
     details?: Record<string, unknown>;
 }
-export declare class AuditService {
+export interface AuditFilterOptions {
+    enabled?: boolean;
+    include?: string[];
+    exclude?: string[];
+}
+export declare function auditActionMatches(action: string, prefix: string): boolean;
+export declare function resolveAuditFilter(partial?: AuditFilterOptions, env?: NodeJS.ProcessEnv): Required<AuditFilterOptions>;
+export declare class AuditService implements OnModuleInit {
     private readonly client?;
     private readonly logger;
-    constructor(client?: IEventClient);
+    private readonly filter;
+    private readonly eventsCounter?;
+    constructor(client?: IEventClient, filter?: AuditFilterOptions, metrics?: MetricsService);
+    onModuleInit(): void;
     log(entry: AuditEntry): void;
+    private passesFilter;
+    private bump;
 }
 ```
 
@@ -1963,6 +1980,7 @@ export declare const prepareQuotes: () => string;
 ```typescript
 import { RelationsDto } from '../dto/relations.dto';
 export declare const relationsOrder: (result: any, relations: Array<RelationsDto>) => any;
+export declare const relationsToFindOptions: (relations: string[] | undefined | null) => Record<string, any> | undefined;
 ```
 
 ## dist\common\service\sanitize.service.d.ts

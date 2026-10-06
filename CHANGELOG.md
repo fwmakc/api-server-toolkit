@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.0] - 2026-10-06
+### Added
+- **Audit volume control: `AUDIT_ENABLED` kill switch + include/exclude
+  action filter** (`AuditModule.forRoot({ filter })` / env
+  `AUDIT_ENABLED` / `AUDIT_INCLUDE` / `AUDIT_EXCLUDE`). Applied at the
+  source inside `AuditService.log` — a filtered entry produces no bus
+  traffic, no outbox rows, no store growth. Matching is dot-path prefix
+  on segment boundaries (`auth` matches `auth.login.failed`, not
+  `audit.x`); order: disabled → include miss → exclude hit; defaults keep
+  everything, so existing services are unaffected. The resolved filter is
+  logged at boot, suspicious entries warn, and
+  `audit_events_total{result="passed|filtered|disabled"}` is counted in
+  the `MetricsService` registry when one is bound. Companion to the
+  event-server 0.10.0 retention CLI — see both READMEs.
+
 ## [0.31.0] - 2026-10-05
 ### Changed
 - **typeorm 1.x compatibility** (peer range widened to `^0.3.20 || ^1.1.0`;

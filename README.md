@@ -1060,6 +1060,69 @@ export class AppModule {}
 
 ---
 
+## Audit log
+
+`AuditModule.forRoot()` wires a fire-and-forget audit publisher: every
+service records **who did what, when, from where**, and the records travel
+to event-server with the `audit.event` pattern, landing in its append-only,
+hash-chained `audit_events` store (tamper-evident — see the event-server
+README). Audit failures never fail the audited operation; without a bound
+`IEventClient` records fall back to the structured log.
+
+What is recorded automatically:
+
+- `AuditInterceptor` (global): every successful mutating request —
+  `POST → data.created`, `PUT/PATCH → data.updated`, `DELETE → data.deleted`,
+  with account, tenant, IP, user-agent, route and resource id.
+- `AccessGuard`: every 403 as `access.denied`.
+- Explicit calls: `AuditService.log({ action, outcome, ... })` — open
+  dot-path actions (auth-server emits the `auth.*` catalog this way).
+  `details` MUST NOT contain secrets.
+
+```typescript
+@Module({
+  imports: [AuditModule.forRoot()],
+})
+export class AppModule {}
+```
+
+### Volume control: kill switch + action filter
+
+Audit volume is dominated by successful `data.*` mutations, while the
+high-value records (denials, auth failures) are a tiny fraction. The filter
+is applied **at the source** (`AuditService.log`), so a filtered entry costs
+nothing — no bus traffic, no outbox rows, no store growth. Options come
+from `forRoot` with env fallbacks (env fills any unset field):
+
+```env
+# .env of any service
+AUDIT_ENABLED=true                                # emergency kill switch
+AUDIT_INCLUDE=access.denied,auth.,data.deleted    # if set, ONLY these prefixes pass
+AUDIT_EXCLUDE=data.updated                        # dropped after include
+```
+
+```typescript
+AuditModule.forRoot({ filter: { include: ['access.', 'auth.', 'data.deleted'] } })
+```
+
+- Matching is by **dot-path prefix on segment boundaries**: `auth` matches
+  `auth.login.failed` and the exact action `auth`, but not `audit.x` or
+  `author.x`.
+- Order: `enabled=false` → drop; non-empty `include` without a match →
+  drop; `exclude` match → drop. Defaults keep everything (no behavior
+  change for existing services).
+- The resolved filter is logged at boot (one line per service), entries
+  with whitespace/uppercase produce a typo warning, and the
+  `audit_events_total{result="passed|filtered|disabled"}` counter (visible
+  when `MetricsModule` is configured) shows what the filter actually does
+  under load.
+
+> Sizing intuition: a 1000 rps service is mostly reads — reads are never
+> audited. `AUDIT_INCLUDE=access.denied,auth.,data.deleted` keeps the
+> incident-relevant kilobytes and sheds the gigabytes.
+
+---
+
 ## Logging: JSON format + request id
 
 `Log.setup(app)` gains a structured mode: set `LOG_FORMAT=json` (env) and it

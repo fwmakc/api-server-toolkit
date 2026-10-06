@@ -2,7 +2,7 @@ import { DynamicModule, Global, Module, Provider, Type } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { EventClientModule } from '../client/event-client.module';
 import { AuditInterceptor } from './audit.interceptor';
-import { AuditService } from './audit.service';
+import { AUDIT_OPTIONS, AuditFilterOptions, AuditService } from './audit.service';
 
 export interface AuditModuleOptions {
   /** Audit successful mutations (non-GET 2xx) through a global interceptor.
@@ -17,6 +17,11 @@ export interface AuditModuleOptions {
   /** Extra modules made visible to AuditService (e.g. a custom IEventClient
    * provider module when `client: false`). */
   imports?: Array<DynamicModule | Type>;
+  /** Source-side volume filter + kill switch (AUDIT_OPTIONS). Unset fields
+   * fall back to env: AUDIT_ENABLED / AUDIT_INCLUDE / AUDIT_EXCLUDE.
+   * Filtered entries are dropped BEFORE publishing — no bus traffic, no
+   * outbox rows, no store growth. Default: everything is recorded. */
+  filter?: AuditFilterOptions;
 }
 
 /** Global so AccessGuard can inject AuditService from any module context. */
@@ -24,7 +29,10 @@ export interface AuditModuleOptions {
 @Module({})
 export class AuditModule {
   static forRoot(options: AuditModuleOptions = {}): DynamicModule {
-    const providers: Provider[] = [AuditService];
+    const providers: Provider[] = [
+      AuditService,
+      { provide: AUDIT_OPTIONS, useValue: options.filter ?? {} },
+    ];
     if (options.mutations !== false) {
       providers.push({ provide: APP_INTERCEPTOR, useClass: AuditInterceptor });
     }
