@@ -1243,6 +1243,18 @@ Account info cache TTL is determined by:
 auth-server controls TTL via `INTERNAL_INFO_CACHE_TTL` env var (seconds).
 Consumer can set `AUTH_CACHE_TTL` as fallback when header is missing.
 
+### Invalidation
+
+`AuthClientService.clearCache(id?)` drops one cached entry (or the whole
+cache). The TTL above is only a staleness ceiling: consumers that mirror
+account state subscribe to the event bus and call `clearCache(userId)`
+on every delivery of `user.roles_changed` / `user.deactivated` /
+`user.deleted` — outside any processed-events dedup ledger, since each
+replica owns its own cache and must invalidate its own copy. This turns
+role revocations and deactivations into immediate effect across all
+replicas. Renaming a role itself does not emit an event — holders'
+caches age out over the TTL (documented residue).
+
 ### Env vars
 
 | Variable | Side | Default | Description |
