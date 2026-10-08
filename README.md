@@ -37,10 +37,10 @@ replace the queue backend — service code stays the same.
 
 This toolkit optimizes for a specific domain model. It is **not**:
 
-- **RBAC system** — 6 access levels (`public`, `account`, `tenant`, `owner`, `superuser`, `closed`) are CRUD route presets, not a permissions matrix. You can layer RBAC on top with a custom guard — see [FAQ](#faq-addressing-common-concerns) below.
+- **Permissions matrix** — roles are first-class: access rules accept arbitrary role names (`who: ['editor']`) with per-role row scopes and field visibility (see [FAQ](#faq-addressing-common-concerns) below). What is not built in is per-action permission tuples (`canEditPosts`-style grants) — that, not roles, is what a custom guard would add.
 - **Multi-tenant ready** — optional tenant scoping via `TENANT_TABLE` env var. When set, a second WHERE dimension filters all queries by tenant. When empty (default), behavior is single-tenant. See [Multi-tenancy](#multi-tenancy) below.
-- **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`). For complex RBAC (roles, permissions matrix), add your own guard.
-- **Message broker** — no Kafka/Redis/NATS dependency. Events are published via HTTP by default. The `IEventClient` interface lets you plug in any broker — see [Event Publishing](#event-publishing) below.
+- **Admin model** — the admin check is configurable via `SUPERUSER_FIELD` / `SUPERUSER_VALUE` env vars (default: `isSuperuser === true`); `superuser` is a global bypass in the access model. Beyond role rules, a per-action permissions matrix means adding your own guard.
+- **Message broker** — no Kafka/Redis/NATS dependency and none needed to start: events publish over HTTP. If a broker ceiling is ever hit, it is an adapter swap, not a rewrite: implement `IEventClient` (e.g. `KafkaEventClient`) and rebind the DI token — publishing call-sites stay unchanged — see [Event Publishing](#event-publishing) below.
 
 If you need multi-tenancy or a fundamentally different access model, see
 [Changing the Domain Model](#changing-the-domain-model) below — it lists the
@@ -49,7 +49,7 @@ exact files to fork and modify.
 ## Installation
 
 ```bash
-npm install github:fwmakc/api-server-toolkit#v0.13.1
+npm install github:fwmakc/api-server-toolkit#v0.32.0
 ```
 
 npm clones the repo and runs the `prepare` script automatically, which builds `dist/` via `tsc`. No manual build step needed. The package also ships `ai-declarations.md` (type declarations for AI-assisted development).
@@ -127,6 +127,13 @@ Client request
 ## Access levels
 
 Six independent restriction levels. Each CRUD operation gets its **own** level.
+
+> These are **presets** for simple CRUD. The general mechanism is access
+> rules: per operation/field/relation objects with `who: RoleName[]` —
+> arbitrary role names like `['editor']` — plus row `scope` and a forced
+> `filter`. Roles are data (assigned in auth-server, propagated by
+> `user.roles_changed`); adding one requires no new guard. The rules API is
+> `@Access()` / `EntityController({ operations: { read: [{ who: [...] }] } })`.
 
 ### The six levels
 
@@ -2068,28 +2075,43 @@ If you decide to fork the toolkit for a custom domain model:
 
 ### "Only `isSuperuser` for admin — what if I need roles?"
 
-Set `SUPERUSER_FIELD` and `SUPERUSER_VALUE` env vars. The toolkit checks any JWT field
-against any value(s) — no code changes:
+Roles need **no custom guard** — they are first-class in the access rules.
+A role is any string; list it in `who` on any operation or field rule, with
+per-role row scope and forced filters:
+
+```typescript
+operations: {
+  read:   [{ who: ['authenticated'], scope: { owner: 'account.id' } },
+           { who: ['editor'] }],
+  update: [{ who: ['editor'] }],
+}
+```
+
+Roles are data: assign them in auth-server and consumers pick the change up
+within seconds via `user.roles_changed` (measured live on the stack: role
+revoke → 403 in 1.5 s, grant → route opens in 3.0 s). The admin check
+itself stays configurable — any JWT field against any value(s):
 
 ```env
 SUPERUSER_FIELD=role
 SUPERUSER_VALUE=admin,superadmin
 ```
 
-For fine-grained RBAC (permissions matrix like `canEditPosts`), add a custom
-`@UseGuards(RbacGuard)` alongside `@EntityController`. The 6 access levels are
-CRUD route presets (think Express middleware), not a security model. Your guard
-handles authorization logic; the toolkit handles route generation, Swagger, and
-bind scoping.
+`superuser` is a global bypass on top of any rules. What you would still
+write yourself is a per-action permissions matrix (`canEditPosts`-style
+grants) — authorization logic beyond roles.
 
-### "5 fixed access levels — too rigid?"
+### "Fixed access levels — too rigid?"
 
-The levels (`public`, `account`, `owner`, `superuser`, `closed`) control which CRUD
-routes exist and who can call them. They are presets, not constraints. You can:
+The level presets (`public`, `account`, `tenant`, `owner`, `superuser`,
+`closed`) are shorthand, not the model. The general mechanism is access
+rules per operation/field/relation — arbitrary role names in `who`, row
+`scope` (`all` / `owner` / `tenant`), forced read `filter`s, and
+`response`/`request` field rules. Beyond that you can still:
 
 - Set any operation to `'closed'` and implement the route yourself
 - Add `@UseGuards(YourGuard)` on top for additional checks
-- Fork to change the enum itself (see [Changing the Domain Model](#changing-the-domain-model))
+- Fork to change the model itself (see [Changing the Domain Model](#changing-the-domain-model))
 
 ### "Single maintainer, no community — what about support?"
 
